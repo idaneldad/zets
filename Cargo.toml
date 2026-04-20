@@ -1,0 +1,39 @@
+[package]
+name = "zets"
+version = "0.1.0"
+edition = "2021"
+authors = ["Idan Eldad <idan@eldad.me>"]
+description = "Deterministic knowledge graph engine for edge devices"
+license = "MIT"
+build = "build.rs"
+
+# ZERO runtime dependencies. Build what's trivial ourselves.
+# External crates only for crypto, OS bindings, or complex math we can't replicate.
+
+[lib]
+name = "zets"
+path = "src/lib.rs"
+
+[[bin]]
+name = "zets"
+path = "src/bin/zets.rs"
+
+[[bin]]
+name = "tester"
+path = "src/bin/tester.rs"
+
+[dependencies]
+# None. stdlib only.
+
+[dev-dependencies]
+# None.
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1

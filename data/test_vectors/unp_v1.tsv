@@ -1,0 +1,49 @@
+# ZETS UNP test vectors — V1 ground truth.
+# Format: lang<TAB>input<TAB>expected<TAB>category<TAB>note
+# lang = ISO 639-1 code
+# category: root | final_form | niqud | whitespace | prefix | suffix | needs_dict
+# week1_pass: if category != 'needs_dict', should pass with Week 1 UNP
+
+# Hebrew roots preserved (no transformation needed)
+he	כלב	כלב	root	3-letter root
+he	בית	בית	root	3-letter root
+he	ספר	ספר	root	3-letter root
+he	יד	יד	root	2-letter root
+he	אהבה	אהבה	root	4-letter word
+
+# Final form normalization
+he	מלך	מלכ	final_form	final kaf to regular kaf
+he	עם	עמ	final_form	final mem to regular mem
+he	מין	מינ	final_form	final nun to regular
+he	חוף	חופ	final_form	final peh to regular
+he	עץ	עצ	final_form	final tzadi to regular
+he	שלום	שלומ	final_form	final mem at end of 4-letter word
+
+# Niqud stripping
+he	כֶּלֶב	כלב	niqud	full niqud on kelev
+he	בַּיִת	בית	niqud	niqud plus dagesh on bayit
+he	שָׁלוֹם	שלומ	niqud	niqud plus final form
+he	אֱלֹהִים	אלהימ	niqud	divine name niqud
+
+# Whitespace
+he	  כלב  	כלב	whitespace	outer whitespace stripped
+he	 בית ספר 	בית ספר	whitespace	inner single space preserved
+
+# English
+en	Hello	hello	root	simple lowercase
+en	  WORLD  	world	whitespace	lowercase plus trim
+en	Two   Words	two words	whitespace	collapse inner whitespace
+en	HELLO WORLD	hello world	root	multi-word
+
+# Arabic (tatweel stripping)
+ar	محـمد	محمد	root	tatweel stripped
+ar	كــتاب	كتاب	root	multiple tatweels stripped
+
+# --- Needs dictionary (Week 2+, not expected to pass Week 1) ---
+he	הבית	בית	needs_dict	definite article
+he	בבית	בית	needs_dict	preposition in
+he	ובית	בית	needs_dict	conjunction and
+he	כלבים	כלב	needs_dict	plural of kelev
+he	ספרים	ספר	needs_dict	plural of sefer
+he	ביתי	בית	needs_dict	possessive my house
+he	הכלבים	כלב	needs_dict	the dogs (double morpheme)

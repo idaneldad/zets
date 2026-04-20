@@ -1,0 +1,35 @@
+# Hebrew prefixes (מש"ה וכל"ב + compounds)
+# Format: prefix<TAB>char_length<TAB>type<TAB>note
+# type: single | compound | conjunction | particle
+# Ordered longest-first; stripper uses longest match.
+
+# 3-letter compounds
+וכש	3	compound	and-that-
+שכש	3	compound	that-that-
+וכל	3	compound	and-all-
+
+# 2-letter compounds
+וה	2	compound	and-the-
+ומ	2	compound	and-from-
+ול	2	compound	and-to-
+וב	2	compound	and-in-
+וכ	2	compound	and-like-
+וש	2	compound	and-that-
+שה	2	compound	that-the-
+שב	2	compound	that-in-
+שכ	2	compound	that-like-
+שמ	2	compound	that-from-
+של	2	compound	of / that-to-
+כה	2	compound	like-the-
+לה	2	compound	to-the-
+מה	2	compound	from-the-
+בה	2	compound	in-the-
+
+# 1-letter prefixes (מש"ה וכל"ב)
+ו	1	conjunction	and
+ה	1	particle	the (definite article)
+ש	1	particle	that/which
+ב	1	single	in/at
+כ	1	single	like/as
+ל	1	single	to/for
+מ	1	single	from

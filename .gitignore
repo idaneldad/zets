@@ -1,0 +1,21 @@
+/target
+/Cargo.lock.old
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime directories (not source)
+/cache/
+/overlay.enc
+/packs/downloaded/
+
+# Note: /data/ IS tracked — source TSV/JSON for build.rs to compile in

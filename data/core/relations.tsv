@@ -1,0 +1,35 @@
+# ZETS relation types — up to 32 (5 bits). Currently 30 used.
+# Format: id<TAB>name<TAB>inverse_id<TAB>category<TAB>description
+# id = u8 discriminant (0-31)
+# inverse_id = id of inverse relation, or 255 if none
+# category = structural | causal | functional | logical | spatial | role | meta | discourse
+0	IS_A	17	structural	X is a kind of Y (hypernym)
+1	HAS_PART	2	structural	X has Y as a part (meronymy)
+2	MEMBER_OF	1	structural	X is a part of Y
+3	SAME_AS	3	structural	X and Y refer to the same concept
+4	NEAR_SYNONYM	4	structural	X and Y are similar but not identical
+5	CAUSES	255	causal	X brings about Y
+6	ENABLES	255	causal	X makes Y possible but not certain
+7	PREVENTS	255	causal	X stops Y from happening
+8	PRECEDES	9	causal	X happens before Y (logical/temporal)
+9	FOLLOWS	8	causal	X happens after Y (logical/temporal)
+10	USED_FOR	255	functional	X has purpose Y
+11	REQUIRES	255	functional	X needs Y to function
+12	PRODUCES	255	functional	X outputs Y as a result
+13	SATISFIES	255	functional	X meets requirement Y
+14	IMPLIES	255	logical	X logically entails Y
+15	CONTRADICTS	15	logical	X and Y cannot both be true
+16	DEFINED_BY	255	logical	X is defined in terms of Y
+17	EXAMPLE_OF	0	logical	X is an instance of Y
+18	LOCATED_IN	19	spatial	X is physically inside Y
+19	CONTAINS	18	spatial	X physically holds Y
+20	ADJACENT_TO	20	spatial	X is next to Y
+21	AGENT_OF	255	role	X performs action Y
+22	PATIENT_OF	255	role	X receives action Y
+23	INSTRUMENT_OF	255	role	X is used to perform Y
+24	DERIVED_FROM	255	meta	X comes from Y (etymologically/historically)
+25	VARIATION_OF	25	meta	X is a variant of Y
+26	OPPOSED_TO	26	meta	X is the opposite of Y
+27	TEXT_NEXT	255	discourse	word X is immediately followed by word Y in some text
+28	APPEARS_IN	255	discourse	token X appears in document Y (provenance carries position)
+29	CITES	255	discourse	document X references document Y

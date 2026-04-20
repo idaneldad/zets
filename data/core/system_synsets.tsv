@@ -1,0 +1,84 @@
+# ZETS system/meta synsets — reserved ID range 0..999.
+# These are the "11th sphere" homoiconic nodes: the system describes itself.
+# Format: id<TAB>key<TAB>category<TAB>description
+# id = u32 synset ID (fits in u24)
+# key = canonical identifier (lowercase ASCII)
+# category = system | language | relation | permission | status
+
+# Root nodes (0-9)
+0	SYSTEM	system	Root of the meta-graph
+1	LANGUAGE_REGISTRY	system	Parent of all language nodes
+2	RELATION_REGISTRY	system	Parent of all relation type nodes
+3	PERMISSION_REGISTRY	system	Parent of all permission nodes
+4	STATUS_REGISTRY	system	Parent of all status nodes
+5	USER_REGISTRY	system	Parent of all trusted-user nodes
+
+# Language nodes (10-29) — one per ISO code, stable IDs
+10	he	language	Hebrew language node
+11	en	language	English language node
+12	ar	language	Arabic language node
+13	cn	language	Chinese language node
+14	ru	language	Russian language node
+15	ja	language	Japanese language node
+16	es	language	Spanish language node
+17	fr	language	French language node
+18	de	language	German language node
+19	pt	language	Portuguese language node
+
+# Relation type nodes (30-59) — one per relation, IDs = relation_discriminant + 30
+30	IS_A	relation	The IS_A relation itself, as a node
+31	HAS_PART	relation	
+32	MEMBER_OF	relation	
+33	SAME_AS	relation	
+34	NEAR_SYNONYM	relation	
+35	CAUSES	relation	
+36	ENABLES	relation	
+37	PREVENTS	relation	
+38	PRECEDES	relation	
+39	FOLLOWS	relation	
+40	USED_FOR	relation	
+41	REQUIRES	relation	
+42	PRODUCES	relation	
+43	SATISFIES	relation	
+44	IMPLIES	relation	
+45	CONTRADICTS	relation	
+46	DEFINED_BY	relation	
+47	EXAMPLE_OF	relation	
+48	LOCATED_IN	relation	
+49	CONTAINS	relation	
+50	ADJACENT_TO	relation	
+51	AGENT_OF	relation	
+52	PATIENT_OF	relation	
+53	INSTRUMENT_OF	relation	
+54	DERIVED_FROM	relation	
+55	VARIATION_OF	relation	
+56	OPPOSED_TO	relation	
+
+# Status nodes (60-69)
+60	ACTIVE	status	Something currently in use
+61	INACTIVE	status	Something available but not loaded
+62	PENDING	status	Download/install in progress
+63	DEPRECATED	status	Being phased out
+
+# Permission levels (70-79)
+70	MASTER	permission	Full system control
+71	ADMIN	permission	Configuration and content
+72	USER	permission	Query and teach
+73	READONLY	permission	Query only
+74	GUEST	permission	Public content only
+
+# First real content begins at synset ID 10000 to leave generous headroom
+57	TEXT_NEXT	relation	Text sequence: word X precedes word Y
+58	APPEARS_IN	relation	Token X appears in document Y
+59	CITES	relation	Document X references document Y
+
+# Document-related nodes (80-89)
+80	DOCUMENT_REGISTRY	system	Parent of all document synsets
+81	DOCUMENT	system	Generic document type
+82	ARTICLE	system	Article document subtype
+83	BOOK	system	Book document subtype
+84	SENTENCE	system	Sentence unit
+85	PARAGRAPH	system	Paragraph unit
+
+# Reserved range 100..999 for future system nodes.
+# Document synsets begin at SynsetId 1_000_000 (concept space).

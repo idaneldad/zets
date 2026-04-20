@@ -1,0 +1,30 @@
+# Hebrew suffixes — post-normalized form (final letters already converted).
+# Format: suffix<TAB>char_length<TAB>type<TAB>note
+# type: possessive | plural | verb | feminine
+# Note: "ים" here is yod+regular-mem (after normalize_final_form on input).
+
+# 3-letter (possessive plural)
+יכמ	3	possessive	your (m.pl)
+יכנ	3	possessive	your (f.pl)
+יהמ	3	possessive	their (m)
+יהנ	3	possessive	their (f)
+
+# 2-letter (plurals, possessives, verb forms)
+ימ	2	plural	masculine plural ים
+ות	2	plural	feminine plural
+תי	2	verb	past 1st person sing
+תמ	2	verb	past 2nd person m.pl
+תנ	2	verb	past 2nd person f.pl
+נו	2	possessive	our / past 1st person pl
+כמ	2	possessive	your (m.pl)
+כנ	2	possessive	your (f.pl)
+המ	2	possessive	their (m)
+הנ	2	possessive	their (f)
+ית	2	feminine	feminine noun/adjective
+יה	2	feminine	feminine singular
+כי	2	verb	past 2nd person f.sg
+
+# 1-letter (single possessives, normalized)
+י	1	possessive	my
+ה	1	feminine	her / feminine singular
+כ	1	possessive	your (m.sg)

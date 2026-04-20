@@ -1,0 +1,16 @@
+# ZETS supported languages — ISO 639-1 codes.
+# Format: code<TAB>name_native<TAB>name_english<TAB>script<TAB>rtl<TAB>default_active
+# code = ISO 639-1 lowercase (2 letters)
+# script = ISO 15924 (Hebr, Latn, Arab, Hans, Cyrl, Jpan)
+# rtl = 1 if right-to-left, 0 if left-to-right
+# default_active = 1 if shipped active, 0 if needs pack download
+he	עברית	Hebrew	Hebr	1	1
+en	English	English	Latn	0	1
+ar	العربية	Arabic	Arab	1	0
+cn	中文	Chinese	Hans	0	0
+ru	Русский	Russian	Cyrl	0	0
+ja	日本語	Japanese	Jpan	0	0
+es	Español	Spanish	Latn	0	0
+fr	Français	French	Latn	0	0
+de	Deutsch	German	Latn	0	0
+pt	Português	Portuguese	Latn	0	0

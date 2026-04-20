@@ -1,0 +1,18 @@
+# Hardware-specific optimization flags.
+# Enables AES-NI on x86, ARM Crypto Extensions on ARM, SIMD everywhere.
+
+[target.'cfg(target_arch = "aarch64")']
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "target-feature=+aes,+crc,+neon",
+]
+
+[target.'cfg(target_arch = "x86_64")']
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "target-feature=+aes,+pclmulqdq,+avx2,+sse4.2",
+]
+
+# Build caching (faster incremental compiles)
+[build]
+incremental = true

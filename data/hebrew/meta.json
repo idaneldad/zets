@@ -1,0 +1,28 @@
+{
+  "code": "he",
+  "name_native": "עברית",
+  "name_english": "Hebrew",
+  "script": "Hebr",
+  "rtl": true,
+  "min_root_chars": 3,
+  "niqud_ranges": [
+    [1425, 1471],
+    [1472, 1474],
+    [1475, 1476],
+    [1479, 1479]
+  ],
+  "letter_range": [1488, 1514],
+  "final_forms": {
+    "ך": "כ",
+    "ם": "מ",
+    "ן": "נ",
+    "ף": "פ",
+    "ץ": "צ"
+  },
+  "punctuation": [1523, 1524],
+  "data_version": "2026.04.20",
+  "sources": [
+    "prefixes.tsv",
+    "suffixes.tsv"
+  ]
+}
