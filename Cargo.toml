@@ -81,3 +81,7 @@ path = "src/bin/phrase.rs"
 [[bin]]
 name = "learn-syntax"
 path = "src/bin/learn_syntax.rs"
+
+[[bin]]
+name = "self-test"
+path = "src/bin/self_test.rs"

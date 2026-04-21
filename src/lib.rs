@@ -38,6 +38,7 @@ pub mod concepts;
 pub mod syntax_rules;
 pub mod phrase;
 pub mod word_order_learner;
+pub mod self_learner;
 
 use std::fmt;
 
