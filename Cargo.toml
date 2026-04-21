@@ -65,3 +65,7 @@ panic = "abort"
 
 [profile.dev]
 opt-level = 1
+
+[[bin]]
+name = "ask"
+path = "src/bin/ask.rs"
