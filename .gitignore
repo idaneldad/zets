@@ -27,3 +27,4 @@ Thumbs.db
 
 # Note: /data/hebrew/core_vocabulary.tsv, prefixes.tsv, suffixes.tsv ARE tracked
 #       (small, part of build.rs compilation)
+data/packs/

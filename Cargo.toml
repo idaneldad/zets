@@ -93,3 +93,23 @@ path = "src/bin/debug_disagreements.rs"
 [[bin]]
 name = "lex-stats"
 path = "src/bin/lex_stats.rs"
+
+[[bin]]
+name = "piece-graph"
+path = "src/bin/piece_graph.rs"
+
+[[bin]]
+name = "debug-piece"
+path = "src/bin/debug_piece.rs"
+
+[[bin]]
+name = "pack-write"
+path = "src/bin/pack_write.rs"
+
+[[bin]]
+name = "pack-read"
+path = "src/bin/pack_read.rs"
+
+[[bin]]
+name = "analyze-pool"
+path = "src/bin/analyze_pool.rs"

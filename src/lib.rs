@@ -39,6 +39,9 @@ pub mod syntax_rules;
 pub mod phrase;
 pub mod word_order_learner;
 pub mod self_learner;
+pub mod piece_graph;
+pub mod piece_graph_loader;
+pub mod pack;
 
 use std::fmt;
 
