@@ -18,4 +18,12 @@ Thumbs.db
 /overlay.enc
 /packs/downloaded/
 
-# Note: /data/ IS tracked — source TSV/JSON for build.rs to compile in
+# Large extracted data dumps — regenerate from scripts/ when needed.
+# Source dumps are on the Oracle server at /home/dinio/cortex-v7/ and
+# /home/dinio/lev-knowledge/; scripts in scripts/ produce these outputs.
+/data/hebrew/wiki_full.tsv
+/data/hebrew/wiktionary/
+/data/multilingual/
+
+# Note: /data/hebrew/core_vocabulary.tsv, prefixes.tsv, suffixes.tsv ARE tracked
+#       (small, part of build.rs compilation)
