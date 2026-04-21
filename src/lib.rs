@@ -32,6 +32,9 @@
 #![allow(clippy::must_use_candidate, clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions, clippy::missing_panics_doc)]
 
+pub mod lexicon;
+pub mod compose;
+
 use std::fmt;
 
 
