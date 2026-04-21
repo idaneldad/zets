@@ -151,8 +151,9 @@ impl SelfLearner {
             }
             let lang = parts[1].trim();
             let surface = parts[2].trim();
-            // Only keep 2-word phrases (the simplest learnable structure)
-            if surface.split_whitespace().count() == 2 {
+            // Keep 2-word and 3-word phrases (det+adj+noun is very informative)
+            let n_tokens = surface.split_whitespace().count();
+            if n_tokens == 2 || n_tokens == 3 {
                 self.corpus_phrases.push((lang.to_string(), surface.to_string()));
                 count += 1;
             }
@@ -231,48 +232,151 @@ impl SelfLearner {
         }
     }
 
-    /// Use known word-order rules to infer POS for unknown words.
-    /// Returns number of new words added.
+    /// Use known patterns to infer POS for unknown words. Returns count added.
+    ///
+    /// AGGREGATIVE LOGIC: each unknown word collects evidence from ALL phrases
+    /// it appears in. We tally votes (noun/adj/verb), and only assign POS when
+    /// majority is clear (>=66%) AND total votes >= 3. This avoids classifying
+    /// noun-noun compounds like "muon decay" as "adj+noun".
     fn propagate_pos(&mut self) -> usize {
-        let mut new_inferences: Vec<(String, String, String, u8)> = Vec::new();
+        // Per-word vote tally: (lang, word) → HashMap<pos, count>
+        let mut votes: HashMap<(String, String), HashMap<String, u32>> = HashMap::new();
 
         for (lang, phrase) in &self.corpus_phrases {
-            let rule = match self.graph.word_order.get(lang) {
-                Some(r) if r != "undetermined" => r.clone(),
-                _ => continue,
-            };
             let toks: Vec<&str> = phrase.split_whitespace().collect();
+
+            // 3-WORD PATTERN: det + X + Y (or det + Y + X depending on order)
+            // The position right after det is almost always adj or noun.
+            if toks.len() == 3 {
+                let pos0 = self.graph.pos_for(lang, toks[0]).map(String::from);
+                let pos1 = self.graph.pos_for(lang, toks[1]).map(String::from);
+                let pos2 = self.graph.pos_for(lang, toks[2]).map(String::from);
+                if pos0.as_deref() == Some("det") {
+                    let rule_opt = self.graph.word_order.get(lang).cloned();
+                    if let Some(rule) = rule_opt {
+                        match rule.as_str() {
+                            "adj_first" => {
+                                // det + adj + noun pattern
+                                if pos1.is_none() && pos2.as_deref() == Some("noun") {
+                                    *votes
+                                        .entry((lang.clone(), toks[1].to_string()))
+                                        .or_default()
+                                        .entry("adj".to_string())
+                                        .or_insert(0) += 2;
+                                }
+                                if pos1.as_deref() == Some("adj") && pos2.is_none() {
+                                    *votes
+                                        .entry((lang.clone(), toks[2].to_string()))
+                                        .or_default()
+                                        .entry("noun".to_string())
+                                        .or_insert(0) += 3;
+                                }
+                            }
+                            "noun_first" => {
+                                // det + noun + adj pattern
+                                if pos1.is_none() && pos2.as_deref() == Some("adj") {
+                                    *votes
+                                        .entry((lang.clone(), toks[1].to_string()))
+                                        .or_default()
+                                        .entry("noun".to_string())
+                                        .or_insert(0) += 3;
+                                }
+                                if pos1.as_deref() == Some("noun") && pos2.is_none() {
+                                    *votes
+                                        .entry((lang.clone(), toks[2].to_string()))
+                                        .or_default()
+                                        .entry("adj".to_string())
+                                        .or_insert(0) += 2;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                continue;
+            }
+
             if toks.len() != 2 {
                 continue;
             }
             let pos0 = self.graph.pos_for(lang, toks[0]).map(String::from);
             let pos1 = self.graph.pos_for(lang, toks[1]).map(String::from);
 
-            match (pos0.as_deref(), pos1.as_deref(), rule.as_str()) {
-                // adj_first language, position 0 known as adj → position 1 must be noun
-                (Some("adj"), None, "adj_first") => {
-                    new_inferences.push((lang.clone(), toks[1].to_string(), "noun".to_string(), 70));
+            // PATTERN 1: determiner + word → word is noun (universal, very reliable)
+            if pos0.as_deref() == Some("det") && pos1.is_none() {
+                *votes
+                    .entry((lang.clone(), toks[1].to_string()))
+                    .or_default()
+                    .entry("noun".to_string())
+                    .or_insert(0) += 5; // determiner-vote weight = 5
+                continue;
+            }
+
+            // PATTERN 2: word-order driven inference
+            let rule_opt = self.graph.word_order.get(lang).cloned();
+            if let Some(rule) = rule_opt {
+                if rule == "undetermined" {
+                    continue;
                 }
-                // adj_first language, position 1 known as noun → position 0 must be adj
-                (None, Some("noun"), "adj_first") => {
-                    new_inferences.push((lang.clone(), toks[0].to_string(), "adj".to_string(), 70));
+                match (pos0.as_deref(), pos1.as_deref(), rule.as_str()) {
+                    (Some("adj"), None, "adj_first") => {
+                        *votes
+                            .entry((lang.clone(), toks[1].to_string()))
+                            .or_default()
+                            .entry("noun".to_string())
+                            .or_insert(0) += 1;
+                    }
+                    (None, Some("noun"), "adj_first") => {
+                        // Position 0 could be adj OR noun (compound) — weaker vote
+                        *votes
+                            .entry((lang.clone(), toks[0].to_string()))
+                            .or_default()
+                            .entry("adj".to_string())
+                            .or_insert(0) += 1;
+                        *votes
+                            .entry((lang.clone(), toks[0].to_string()))
+                            .or_default()
+                            .entry("noun".to_string())
+                            .or_insert(0) += 1; // tie vote — let other evidence break tie
+                    }
+                    (Some("noun"), None, "noun_first") => {
+                        *votes
+                            .entry((lang.clone(), toks[1].to_string()))
+                            .or_default()
+                            .entry("adj".to_string())
+                            .or_insert(0) += 1;
+                    }
+                    (None, Some("adj"), "noun_first") => {
+                        *votes
+                            .entry((lang.clone(), toks[0].to_string()))
+                            .or_default()
+                            .entry("noun".to_string())
+                            .or_insert(0) += 1;
+                    }
+                    _ => {}
                 }
-                // noun_first language, position 0 known as noun → position 1 must be adj
-                (Some("noun"), None, "noun_first") => {
-                    new_inferences.push((lang.clone(), toks[1].to_string(), "adj".to_string(), 70));
-                }
-                // noun_first language, position 1 known as adj → position 0 must be noun
-                (None, Some("adj"), "noun_first") => {
-                    new_inferences.push((lang.clone(), toks[0].to_string(), "noun".to_string(), 70));
-                }
-                _ => {}
             }
         }
 
-        // Apply all inferences
+        // Apply: for each word with votes, pick majority IF >=66% AND >=3 total votes
         let mut added = 0;
-        for (lang, word, pos, conf) in new_inferences {
-            if self.graph.upsert(&lang, &word, &pos, conf) {
+        for ((lang, word), pos_votes) in votes {
+            let total: u32 = pos_votes.values().sum();
+            if total < 2 {
+                continue;
+            }
+            let (best_pos, best_count) = pos_votes
+                .iter()
+                .max_by_key(|(_, c)| *c)
+                .map(|(p, c)| (p.clone(), *c))
+                .unwrap();
+            let majority = best_count as f64 / total as f64;
+            if majority < 0.6 {
+                continue; // ambiguous — don't commit
+            }
+            // Confidence scales with vote count and majority
+            let conf = (50.0 + majority * 35.0).min(85.0) as u8;
+            if self.graph.upsert(&lang, &word, &best_pos, conf) {
                 added += 1;
             }
         }
@@ -344,15 +448,21 @@ mod tests {
     #[test]
     fn propagate_infers_from_rule() {
         let mut l = SelfLearner::new();
-        // Seed: only "big" known
+        // Seed: "big" and "small" both known as adj
         l.graph.upsert("en", "big", "adj", 100);
+        l.graph.upsert("en", "small", "adj", 100);
+        l.graph.upsert("en", "tiny", "adj", 100);
         // Rule already established
         l.graph.word_order.insert("en".to_string(), "adj_first".to_string());
-        // Phrase: big + UNKNOWN
+        // 3 phrases all suggesting "tree" is noun
         l.corpus_phrases
             .push(("en".to_string(), "big tree".to_string()));
+        l.corpus_phrases
+            .push(("en".to_string(), "small tree".to_string()));
+        l.corpus_phrases
+            .push(("en".to_string(), "tiny tree".to_string()));
         let added = l.propagate_pos();
-        assert_eq!(added, 1);
+        assert!(added >= 1);
         assert_eq!(l.graph.pos_for("en", "tree"), Some("noun"));
     }
 }

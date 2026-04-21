@@ -85,3 +85,7 @@ path = "src/bin/learn_syntax.rs"
 [[bin]]
 name = "self-test"
 path = "src/bin/self_test.rs"
+
+[[bin]]
+name = "debug-disagreements"
+path = "src/bin/debug_disagreements.rs"
