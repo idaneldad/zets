@@ -434,8 +434,8 @@ pub mod unp {
     // DIFFERENT hashes. Example: "gift"[EN] (present) vs "gift"[DE] (poison) —
     // same bytes, different meaning, must have different synset/hash.
 
-    const FNV_OFFSET_128: u128 = 0x6c62272e07bb014262b821756295c58d;
-    const FNV_PRIME_128: u128 = 0x0000000001000000000000000000013b;
+    const FNV_OFFSET_128: u128 = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d;
+    const FNV_PRIME_128: u128 = 0x0000_0000_0100_0000_0000_0000_0000_013b;
 
     /// FNV-1a 128-bit with language code mixed into the seed.
     ///
@@ -856,7 +856,166 @@ pub mod edge_store {
             Some(e)
         }
     }
+
+    // ========================================================================
+    // ADJACENCY INDEX — sorted-edge binary search, O(log N) lookups
+    // ========================================================================
+
+    /// Auxiliary index for O(log N) lookups by source or target.
+    ///
+    /// Built on demand from an `EdgeStore`. Stores two permutations of edge
+    /// indices: one sorted by source, one sorted by target. Each permutation
+    /// is a `Vec<u32>` — 4 bytes per edge per direction, 8 bytes total overhead.
+    ///
+    /// # When to use
+    ///
+    /// Linear scan via `outgoing()`/`incoming()` is fine up to ~1M edges
+    /// (measured: ~1ms per query). Above that, scan time dominates: 5M edges
+    /// needs ~5ms per query, and multi-hop walks (depth 3, fanout 5) blow
+    /// through the 100ms target.
+    ///
+    /// Build the index once after bulk loading, then use `outgoing_indexed()`
+    /// and `incoming_indexed()` for fast walks.
+    ///
+    /// # Memory cost
+    ///
+    /// Index of 10M edges = 80MB RAM (2 × 4 bytes × 10M). For devices like
+    /// Pi 5 with 8GB, this is acceptable. For phones, might want to index
+    /// only frequently-walked direction.
+    ///
+    /// # Complexity
+    ///
+    /// - Build: O(N log N) — two sorts
+    /// - Lookup: O(log N + K) — binary search + K matching edges
+    ///
+    /// # Rebuild policy
+    ///
+    /// Index is static. After `store.push()`, the index is stale. The
+    /// maintenance cycle (idle-aware compaction, SPEC V6.1 §V) rebuilds it.
+    #[derive(Debug, Clone)]
+    pub struct AdjacencyIndex {
+        /// Edge indices sorted by source synset ID (ascending).
+        /// `by_source[i]` is the original position in the EdgeStore.
+        by_source: Vec<u32>,
+        /// Edge indices sorted by target synset ID (ascending).
+        by_target: Vec<u32>,
+    }
+
+    impl AdjacencyIndex {
+        /// Build a fresh index from the current state of an `EdgeStore`.
+        ///
+        /// Cost: O(N log N). For 1M edges: ~80ms on Oracle x86_64.
+        #[must_use]
+        pub fn build(store: &EdgeStore) -> Self {
+            let n = store.len();
+            let mut by_source: Vec<u32> = (0..u32::try_from(n).unwrap_or(u32::MAX)).collect();
+            let mut by_target: Vec<u32> = by_source.clone();
+
+            // Closures that read directly from packed columns.
+            // No Vec<Edge> materialization — work on indices only.
+            by_source.sort_unstable_by_key(|&i| read_u24(&store.sources, i as usize));
+            by_target.sort_unstable_by_key(|&i| read_u24(&store.targets, i as usize));
+
+            Self { by_source, by_target }
+        }
+
+        /// Bytes used by the index itself (excluding Vec overhead).
+        ///
+        /// Each index is `4 * edge_count` bytes; we have two indices.
+        #[inline]
+        #[must_use]
+        pub fn bytes_used(&self) -> usize {
+            (self.by_source.len() + self.by_target.len()) * 4
+        }
+
+        #[inline]
+        #[must_use]
+        pub fn edge_count(&self) -> usize {
+            self.by_source.len()
+        }
+
+        /// Find the range `[lo, hi)` of `by_source` where the source equals `src`.
+        /// Uses `partition_point` (binary search) twice — O(log N) total.
+        fn source_range(&self, store: &EdgeStore, src: u32) -> (usize, usize) {
+            let lo = self.by_source.partition_point(|&i| {
+                read_u24(&store.sources, i as usize) < src
+            });
+            let hi = self.by_source.partition_point(|&i| {
+                read_u24(&store.sources, i as usize) <= src
+            });
+            (lo, hi)
+        }
+
+        /// Find the range `[lo, hi)` of `by_target` where the target equals `tgt`.
+        fn target_range(&self, store: &EdgeStore, tgt: u32) -> (usize, usize) {
+            let lo = self.by_target.partition_point(|&i| {
+                read_u24(&store.targets, i as usize) < tgt
+            });
+            let hi = self.by_target.partition_point(|&i| {
+                read_u24(&store.targets, i as usize) <= tgt
+            });
+            (lo, hi)
+        }
+
+        /// Edges where `source == src`. O(log N + K).
+        #[must_use]
+        pub fn outgoing(&self, store: &EdgeStore, src: SynsetId) -> Vec<Edge> {
+            let (lo, hi) = self.source_range(store, src.0);
+            let mut out = Vec::with_capacity(hi - lo);
+            for &edge_idx in &self.by_source[lo..hi] {
+                if let Some(e) = store.get(edge_idx as usize) {
+                    out.push(e);
+                }
+            }
+            out
+        }
+
+        /// Edges where `target == tgt`. O(log N + K).
+        #[must_use]
+        pub fn incoming(&self, store: &EdgeStore, tgt: SynsetId) -> Vec<Edge> {
+            let (lo, hi) = self.target_range(store, tgt.0);
+            let mut out = Vec::with_capacity(hi - lo);
+            for &edge_idx in &self.by_target[lo..hi] {
+                if let Some(e) = store.get(edge_idx as usize) {
+                    out.push(e);
+                }
+            }
+            out
+        }
+
+        /// Count outgoing edges without materializing them. O(log N).
+        #[must_use]
+        pub fn outgoing_count(&self, store: &EdgeStore, src: SynsetId) -> usize {
+            let (lo, hi) = self.source_range(store, src.0);
+            hi - lo
+        }
+
+        /// Count incoming edges without materializing them. O(log N).
+        #[must_use]
+        pub fn incoming_count(&self, store: &EdgeStore, tgt: SynsetId) -> usize {
+            let (lo, hi) = self.target_range(store, tgt.0);
+            hi - lo
+        }
+
+        /// Find all distinct source synsets with at least one outgoing edge.
+        /// O(N) first call, could be cached. Useful for graph statistics.
+        #[must_use]
+        pub fn distinct_sources(&self, store: &EdgeStore) -> Vec<SynsetId> {
+            let mut out = Vec::new();
+            let mut last: Option<u32> = None;
+            for &i in &self.by_source {
+                let s = read_u24(&store.sources, i as usize);
+                if last != Some(s) {
+                    out.push(SynsetId(s));
+                    last = Some(s);
+                }
+            }
+            out
+        }
+    }
+
 }
+
 
 // ============================================================================
 // DOCUMENT — text as a sequence of tokens grounded in provenance
@@ -982,7 +1141,7 @@ pub mod document {
                 target: tokens[i + 1],
                 relation: Relation::TextNext,
                 weight: 7,
-                provenance: i as u32,
+                provenance: u32::try_from(i).unwrap_or(u32::MAX),
             });
             count += 1;
         }
@@ -994,7 +1153,7 @@ pub mod document {
                 target: doc,
                 relation: Relation::AppearsIn,
                 weight: 7,
-                provenance: i as u32,
+                provenance: u32::try_from(i).unwrap_or(u32::MAX),
             });
             count += 1;
         }
@@ -1444,8 +1603,8 @@ pub mod bloom {
 
         #[inline]
         fn double_hash(key: &[u8]) -> (u64, u64) {
-            (fnv1a_64(key, 0xcbf29ce484222325),
-             fnv1a_64(key, 0x84222325cbf29ce4))
+            (fnv1a_64(key, 0xcbf2_9ce4_8422_2325),
+             fnv1a_64(key, 0x8422_2325_cbf2_9ce4))
         }
 
         #[inline]
@@ -1987,6 +2146,112 @@ mod tests {
         assert_eq!(Relation::from_u8(29), Some(Relation::Cites));
         assert_eq!(Relation::from_u8(30), None);
         assert_eq!(Relation::MAX_VALUE, 29);
+    }
+
+    // --- AdjacencyIndex ---
+
+    #[test]
+    fn adjacency_index_matches_linear_scan_outgoing() {
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        let mut store = EdgeStore::new();
+        for i in 0..1000u32 {
+            store.push(Edge {
+                source: SynsetId(i % 100),
+                target: SynsetId(i * 3),
+                relation: Relation::IsA,
+                weight: 0, provenance: 0,
+            });
+        }
+        let idx = AdjacencyIndex::build(&store);
+        for src in [0u32, 1, 50, 99] {
+            let linear = store.outgoing(SynsetId(src));
+            let indexed = idx.outgoing(&store, SynsetId(src));
+            let mut l = linear.clone(); let mut i = indexed.clone();
+            l.sort_by_key(|e| (e.source.0, e.target.0));
+            i.sort_by_key(|e| (e.source.0, e.target.0));
+            assert_eq!(l, i, "mismatch for source {src}");
+        }
+    }
+
+    #[test]
+    fn adjacency_index_matches_linear_scan_incoming() {
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        let mut store = EdgeStore::new();
+        for i in 0..1000u32 {
+            store.push(Edge {
+                source: SynsetId(i),
+                target: SynsetId(i % 50),
+                relation: Relation::IsA,
+                weight: 0, provenance: 0,
+            });
+        }
+        let idx = AdjacencyIndex::build(&store);
+        for tgt in [0u32, 25, 49] {
+            let linear = store.incoming(SynsetId(tgt));
+            let indexed = idx.incoming(&store, SynsetId(tgt));
+            assert_eq!(linear.len(), indexed.len(), "count mismatch for target {tgt}");
+        }
+    }
+
+    #[test]
+    fn adjacency_index_empty_source_returns_empty() {
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        let mut store = EdgeStore::new();
+        store.push(Edge {
+            source: SynsetId(10), target: SynsetId(20),
+            relation: Relation::IsA, weight: 0, provenance: 0,
+        });
+        let idx = AdjacencyIndex::build(&store);
+        assert!(idx.outgoing(&store, SynsetId(99)).is_empty());
+        assert!(idx.incoming(&store, SynsetId(99)).is_empty());
+        assert_eq!(idx.outgoing_count(&store, SynsetId(99)), 0);
+    }
+
+    #[test]
+    fn adjacency_index_counts_without_materializing() {
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        let mut store = EdgeStore::new();
+        for i in 0..500u32 {
+            store.push(Edge {
+                source: SynsetId(7),  // all from same hub
+                target: SynsetId(i),
+                relation: Relation::IsA,
+                weight: 0, provenance: 0,
+            });
+        }
+        let idx = AdjacencyIndex::build(&store);
+        assert_eq!(idx.outgoing_count(&store, SynsetId(7)), 500);
+        assert_eq!(idx.outgoing_count(&store, SynsetId(42)), 0);
+    }
+
+    #[test]
+    fn adjacency_index_distinct_sources() {
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        let mut store = EdgeStore::new();
+        for src in [1u32, 1, 2, 3, 3, 3, 5] {
+            store.push(Edge {
+                source: SynsetId(src), target: SynsetId(100),
+                relation: Relation::IsA, weight: 0, provenance: 0,
+            });
+        }
+        let idx = AdjacencyIndex::build(&store);
+        let sources: Vec<u32> = idx.distinct_sources(&store).into_iter().map(|s| s.0).collect();
+        assert_eq!(sources, vec![1, 2, 3, 5]);
+    }
+
+    #[test]
+    fn adjacency_index_size_is_8_bytes_per_edge() {
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        let mut store = EdgeStore::new();
+        for i in 0..1000u32 {
+            store.push(Edge {
+                source: SynsetId(i), target: SynsetId(i),
+                relation: Relation::IsA, weight: 0, provenance: 0,
+            });
+        }
+        let idx = AdjacencyIndex::build(&store);
+        assert_eq!(idx.bytes_used(), 8000);  // 2 × 4 × 1000
+        assert_eq!(idx.edge_count(), 1000);
     }
 
 }

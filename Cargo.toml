@@ -22,6 +22,14 @@ path = "src/bin/zets.rs"
 name = "tester"
 path = "src/bin/tester.rs"
 
+[[bin]]
+name = "scale_probe"
+path = "src/bin/scale_probe.rs"
+
+[[bin]]
+name = "unp_bench"
+path = "src/bin/unp_bench.rs"
+
 [dependencies]
 # None. stdlib only.
 
