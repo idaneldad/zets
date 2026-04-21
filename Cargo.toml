@@ -46,6 +46,10 @@ path = "src/bin/multibase_probe.rs"
 name = "keyboard_probe"
 path = "src/bin/keyboard_probe.rs"
 
+[[bin]]
+name = "wiki_poc"
+path = "src/bin/wiki_poc.rs"
+
 [dependencies]
 # None. stdlib only.
 
