@@ -1,0 +1,139 @@
+# Hebrew core vocabulary seed - Tier 1
+# Format: canonical_surface<TAB>synset_id<TAB>pos<TAB>english_gloss<TAB>definition_he<TAB>synonyms(;)
+# synset_id = allocated in concept space (1_000_000+ reserved for documents, 2_000_000+ for concepts)
+# pos = noun | verb | adj | adv | pron | conj | prep | interj
+# synonyms = Hebrew synonyms separated by ; (may reference other rows by canonical_surface)
+#
+# This is a SEED file (~300 words). Production Tier 1 = ~5000 words from Dicta/YAP.
+# All surfaces are in CANONICAL form (after UNP normalize: niqud stripped, final-forms normalized).
+
+# --- Pronouns ---
+אני	2000001	pron	I	גוף ראשון יחיד	אנוכי
+אתה	2000002	pron	you (m.sg)	גוף שני זכר יחיד	
+את	2000003	pron	you (f.sg)	גוף שני נקבה יחידה	
+הוא	2000004	pron	he	גוף שלישי זכר	
+היא	2000005	pron	she	גוף שלישי נקבה	
+אנחנו	2000006	pron	we	גוף ראשון רבים	אנו
+אתמ	2000007	pron	you (m.pl)	גוף שני זכר רבים	
+הנ	2000008	pron	they (f)	גוף שלישי נקבה רבות	
+
+# --- Common nouns: family ---
+אבא	2000020	noun	father	הורה זכר	אב;הורה
+אמא	2000021	noun	mother	הורה נקבה	אמ;הורה
+ילד	2000022	noun	child (m)	צאצא זכר צעיר	בנ
+ילדה	2000023	noun	child (f)	צאצאית נקבה צעירה	בת
+משפחה	2000024	noun	family	יחידה חברתית קרובה	
+חבר	2000025	noun	friend	אדמ קרוב	ידיד;רע
+אחות	2000026	noun	sister	קרובת משפחה נקבה	
+אח	2000027	noun	brother	קרוב משפחה זכר	
+
+# --- Common nouns: household ---
+בית	2000040	noun	house	מבנה למגורים	משכנ;דירה
+דלת	2000041	noun	door	פתח יציאה או כניסה	
+חלונ	2000042	noun	window	פתח לאור ולאוויר	
+שולחנ	2000043	noun	table	רהיט שטוח לאוכל או עבודה	
+כיסא	2000044	noun	chair	רהיט לישיבה	מושב
+מיטה	2000045	noun	bed	רהיט לשינה	ערש
+מטבח	2000046	noun	kitchen	חדר להכנת אוכל	
+גינה	2000047	noun	garden	שטח פתוח עמ צמחייה	חצר;פרדס
+
+# --- Animals ---
+כלב	2000060	noun	dog	בעל חיימ ביתי	
+חתול	2000061	noun	cat	בעל חיימ ביתי	חתולה
+סוס	2000062	noun	horse	בעל חיימ גדול	
+פרה	2000063	noun	cow	בעל חיימ משקי	
+תרנגול	2000064	noun	chicken	עוף משקי	
+ציפור	2000065	noun	bird	בעל חיימ מעופפ	עופ
+דג	2000066	noun	fish	בעל חיימ ימי	
+אריה	2000067	noun	lion	חיה טורפת גדולה	
+
+# --- Food ---
+לחמ	2000080	noun	bread	מאכל מבסיסי מקמח	
+מימ	2000081	noun	water	נוזל שקופ	
+יינ	2000082	noun	wine	משקה מענבימ מותססימ	
+חלב	2000083	noun	milk	משקה מפרה או עז	
+גבינה	2000084	noun	cheese	מאכל מחלב מתוססס	
+בשר	2000085	noun	meat	מאכל מבעל חיימ	
+פרי	2000086	noun	fruit	מאכל מעצ	
+ירק	2000087	noun	vegetable	מאכל מצמח	
+ביצה	2000088	noun	egg	מאכל מעופ	
+סוכר	2000089	noun	sugar	חומר מתוק	
+
+# --- Body parts ---
+ראש	2000100	noun	head	חלק עליונ של הגופ	
+ידי	2000101	noun	hand	גפ עליונה	יד
+רגל	2000102	noun	leg/foot	גפ תחתונה	
+עינ	2000103	noun	eye	איבר הראייה	
+אוזנ	2000104	noun	ear	איבר השמיעה	
+פה	2000105	noun	mouth	איבר האכילה והדיבור	
+אפ	2000106	noun	nose	איבר הריח	
+לב	2000107	noun	heart	איבר פנימי מרכזי	
+
+# --- Nature ---
+שמש	2000120	noun	sun	כוכב הלכת המרכזי	
+ירח	2000121	noun	moon	גרמ שמיימי של כדור הארצ	לבנה
+כוכב	2000122	noun	star	גרמ שמיימי זוהר	
+שמיימ	2000123	noun	sky	רקיע	רקיע
+ארצ	2000124	noun	earth	כדור הארצ	אדמה
+הר	2000125	noun	mountain	גובה טבעי בקרקע	
+ימ	2000126	noun	sea	מסת מימ מלוחימ	אוקיינוס
+נהר	2000127	noun	river	מסת מימ זורמימ	
+עצ	2000128	noun	tree	צמח גדול בעל גזע	
+פרח	2000129	noun	flower	חלק צבעוני של צמח	
+
+# --- Time ---
+יומ	2000140	noun	day	24 שעות	
+לילה	2000141	noun	night	זמנ חשכה	
+שבוע	2000142	noun	week	7 ימימ	
+חודש	2000143	noun	month	פרק זמנ של כ-30 יומ	ירח
+שנה	2000144	noun	year	פרק זמנ של 365 ימימ	
+שעה	2000145	noun	hour	60 דקות	
+דקה	2000146	noun	minute	60 שניות	
+בוקר	2000147	noun	morning	ראשית היומ	
+ערב	2000148	noun	evening	סופ היומ	
+
+# --- Colors ---
+אדומ	2000160	adj	red	צבע הדמ	
+כחול	2000161	adj	blue	צבע השמיימ	
+ירוק	2000162	adj	green	צבע הצמחייה	
+צהוב	2000163	adj	yellow	צבע השמש	
+לבנ	2000164	adj	white	צבע השלג	
+שחור	2000165	adj	black	צבע החשכה	
+
+# --- Numbers ---
+אחד	2000180	noun	one	1	ראשונ
+שניימ	2000181	noun	two	2	
+שלושה	2000182	noun	three	3	
+ארבעה	2000183	noun	four	4	
+חמישה	2000184	noun	five	5	
+עשרה	2000185	noun	ten	10	
+
+# --- Common adjectives ---
+גדול	2000200	adj	big	בעל ממדימ רבימ	ענק
+קטנ	2000201	adj	small	בעל ממדימ מעטימ	זעיר
+טוב	2000202	adj	good	חיובי	מצויינ
+רע	2000203	adj	bad	שלילי	גרוע
+חדש	2000204	adj	new	שנוצר לאחרונה	
+ישנ	2000205	adj	old	בעל גיל רב	עתיק
+יפה	2000206	adj	beautiful	נעימ למראה	
+חכמ	2000207	adj	smart	בעל תבונה	נבונ
+מהיר	2000208	adj	fast	במהירות גבוהה	זריז
+איטי	2000209	adj	slow	במהירות נמוכה	
+
+# --- Common verbs (infinitive root form) ---
+אכל	2000220	verb	eat	להכניס מזונ לפה	
+שתה	2000221	verb	drink	להכניס נוזל לפה	
+ישנ	2000222	verb	sleep	להיות במנוחת תודעה	
+קמ	2000223	verb	rise	לעבור ממנוחה לפעילות	
+הלכ	2000224	verb	walk	להתקדמ ברגל	
+רצ	2000225	verb	run	להתקדמ במהירות	
+ראה	2000226	verb	see	לקלוט באמצעות העינ	
+שמע	2000227	verb	hear	לקלוט באמצעות האוזנ	
+דיבר	2000228	verb	speak	להשמיע מילימ	אמר
+כתב	2000229	verb	write	לסמנ אותיות	
+קרא	2000230	verb	read	לפענח טקסט	
+למד	2000231	verb	learn	לרכוש ידע	
+עשה	2000232	verb	do	לבצע פעולה	ביצע
+נתנ	2000233	verb	give	להעביר לאחר	
+לקח	2000234	verb	take	לקבל אליו	
+אהב	2000235	verb	love	לרגוש חיבה	

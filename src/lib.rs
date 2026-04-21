@@ -1069,6 +1069,313 @@ pub mod document {
 }
 
 // ============================================================================
+// LEARNING — ingest vocabulary/dictionary data into the graph
+// ============================================================================
+
+pub mod learning {
+    //! Ingest structured lexical data (TSV) into an EdgeStore.
+    //!
+    //! The input format is a simple tab-separated dictionary:
+    //!   surface<TAB>synset_id<TAB>pos<TAB>english_gloss<TAB>definition<TAB>synonyms
+    //!
+    //! Synonyms are semicolon-separated references to other surfaces in the
+    //! same file. Missing fields are OK (empty string).
+    //!
+    //! # Output edges
+    //!
+    //! Each entry produces multiple edges:
+    //!
+    //! 1. `concept --IS_A--> part-of-speech-concept` (classifies word type)
+    //! 2. `concept --SAME_AS--> english-concept` (translation, cross-language)
+    //! 3. `concept --DEFINED_BY--> definition-concept` (gloss as concept)
+    //! 4. `concept --NEAR_SYNONYM--> synonym-concept` (Hebrew synonymy)
+    //!
+    //! # Trust-ordered learning
+    //!
+    //! The caller chooses ingestion order. Recommended sequence:
+    //!   Tier 1: core vocabulary (~300 words) — highest trust, verified by hand
+    //!   Tier 2: Dicta/YAP dictionary (~5K-30K) — high trust, linguistic authority
+    //!   Tier 3: Wikipedia lemmas (~500K) — medium trust, cross-referenced
+    //!   Tier 4: web extraction — lowest trust, requires verification
+    //!
+    //! Weight field encodes trust: 7=Tier1, 6=Tier2, 5=Tier3, 3=Tier4.
+
+    use super::edge_store::{Edge, EdgeStore, Relation};
+    use super::{LangCode, SynsetId};
+    use std::collections::HashMap;
+
+    /// Trust tier for an ingestion batch. Maps to edge weight.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum Tier {
+        /// Hand-verified core vocabulary. weight = 7.
+        Tier1Core = 7,
+        /// Linguistic authority (Dicta, YAP, WordNet). weight = 6.
+        Tier2Authority = 6,
+        /// Cross-referenced corpus (Wikipedia). weight = 5.
+        Tier3Corpus = 5,
+        /// Web extraction, needs verification. weight = 3.
+        Tier4Unverified = 3,
+    }
+
+    impl Tier {
+        #[inline]
+        #[must_use]
+        pub const fn weight(self) -> u8 {
+            self as u8
+        }
+
+        #[must_use]
+        pub const fn name(self) -> &'static str {
+            match self {
+                Self::Tier1Core => "core",
+                Self::Tier2Authority => "authority",
+                Self::Tier3Corpus => "corpus",
+                Self::Tier4Unverified => "unverified",
+            }
+        }
+    }
+
+    /// A single parsed lexicon entry.
+    #[derive(Debug, Clone)]
+    pub struct LexEntry {
+        pub surface: String,
+        pub synset_id: SynsetId,
+        pub pos: String,
+        pub english: String,
+        pub definition: String,
+        pub synonyms: Vec<String>,
+    }
+
+    /// Summary of an ingestion operation.
+    #[derive(Debug, Clone, Default)]
+    pub struct IngestStats {
+        pub entries_read: usize,
+        pub edges_added: usize,
+        pub synonym_edges: usize,
+        pub translation_edges: usize,
+        pub definition_edges: usize,
+        pub pos_edges: usize,
+        pub synsets_allocated: usize,
+        pub unresolved_synonyms: usize,
+    }
+
+    /// Parse a TSV lexicon file into entries. Skips comments and blank lines.
+    ///
+    /// # Errors
+    /// Returns `Err` if a line has fewer than 2 fields or if synset_id can't
+    /// be parsed as u32.
+    pub fn parse_tsv(content: &str) -> Result<Vec<LexEntry>, String> {
+        let mut out = Vec::new();
+        for (lineno, raw) in content.lines().enumerate() {
+            let line = raw.trim_end();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let fields: Vec<&str> = line.split('\t').collect();
+            if fields.len() < 2 {
+                return Err(format!("line {}: too few fields", lineno + 1));
+            }
+            let synset_id: u32 = fields[1].parse()
+                .map_err(|e| format!("line {}: bad synset_id: {e}", lineno + 1))?;
+
+            let synonyms: Vec<String> = fields.get(5)
+                .map(|s| s.split(';')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(String::from)
+                    .collect())
+                .unwrap_or_default();
+
+            out.push(LexEntry {
+                surface: fields[0].to_string(),
+                synset_id: SynsetId(synset_id),
+                pos: fields.get(2).unwrap_or(&"").to_string(),
+                english: fields.get(3).unwrap_or(&"").to_string(),
+                definition: fields.get(4).unwrap_or(&"").to_string(),
+                synonyms,
+            });
+        }
+        Ok(out)
+    }
+
+    /// Allocator for synsets created on the fly (English translations,
+    /// definitions, parts-of-speech as concept nodes).
+    pub struct AuxSynsetAllocator {
+        next: u32,
+        keys: HashMap<String, SynsetId>,
+    }
+
+    impl AuxSynsetAllocator {
+        /// Start at 3_000_000 — above documents (1M) and concepts (2M).
+        pub const AUX_START: u32 = 3_000_000;
+
+        #[must_use]
+        pub fn new() -> Self {
+            Self {
+                next: Self::AUX_START,
+                keys: HashMap::new(),
+            }
+        }
+
+        /// Get or allocate a synset for a given key. Idempotent.
+        pub fn get_or_alloc(&mut self, key: &str) -> SynsetId {
+            if let Some(&id) = self.keys.get(key) {
+                return id;
+            }
+            let id = SynsetId(self.next);
+            self.next += 1;
+            self.keys.insert(key.to_string(), id);
+            id
+        }
+
+        #[inline]
+        #[must_use]
+        pub fn count(&self) -> usize {
+            self.keys.len()
+        }
+    }
+
+    impl Default for AuxSynsetAllocator {
+        fn default() -> Self { Self::new() }
+    }
+
+    /// Ingest a parsed lexicon into an EdgeStore.
+    ///
+    /// Builds a surface→synset map on the fly for synonym resolution.
+    /// Returns detailed statistics.
+    pub fn ingest(
+        store: &mut EdgeStore,
+        aux: &mut AuxSynsetAllocator,
+        entries: &[LexEntry],
+        _lang: LangCode,
+        tier: Tier,
+    ) -> IngestStats {
+        let weight = tier.weight();
+
+        // Build surface→synset map for local synonym resolution
+        let mut by_surface: HashMap<&str, SynsetId> = HashMap::new();
+        for e in entries {
+            by_surface.insert(e.surface.as_str(), e.synset_id);
+        }
+
+        let mut stats = IngestStats { entries_read: entries.len(), ..Default::default() };
+
+        for entry in entries {
+            // 1. Part-of-speech classification: word IS_A pos-concept
+            if !entry.pos.is_empty() {
+                let pos_synset = aux.get_or_alloc(&format!("pos:{}", entry.pos));
+                store.push(Edge {
+                    source: entry.synset_id,
+                    target: pos_synset,
+                    relation: Relation::IsA,
+                    weight,
+                    provenance: 0,
+                });
+                stats.edges_added += 1;
+                stats.pos_edges += 1;
+            }
+
+            // 2. English translation: concept SAME_AS english-concept
+            if !entry.english.is_empty() {
+                let en_synset = aux.get_or_alloc(&format!("en:{}", entry.english));
+                store.push(Edge {
+                    source: entry.synset_id,
+                    target: en_synset,
+                    relation: Relation::SameAs,
+                    weight,
+                    provenance: 0,
+                });
+                stats.edges_added += 1;
+                stats.translation_edges += 1;
+            }
+
+            // 3. Definition: concept DEFINED_BY definition-text-concept
+            if !entry.definition.is_empty() {
+                let def_synset = aux.get_or_alloc(&format!("def:{}", entry.definition));
+                store.push(Edge {
+                    source: entry.synset_id,
+                    target: def_synset,
+                    relation: Relation::DefinedBy,
+                    weight,
+                    provenance: 0,
+                });
+                stats.edges_added += 1;
+                stats.definition_edges += 1;
+            }
+
+            // 4. Synonyms: concept NEAR_SYNONYM synonym-concept
+            for syn in &entry.synonyms {
+                if let Some(&syn_id) = by_surface.get(syn.as_str()) {
+                    store.push(Edge {
+                        source: entry.synset_id,
+                        target: syn_id,
+                        relation: Relation::NearSynonym,
+                        weight,
+                        provenance: 0,
+                    });
+                    stats.edges_added += 1;
+                    stats.synonym_edges += 1;
+                } else {
+                    // Synonym not in this batch — allocate aux synset, still link
+                    let syn_id = aux.get_or_alloc(&format!("syn:{syn}"));
+                    store.push(Edge {
+                        source: entry.synset_id,
+                        target: syn_id,
+                        relation: Relation::NearSynonym,
+                        weight: weight.saturating_sub(1),  // lower weight — unresolved
+                        provenance: 0,
+                    });
+                    stats.edges_added += 1;
+                    stats.synonym_edges += 1;
+                    stats.unresolved_synonyms += 1;
+                }
+            }
+        }
+
+        stats.synsets_allocated = aux.count();
+        stats
+    }
+
+    /// Build a surface→synset lookup map from parsed entries.
+    /// This is what the UNP Week 3 dictionary would consume.
+    #[must_use]
+    pub fn build_surface_map(entries: &[LexEntry]) -> HashMap<String, SynsetId> {
+        let mut map = HashMap::with_capacity(entries.len());
+        for e in entries {
+            map.insert(e.surface.clone(), e.synset_id);
+        }
+        map
+    }
+
+    /// Find all synonyms of a word by walking NEAR_SYNONYM edges.
+    /// Returns a list of synset IDs, sorted deterministically.
+    #[must_use]
+    pub fn find_synonyms(store: &EdgeStore, word: SynsetId) -> Vec<SynsetId> {
+        let mut out: Vec<SynsetId> = store.outgoing(word)
+            .into_iter()
+            .filter(|e| e.relation == Relation::NearSynonym)
+            .map(|e| e.target)
+            .collect();
+        out.sort_by_key(|s| s.0);
+        out.dedup();
+        out
+    }
+
+    /// Find the English translation of a word by following SAME_AS edges.
+    /// (Multiple allowed; returns all.)
+    #[must_use]
+    pub fn find_translations(store: &EdgeStore, word: SynsetId) -> Vec<SynsetId> {
+        let mut out: Vec<SynsetId> = store.outgoing(word)
+            .into_iter()
+            .filter(|e| e.relation == Relation::SameAs)
+            .map(|e| e.target)
+            .collect();
+        out.sort_by_key(|s| s.0);
+        out
+    }
+}
+
+// ============================================================================
 // BLOOM FILTER — custom implementation, 80 lines
 // ============================================================================
 
@@ -1534,4 +1841,152 @@ mod tests {
         let _ = unp::normalize("ַָֹּ", LangCode::HEBREW);
         let _ = unp::normalize("hello כלב 123", LangCode::HEBREW);
     }
+    // --- Document module ---
+
+    #[test]
+    fn document_add_sequence_creates_correct_edges() {
+        use super::document::{self, DocumentIdAllocator};
+        let mut store = EdgeStore::new();
+        let mut alloc = DocumentIdAllocator::new();
+        let doc = alloc.allocate();
+        let tokens = [SynsetId(10_001), SynsetId(10_002), SynsetId(10_003)];
+        let edges = document::add_sequence(&mut store, doc, &tokens);
+        assert_eq!(edges, 5); // 2 TEXT_NEXT + 3 APPEARS_IN
+        assert_eq!(store.len(), 5);
+    }
+
+    #[test]
+    fn document_reconstruct_preserves_order() {
+        use super::document::{self, DocumentIdAllocator};
+        let mut store = EdgeStore::new();
+        let mut alloc = DocumentIdAllocator::new();
+        let doc = alloc.allocate();
+        let tokens = [SynsetId(10_001), SynsetId(10_002), SynsetId(10_003), SynsetId(10_004)];
+        document::add_sequence(&mut store, doc, &tokens);
+        let recon = document::reconstruct_sequence(&store, doc);
+        assert_eq!(recon.len(), 4);
+        assert_eq!(recon[0], (0, SynsetId(10_001)));
+        assert_eq!(recon[1], (1, SynsetId(10_002)));
+        assert_eq!(recon[2], (2, SynsetId(10_003)));
+        assert_eq!(recon[3], (3, SynsetId(10_004)));
+    }
+
+    #[test]
+    fn document_citations_bidirectional() {
+        use super::document::{self, DocumentIdAllocator};
+        let mut store = EdgeStore::new();
+        let mut alloc = DocumentIdAllocator::new();
+        let doc_a = alloc.allocate();
+        let doc_b = alloc.allocate();
+        document::add_citation(&mut store, doc_a, doc_b, 7);
+        assert_eq!(document::citations(&store, doc_a), vec![doc_b]);
+        assert_eq!(document::cited_by(&store, doc_b), vec![doc_a]);
+    }
+
+    #[test]
+    fn document_empty_sequence_adds_no_edges() {
+        use super::document::{self, DocumentIdAllocator};
+        let mut store = EdgeStore::new();
+        let mut alloc = DocumentIdAllocator::new();
+        let doc = alloc.allocate();
+        let edges = document::add_sequence(&mut store, doc, &[]);
+        assert_eq!(edges, 0);
+        assert_eq!(store.len(), 0);
+    }
+
+    #[test]
+    fn document_allocator_monotonic() {
+        use super::document::{DocumentIdAllocator, DOCUMENT_ID_START};
+        let mut alloc = DocumentIdAllocator::new();
+        assert_eq!(alloc.allocate(), SynsetId(DOCUMENT_ID_START));
+        assert_eq!(alloc.allocate(), SynsetId(DOCUMENT_ID_START + 1));
+        assert_eq!(alloc.allocate(), SynsetId(DOCUMENT_ID_START + 2));
+        assert_eq!(alloc.count(), 3);
+    }
+
+    // --- Learning module ---
+
+    #[test]
+    fn learning_parse_tsv_rejects_bad_lines() {
+        use super::learning;
+        let bad = "only_one_field\n";
+        assert!(learning::parse_tsv(bad).is_err());
+    }
+
+    #[test]
+    fn learning_parse_tsv_skips_comments_and_blanks() {
+        use super::learning;
+        let input = "# comment\n\nword\t100\tnoun\tword\tdef\tsyn1;syn2\n";
+        let entries = learning::parse_tsv(input).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].surface, "word");
+        assert_eq!(entries[0].synset_id, SynsetId(100));
+        assert_eq!(entries[0].synonyms, vec!["syn1", "syn2"]);
+    }
+
+    #[test]
+    fn learning_ingest_produces_expected_edges() {
+        use super::learning::{self, Tier, AuxSynsetAllocator};
+        let input = "כלב\t100\tnoun\tdog\tbeast\t\n";
+        let entries = learning::parse_tsv(input).unwrap();
+        let mut store = EdgeStore::new();
+        let mut aux = AuxSynsetAllocator::new();
+        let stats = learning::ingest(&mut store, &mut aux, &entries, LangCode::HEBREW, Tier::Tier1Core);
+        assert_eq!(stats.entries_read, 1);
+        assert_eq!(stats.pos_edges, 1);
+        assert_eq!(stats.translation_edges, 1);
+        assert_eq!(stats.definition_edges, 1);
+        assert_eq!(stats.synonym_edges, 0);
+        assert_eq!(stats.edges_added, 3);
+    }
+
+    #[test]
+    fn learning_tier_weights() {
+        use super::learning::Tier;
+        assert_eq!(Tier::Tier1Core.weight(), 7);
+        assert_eq!(Tier::Tier2Authority.weight(), 6);
+        assert_eq!(Tier::Tier3Corpus.weight(), 5);
+        assert_eq!(Tier::Tier4Unverified.weight(), 3);
+    }
+
+    #[test]
+    fn learning_aux_allocator_is_idempotent() {
+        use super::learning::AuxSynsetAllocator;
+        let mut aux = AuxSynsetAllocator::new();
+        let a = aux.get_or_alloc("pos:noun");
+        let b = aux.get_or_alloc("pos:noun");
+        let c = aux.get_or_alloc("pos:verb");
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+        assert_eq!(aux.count(), 2);
+    }
+
+    #[test]
+    fn learning_find_synonyms_deterministic() {
+        use super::learning::{self, Tier, AuxSynsetAllocator};
+        let input = "חבר\t100\tnoun\tfriend\tcomrade\tידיד;רע\nידיד\t101\tnoun\tfriend\tcomrade\t\nרע\t102\tnoun\tfriend\tcompanion\t\n";
+        let entries = learning::parse_tsv(input).unwrap();
+        let mut store = EdgeStore::new();
+        let mut aux = AuxSynsetAllocator::new();
+        learning::ingest(&mut store, &mut aux, &entries, LangCode::HEBREW, Tier::Tier1Core);
+        let syns = learning::find_synonyms(&store, SynsetId(100));
+        assert!(syns.contains(&SynsetId(101)));
+        assert!(syns.contains(&SynsetId(102)));
+        // Determinism: calling twice returns same order
+        let syns2 = learning::find_synonyms(&store, SynsetId(100));
+        assert_eq!(syns, syns2);
+    }
+
+    // --- Relation type: new discourse relations ---
+
+    #[test]
+    fn new_relations_available() {
+        use super::edge_store::Relation;
+        assert_eq!(Relation::from_u8(27), Some(Relation::TextNext));
+        assert_eq!(Relation::from_u8(28), Some(Relation::AppearsIn));
+        assert_eq!(Relation::from_u8(29), Some(Relation::Cites));
+        assert_eq!(Relation::from_u8(30), None);
+        assert_eq!(Relation::MAX_VALUE, 29);
+    }
+
 }

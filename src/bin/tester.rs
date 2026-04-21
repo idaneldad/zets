@@ -43,6 +43,8 @@ fn main() {
         "bench-parallel"  => bench_parallel(parse_count(rest, 100_000)),
         "demo-document"   => demo_document(),
         "demo-homograph"  => demo_homograph(),
+        "demo-learn"      => demo_learn(),
+        "demo-semantic"   => demo_semantic(),
         "evaluate"        => evaluate_all(),
         _ => {
             eprintln!("Unknown command: {cmd}");
@@ -65,6 +67,8 @@ fn print_usage(program: &str) {
     eprintln!("  bench-parallel <N>        Parallel UNP normalize");
     eprintln!("  demo-document             Word-sequence + citation demo");
     eprintln!("  demo-homograph            Verify homograph hash fix");
+    eprintln!("  demo-learn                Load Hebrew core vocabulary into graph");
+    eprintln!("  demo-semantic             Semantic queries: synonyms & translations");
     eprintln!("  evaluate                  Full Week-2 evaluation suite");
 }
 
@@ -445,6 +449,173 @@ fn demo_homograph() {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+
+fn demo_learn() {
+    use zets::learning::{self, Tier, AuxSynsetAllocator};
+
+    println!("Hebrew Tier 1 vocabulary ingestion demo");
+    println!("========================================\n");
+
+    let path = "data/hebrew/core_vocabulary.tsv";
+    let content = std::fs::read_to_string(path).unwrap_or_else(|e| {
+        eprintln!("Failed to read {path}: {e}");
+        process::exit(1);
+    });
+
+    let t0 = Instant::now();
+    let entries = match learning::parse_tsv(&content) {
+        Ok(es) => es,
+        Err(e) => { eprintln!("Parse error: {e}"); process::exit(1); }
+    };
+    let parse_time = t0.elapsed();
+
+    println!("Parsed {} entries in {parse_time:?}\n", entries.len());
+
+    // Show a few entries
+    println!("Sample entries:");
+    for entry in entries.iter().take(5) {
+        println!("  {:15} → synset {} [{}] \"{}\" ({} synonyms)",
+            entry.surface, entry.synset_id.0, entry.pos,
+            entry.english, entry.synonyms.len());
+    }
+    println!();
+
+    // Ingest
+    let mut store = zets::edge_store::EdgeStore::new_with_meta();
+    let meta_count = store.len();
+    let mut aux = AuxSynsetAllocator::new();
+
+    let t1 = Instant::now();
+    let stats = learning::ingest(&mut store, &mut aux, &entries, LangCode::HEBREW, Tier::Tier1Core);
+    let ingest_time = t1.elapsed();
+
+    println!("Ingest complete in {ingest_time:?}:");
+    println!("  Entries read:         {}", stats.entries_read);
+    println!("  Edges added:          {}", stats.edges_added);
+    println!("    POS classifications: {}", stats.pos_edges);
+    println!("    English translations: {}", stats.translation_edges);
+    println!("    Definitions:         {}", stats.definition_edges);
+    println!("    Synonym links:       {}", stats.synonym_edges);
+    println!("    Unresolved syns:     {}", stats.unresolved_synonyms);
+    println!("  Aux synsets allocated: {}", stats.synsets_allocated);
+    println!();
+    println!("Graph state:");
+    println!("  Meta-graph edges:  {meta_count}");
+    println!("  Learned edges:     {}", store.len() - meta_count);
+    println!("  Total edges:       {}", store.len());
+    println!("  Graph size in RAM: {} bytes ({:.2} per edge)",
+        store.bytes_used(),
+        store.bytes_used() as f64 / store.len() as f64);
+
+    // Persist to disk
+    let out_path = "/tmp/zets_hebrew_tier1.pack";
+    let t2 = Instant::now();
+    let f = std::fs::File::create(out_path).expect("create");
+    let mut w = std::io::BufWriter::new(f);
+    store.write_to(&mut w).expect("write");
+    drop(w);
+    let write_time = t2.elapsed();
+
+    let size = std::fs::metadata(out_path).map(|m| m.len()).unwrap_or(0);
+    println!();
+    println!("Persisted to {out_path} in {write_time:?}: {size} bytes");
+}
+
+fn demo_semantic() {
+    use zets::learning::{self, Tier, AuxSynsetAllocator};
+
+    println!("Semantic query demo — synonyms & translations");
+    println!("==============================================\n");
+
+    let content = std::fs::read_to_string("data/hebrew/core_vocabulary.tsv")
+        .expect("read vocab");
+    let entries = learning::parse_tsv(&content).expect("parse");
+
+    let mut store = zets::edge_store::EdgeStore::new();
+    let mut aux = AuxSynsetAllocator::new();
+    learning::ingest(&mut store, &mut aux, &entries, LangCode::HEBREW, Tier::Tier1Core);
+
+    let surface_map = learning::build_surface_map(&entries);
+
+    // Lookup helper
+    let lookup_surface = |s: SynsetId| -> String {
+        entries.iter()
+            .find(|e| e.synset_id == s)
+            .map(|e| e.surface.clone())
+            .unwrap_or_else(|| format!("synset_{}", s.0))
+    };
+
+    // Query 1: synonyms of חבר
+    let word = "חבר";
+    println!("Query 1: Synonyms of '{word}'");
+    if let Some(&syn) = surface_map.get(word) {
+        let synonyms = learning::find_synonyms(&store, syn);
+        if synonyms.is_empty() {
+            println!("  (none found)");
+        } else {
+            for s in &synonyms {
+                println!("  → {} (synset {})", lookup_surface(*s), s.0);
+            }
+        }
+    }
+    println!();
+
+    // Query 2: translation of כלב
+    let word = "כלב";
+    println!("Query 2: English translation of '{word}'");
+    if let Some(&syn) = surface_map.get(word) {
+        let translations = learning::find_translations(&store, syn);
+        for t in &translations {
+            let edges = store.outgoing(syn);
+            let eng = edges.iter().find(|e| e.target == *t)
+                .map(|_| t.0 - zets::learning::AuxSynsetAllocator::AUX_START)
+                .unwrap_or(0);
+            println!("  → english concept (aux synset {}, offset {eng})", t.0);
+        }
+    }
+    println!();
+
+    // Query 3: walk from אבא through its synonym to its translation
+    let word = "אבא";
+    println!("Query 3: Multi-hop — synonyms of '{word}' and their POS classification");
+    if let Some(&syn) = surface_map.get(word) {
+        let synonyms = learning::find_synonyms(&store, syn);
+        for syn_id in &synonyms {
+            let surface = lookup_surface(*syn_id);
+            let outgoing = store.outgoing(*syn_id);
+            let is_a_edges = outgoing.iter()
+                .filter(|e| e.relation == zets::edge_store::Relation::IsA)
+                .count();
+            println!("  → synonym '{}' (synset {}): {} IS_A edges",
+                surface, syn_id.0, is_a_edges);
+        }
+    }
+    println!();
+
+    // Query 4: how many words share "noun" POS?
+    println!("Query 4: How many words classified as 'pos:noun'?");
+    let noun_concept = aux.get_or_alloc("pos:noun");
+    let noun_members = store.incoming(noun_concept);
+    let noun_count = noun_members.iter()
+        .filter(|e| e.relation == zets::edge_store::Relation::IsA)
+        .count();
+    println!("  {noun_count} words are classified as nouns in Tier 1");
+    println!();
+
+    // Query 5: homograph check on English translation node
+    println!("Query 5: Does an English concept 'father' exist with multiple source synsets?");
+    let father_concept = aux.get_or_alloc("en:father");
+    let sources = store.incoming(father_concept);
+    let same_as_sources: Vec<SynsetId> = sources.iter()
+        .filter(|e| e.relation == zets::edge_store::Relation::SameAs)
+        .map(|e| e.source)
+        .collect();
+    println!("  {} Hebrew words translate to 'father':", same_as_sources.len());
+    for s in &same_as_sources {
+        println!("    - '{}' (synset {})", lookup_surface(*s), s.0);
+    }
 }
 
 // ============================================================================
