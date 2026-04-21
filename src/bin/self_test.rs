@@ -56,7 +56,7 @@ fn main() -> ExitCode {
     writeln!(out, "── PHASE 2: Graph_B (built fresh by SelfLearner)").ok();
     let mut learner = SelfLearner::new();
 
-    let langs = ["en", "he", "de", "fr", "es", "it", "pt", "nl", "ru", "ar"];
+    let langs = ["en", "he", "de", "fr", "es", "it", "pt", "nl", "ru", "ar", "ro", "ca", "pl", "sv", "tr", "ja"];
     let mut total_seed = 0usize;
     for lang in langs {
         let seed_path = format!("{}/{}.tsv", SEEDS_DIR, lang);

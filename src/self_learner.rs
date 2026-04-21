@@ -220,9 +220,18 @@ impl SelfLearner {
                 continue;
             }
             let p_adj = af as f64 / total as f64;
-            let rule = if p_adj >= 0.65 {
+            // Adaptive thresholds: small sample needs strong consensus
+            // Large sample tolerates weaker consensus
+            let (adj_thresh, noun_thresh) = if total >= 50 {
+                (0.65, 0.35)
+            } else if total >= 10 {
+                (0.80, 0.20)  // need stronger consensus on small samples
+            } else {
+                (0.95, 0.05)  // very small samples need near-unanimity
+            };
+            let rule = if p_adj >= adj_thresh {
                 "adj_first"
-            } else if p_adj <= 0.35 {
+            } else if p_adj <= noun_thresh {
                 "noun_first"
             } else {
                 "undetermined"
