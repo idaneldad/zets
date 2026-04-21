@@ -34,6 +34,7 @@
 
 pub mod lexicon;
 pub mod compose;
+pub mod concepts;
 
 use std::fmt;
 

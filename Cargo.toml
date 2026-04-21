@@ -69,3 +69,7 @@ opt-level = 1
 [[bin]]
 name = "ask"
 path = "src/bin/ask.rs"
+
+[[bin]]
+name = "translate"
+path = "src/bin/translate.rs"
