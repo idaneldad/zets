@@ -568,11 +568,8 @@ fn demo_semantic() {
     if let Some(&syn) = surface_map.get(word) {
         let translations = learning::find_translations(&store, syn);
         for t in &translations {
-            let edges = store.outgoing(syn);
-            let eng = edges.iter().find(|e| e.target == *t)
-                .map(|_| t.0 - zets::learning::AuxSynsetAllocator::AUX_START)
-                .unwrap_or(0);
-            println!("  → english concept (aux synset {}, offset {eng})", t.0);
+            let label = aux.key_for(*t).unwrap_or("?");
+            println!("  → \"{label}\" (aux synset {})", t.0);
         }
     }
     println!();

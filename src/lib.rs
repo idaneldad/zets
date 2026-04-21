@@ -1392,6 +1392,15 @@ pub mod learning {
         pub fn count(&self) -> usize {
             self.keys.len()
         }
+
+        /// Reverse lookup — find the key that was allocated to this synset.
+        /// O(N), used for debugging and pretty-printing. Not a hot path.
+        #[must_use]
+        pub fn key_for(&self, id: SynsetId) -> Option<&str> {
+            self.keys.iter()
+                .find(|(_, &v)| v == id)
+                .map(|(k, _)| k.as_str())
+        }
     }
 
     impl Default for AuxSynsetAllocator {
@@ -1638,6 +1647,220 @@ pub mod bloom {
 
 // ============================================================================
 // CLI
+// ============================================================================
+// GRAPH — unified facade combining edges, index, bloom, and document tools
+// ============================================================================
+
+pub mod graph {
+    //! High-level API that composes the lower-level pieces into a single
+    //! graph object. This is what most callers want instead of managing
+    //! EdgeStore + AdjacencyIndex + BloomFilter + AuxSynsetAllocator by hand.
+    //!
+    //! # Design
+    //!
+    //! `Graph` owns:
+    //!   - `EdgeStore` — the actual edges
+    //!   - `Option<AdjacencyIndex>` — built lazily, auto-rebuilt when needed
+    //!   - `BloomFilter` — tracks "which synsets exist in this graph"
+    //!   - `DocumentIdAllocator` — monotonic document IDs
+    //!   - `AuxSynsetAllocator` — for learning ingest
+    //!
+    //! # Bloom-first queries
+    //!
+    //! When a caller asks `contains(synset)`, the Bloom filter answers
+    //! immediately for unknowns. Only known-or-maybe-exists cases touch
+    //! the real index.
+    //!
+    //! # Index staleness
+    //!
+    //! Any `push_*` method invalidates the index. `ensure_index()` rebuilds
+    //! if stale. This matches SPEC V6.1's maintenance design: index
+    //! rebuilds happen at idle, or on explicit request, not per-write.
+
+    use super::bloom::BloomFilter;
+    use super::document::{DocumentIdAllocator, add_sequence, add_citation};
+    use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
+    use super::learning::AuxSynsetAllocator;
+    use super::SynsetId;
+
+    /// Unified graph: store + index + bloom + allocators, together.
+    pub struct Graph {
+        store: EdgeStore,
+        index: Option<AdjacencyIndex>,
+        bloom: BloomFilter,
+        doc_alloc: DocumentIdAllocator,
+        aux_alloc: AuxSynsetAllocator,
+        /// Generation counter — incremented on every write.
+        /// If `index_gen < gen`, the index is stale.
+        gen: u64,
+        index_gen: u64,
+    }
+
+    impl Graph {
+        /// Create an empty graph seeded with the meta-graph system synsets.
+        #[must_use]
+        pub fn new() -> Self {
+            let store = EdgeStore::new_with_meta();
+            let mut bloom = BloomFilter::default_size();
+
+            // Seed bloom with all system synsets.
+            for synset in super::SYSTEM_SYNSETS {
+                bloom.insert(&synset.id.to_le_bytes());
+            }
+
+            Self {
+                store,
+                index: None,
+                bloom,
+                doc_alloc: DocumentIdAllocator::new(),
+                aux_alloc: AuxSynsetAllocator::new(),
+                gen: 1,  // meta-graph bootstrap counts as gen 1
+                index_gen: 0,
+            }
+        }
+
+        /// Total edges in the graph.
+        #[inline]
+        #[must_use]
+        pub fn edge_count(&self) -> usize {
+            self.store.len()
+        }
+
+        /// Total RAM (store + index + bloom).
+        #[must_use]
+        pub fn bytes_used(&self) -> usize {
+            self.store.bytes_used()
+                + self.index.as_ref().map_or(0, AdjacencyIndex::bytes_used)
+                + self.bloom.bytes_used()
+        }
+
+        /// Has the caller potentially seen this synset? (Bloom filter check).
+        ///
+        /// Returns `false` definitively — not present.
+        /// Returns `true` probably — could be a false positive (~1%).
+        #[inline]
+        #[must_use]
+        pub fn might_contain(&self, synset: SynsetId) -> bool {
+            self.bloom.might_contain(&synset.0.to_le_bytes())
+        }
+
+        /// Push an edge and record both endpoints in the Bloom filter.
+        /// Invalidates the adjacency index.
+        pub fn push_edge(&mut self, edge: Edge) {
+            self.bloom.insert(&edge.source.0.to_le_bytes());
+            self.bloom.insert(&edge.target.0.to_le_bytes());
+            self.store.push(edge);
+            self.gen += 1;
+        }
+
+        /// Add a word-sequence document and record all tokens in the bloom filter.
+        pub fn add_document(&mut self, tokens: &[SynsetId]) -> SynsetId {
+            let doc = self.doc_alloc.allocate();
+            for &tok in tokens {
+                self.bloom.insert(&tok.0.to_le_bytes());
+            }
+            self.bloom.insert(&doc.0.to_le_bytes());
+            let added = add_sequence(&mut self.store, doc, tokens);
+            if added > 0 {
+                self.gen += 1;
+            }
+            doc
+        }
+
+        /// Add a citation edge between two existing documents.
+        pub fn add_citation(&mut self, from: SynsetId, to: SynsetId, weight: u8) {
+            add_citation(&mut self.store, from, to, weight);
+            self.gen += 1;
+        }
+
+        /// Rebuild the adjacency index if stale. Idempotent if current.
+        pub fn ensure_index(&mut self) {
+            if self.index.is_none() || self.index_gen < self.gen {
+                self.index = Some(AdjacencyIndex::build(&self.store));
+                self.index_gen = self.gen;
+            }
+        }
+
+        /// True if the index is up to date.
+        #[must_use]
+        pub fn index_is_fresh(&self) -> bool {
+            self.index.is_some() && self.index_gen == self.gen
+        }
+
+        /// Fast outgoing lookup. If index is available and fresh, uses it;
+        /// otherwise falls back to linear scan through the store.
+        #[must_use]
+        pub fn outgoing(&self, src: SynsetId) -> Vec<Edge> {
+            // Bloom-first: if we've never seen this synset, skip the work.
+            if !self.might_contain(src) {
+                return Vec::new();
+            }
+            if let Some(idx) = self.index.as_ref() {
+                if self.index_gen == self.gen {
+                    return idx.outgoing(&self.store, src);
+                }
+            }
+            self.store.outgoing(src)
+        }
+
+        /// Fast incoming lookup, same rules as `outgoing`.
+        #[must_use]
+        pub fn incoming(&self, tgt: SynsetId) -> Vec<Edge> {
+            if !self.might_contain(tgt) {
+                return Vec::new();
+            }
+            if let Some(idx) = self.index.as_ref() {
+                if self.index_gen == self.gen {
+                    return idx.incoming(&self.store, tgt);
+                }
+            }
+            self.store.incoming(tgt)
+        }
+
+        /// Borrow the underlying store (for serialization, stats).
+        #[inline]
+        #[must_use]
+        pub fn store(&self) -> &EdgeStore {
+            &self.store
+        }
+
+        /// Borrow the underlying store mutably (for bulk learning ingest).
+        /// Caller is responsible for updating the bloom filter themselves
+        /// or calling `refresh_bloom()` afterward.
+        #[inline]
+        pub fn store_mut(&mut self) -> &mut EdgeStore {
+            self.gen += 1;
+            &mut self.store
+        }
+
+        /// Borrow the aux synset allocator.
+        #[inline]
+        pub fn aux_mut(&mut self) -> &mut AuxSynsetAllocator {
+            &mut self.aux_alloc
+        }
+
+        /// Rebuild the bloom filter from all current edge endpoints.
+        /// Used after a bulk operation that modified `store_mut()` directly.
+        pub fn refresh_bloom(&mut self) {
+            self.bloom = BloomFilter::default_size();
+            for i in 0..self.store.len() {
+                if let Some(e) = self.store.get(i) {
+                    self.bloom.insert(&e.source.0.to_le_bytes());
+                    self.bloom.insert(&e.target.0.to_le_bytes());
+                }
+            }
+            // Also seed system synsets
+            for synset in super::SYSTEM_SYNSETS {
+                self.bloom.insert(&synset.id.to_le_bytes());
+            }
+        }
+    }
+
+    impl Default for Graph {
+        fn default() -> Self { Self::new() }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2152,7 +2375,7 @@ mod tests {
 
     #[test]
     fn adjacency_index_matches_linear_scan_outgoing() {
-        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
         let mut store = EdgeStore::new();
         for i in 0..1000u32 {
             store.push(Edge {
@@ -2175,7 +2398,7 @@ mod tests {
 
     #[test]
     fn adjacency_index_matches_linear_scan_incoming() {
-        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
         let mut store = EdgeStore::new();
         for i in 0..1000u32 {
             store.push(Edge {
@@ -2195,7 +2418,7 @@ mod tests {
 
     #[test]
     fn adjacency_index_empty_source_returns_empty() {
-        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
         let mut store = EdgeStore::new();
         store.push(Edge {
             source: SynsetId(10), target: SynsetId(20),
@@ -2209,7 +2432,7 @@ mod tests {
 
     #[test]
     fn adjacency_index_counts_without_materializing() {
-        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
         let mut store = EdgeStore::new();
         for i in 0..500u32 {
             store.push(Edge {
@@ -2226,7 +2449,7 @@ mod tests {
 
     #[test]
     fn adjacency_index_distinct_sources() {
-        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
         let mut store = EdgeStore::new();
         for src in [1u32, 1, 2, 3, 3, 3, 5] {
             store.push(Edge {
@@ -2241,7 +2464,7 @@ mod tests {
 
     #[test]
     fn adjacency_index_size_is_8_bytes_per_edge() {
-        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore, Relation};
+        use super::edge_store::{AdjacencyIndex, Edge, EdgeStore};
         let mut store = EdgeStore::new();
         for i in 0..1000u32 {
             store.push(Edge {
@@ -2252,6 +2475,90 @@ mod tests {
         let idx = AdjacencyIndex::build(&store);
         assert_eq!(idx.bytes_used(), 8000);  // 2 × 4 × 1000
         assert_eq!(idx.edge_count(), 1000);
+    }
+
+    // --- Graph facade ---
+
+    #[test]
+    fn graph_new_seeds_meta_graph() {
+        use super::graph::Graph;
+        let g = Graph::new();
+        assert!(g.edge_count() > 0, "meta-graph should seed edges");
+        // Meta synsets should pass bloom check
+        assert!(g.might_contain(SynsetId(10)));  // "he"
+        assert!(g.might_contain(SynsetId(30)));  // IS_A
+    }
+
+    #[test]
+    fn graph_bloom_rejects_unknown_synsets() {
+        use super::graph::Graph;
+        let g = Graph::new();
+        assert!(!g.might_contain(SynsetId(99_999_999)));
+        // Query for unknown should return empty immediately
+        assert!(g.outgoing(SynsetId(99_999_999)).is_empty());
+    }
+
+    #[test]
+    fn graph_push_updates_bloom_and_invalidates_index() {
+        use super::graph::Graph;
+        use super::edge_store::{Edge, Relation};
+        let mut g = Graph::new();
+        g.ensure_index();
+        assert!(g.index_is_fresh());
+
+        g.push_edge(Edge {
+            source: SynsetId(50_000),
+            target: SynsetId(50_001),
+            relation: Relation::IsA,
+            weight: 7, provenance: 0,
+        });
+
+        assert!(!g.index_is_fresh(), "index should be stale after push");
+        assert!(g.might_contain(SynsetId(50_000)));
+        assert!(g.might_contain(SynsetId(50_001)));
+    }
+
+    #[test]
+    fn graph_add_document_tracks_tokens() {
+        use super::graph::Graph;
+        let mut g = Graph::new();
+        let tokens = [SynsetId(10_001), SynsetId(10_002), SynsetId(10_003)];
+        let doc = g.add_document(&tokens);
+
+        for &t in &tokens {
+            assert!(g.might_contain(t), "token {} not in bloom", t.0);
+        }
+        assert!(g.might_contain(doc));
+    }
+
+    #[test]
+    fn graph_ensure_index_is_idempotent() {
+        use super::graph::Graph;
+        let mut g = Graph::new();
+        g.ensure_index();
+        let edges_before = g.edge_count();
+        g.ensure_index();  // second call, no work
+        assert!(g.index_is_fresh());
+        assert_eq!(g.edge_count(), edges_before);
+    }
+
+    #[test]
+    fn graph_outgoing_uses_index_after_ensure() {
+        use super::graph::Graph;
+        use super::edge_store::{Edge, Relation};
+        let mut g = Graph::new();
+        for i in 0..100u32 {
+            g.push_edge(Edge {
+                source: SynsetId(20_000 + i),
+                target: SynsetId(30_000 + i),
+                relation: Relation::IsA,
+                weight: 0, provenance: 0,
+            });
+        }
+        g.ensure_index();
+        let out = g.outgoing(SynsetId(20_050));
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].target, SynsetId(30_050));
     }
 
 }

@@ -137,3 +137,37 @@
 נתנ	2000233	verb	give	להעביר לאחר	
 לקח	2000234	verb	take	לקבל אליו	
 אהב	2000235	verb	love	לרגוש חיבה	
+
+# --- Synonym targets (words referenced as synonyms, made first-class) ---
+אנוכי	2000300	pron	I (emphatic)	גוף ראשונ מודגש	אני
+אנו	2000301	pron	we	גוף ראשונ רבימ	אנחנו
+אב	2000302	noun	father	הורה זכר	אבא
+אמ	2000303	noun	mother	הורה נקבה	אמא
+הורה	2000304	noun	parent	אב או אמ	
+בנ	2000305	noun	son	ילד זכר	ילד
+בת	2000306	noun	daughter	ילדה נקבה	ילדה
+ידיד	2000307	noun	friend	חבר קרוב	חבר;רע
+רע	2000308	noun	companion	חבר או שכנ	חבר;ידיד
+משכנ	2000309	noun	residence	מקומ מגורימ	בית;דירה
+דירה	2000310	noun	apartment	יחידת מגורימ	בית;משכנ
+ערש	2000311	noun	bed (poetic)	מיטה	מיטה
+חתולה	2000312	noun	cat (f)	חתול נקבה	חתול
+מושב	2000313	noun	seat	כיסא	כיסא
+חצר	2000314	noun	yard	גינה חיצונית	גינה
+פרדס	2000315	noun	orchard	גינת עצי פרי	גינה
+עופ	2000316	noun	bird	ציפור	ציפור
+אדמה	2000317	noun	earth	ארצ	ארצ
+רקיע	2000318	noun	heavens	שמיימ	שמיימ
+לבנה	2000319	noun	moon (poetic)	ירח	ירח
+אוקיינוס	2000320	noun	ocean	ימ גדול	ימ
+אמר	2000321	verb	say	דיבר	דיבר
+ביצע	2000322	verb	execute	עשה	עשה
+ענק	2000323	adj	giant	גדול מאוד	גדול
+זעיר	2000324	adj	tiny	קטנ מאוד	קטנ
+עתיק	2000325	adj	ancient	ישנ מאוד	ישנ
+מצויינ	2000326	adj	excellent	טוב מאוד	טוב
+גרוע	2000327	adj	awful	רע מאוד	רע
+נבונ	2000328	adj	wise	חכמ	חכמ
+זריז	2000329	adj	quick	מהיר	מהיר
+ראשונ	2000330	noun	first	מספר אחד סידורי	אחד
+יד	2000331	noun	hand	גפ	ידי
