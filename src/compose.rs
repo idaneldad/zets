@@ -134,8 +134,8 @@ pub fn describe(lex: &Lexicon, lang: &str, surface: &str, style: Style) -> Compo
         }
     };
     Composition {
-        text: render_entry(lang, surface, entry, style),
-        citations: build_citations(entry),
+        text: render_entry(lang, surface, &entry, style),
+        citations: build_citations(&entry),
         lang: lang.to_string(),
         surface: surface.to_string(),
         found: true,
@@ -147,8 +147,8 @@ pub fn cross_language(lex: &Lexicon, surface: &str) -> Vec<Composition> {
         .into_iter()
         .filter(|(_, e)| !e.is_empty())
         .map(|(lang, e)| Composition {
-            text: render_entry(&lang, surface, e, Style::Standard),
-            citations: build_citations(e),
+            text: render_entry(&lang, surface, &e, Style::Standard),
+            citations: build_citations(&e),
             lang,
             surface: surface.to_string(),
             found: true,

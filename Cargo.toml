@@ -89,3 +89,7 @@ path = "src/bin/self_test.rs"
 [[bin]]
 name = "debug-disagreements"
 path = "src/bin/debug_disagreements.rs"
+
+[[bin]]
+name = "lex-stats"
+path = "src/bin/lex_stats.rs"
