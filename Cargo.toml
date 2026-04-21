@@ -73,3 +73,11 @@ path = "src/bin/ask.rs"
 [[bin]]
 name = "translate"
 path = "src/bin/translate.rs"
+
+[[bin]]
+name = "phrase"
+path = "src/bin/phrase.rs"
+
+[[bin]]
+name = "learn-syntax"
+path = "src/bin/learn_syntax.rs"

@@ -35,6 +35,9 @@
 pub mod lexicon;
 pub mod compose;
 pub mod concepts;
+pub mod syntax_rules;
+pub mod phrase;
+pub mod word_order_learner;
 
 use std::fmt;
 

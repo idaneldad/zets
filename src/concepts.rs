@@ -32,6 +32,8 @@ pub struct Concept {
     pub english_anchor: String,
     /// Short gloss describing this sense (e.g. "domesticated animal").
     pub gloss: String,
+    /// Inferred part-of-speech: "noun", "verb", "adj", "adv", or "" if unknown.
+    pub pos: String,
 }
 
 /// Bridge edge: a surface form in a specific language points to a concept.
@@ -68,14 +70,21 @@ impl ConceptStore {
         let base = base.as_ref();
         let mut stats = ConceptLoadStats::default();
 
-        // concepts.tsv: concept_id<TAB>english<TAB>gloss
-        let cpath = base.join("concepts.tsv");
+        // Prefer concepts_with_pos.tsv if it exists (4 columns)
+        let cpath_pos = base.join("concepts_with_pos.tsv");
+        let cpath_plain = base.join("concepts.tsv");
+        let (cpath, has_pos) = if cpath_pos.exists() {
+            (cpath_pos, true)
+        } else {
+            (cpath_plain, false)
+        };
+
         if cpath.exists() {
             for line in fs::read_to_string(&cpath)?.lines() {
                 if line.starts_with('#') || line.is_empty() {
                     continue;
                 }
-                let parts: Vec<&str> = line.splitn(3, '\t').collect();
+                let parts: Vec<&str> = line.splitn(4, '\t').collect();
                 if parts.len() < 2 {
                     continue;
                 }
@@ -83,13 +92,19 @@ impl ConceptStore {
                     continue;
                 };
                 let english = parts[1].to_string();
-                let gloss = parts.get(2).unwrap_or(&"").to_string();
+                let gloss = parts.get(2).map(|s| s.to_string()).unwrap_or_default();
+                let pos = if has_pos {
+                    parts.get(3).map(|s| s.to_string()).unwrap_or_default()
+                } else {
+                    String::new()
+                };
                 self.concepts.insert(
                     cid,
                     Concept {
                         id: cid,
                         english_anchor: english,
                         gloss,
+                        pos,
                     },
                 );
                 stats.concepts += 1;
@@ -133,6 +148,56 @@ impl ConceptStore {
             .get(&(lang.to_string(), surface.to_string()))
             .cloned()
             .unwrap_or_default()
+    }
+
+    /// Find concepts matching a surface AND matching a specific POS.
+    /// Example: concepts_for_pos("en", "house", "noun") returns only noun senses.
+    pub fn concepts_for_pos(&self, lang: &str, surface: &str, target_pos: &str) -> Vec<ConceptId> {
+        self.concepts_for(lang, surface)
+            .into_iter()
+            .filter(|cid| {
+                self.concepts
+                    .get(cid)
+                    .map(|c| c.pos == target_pos)
+                    .unwrap_or(false)
+            })
+            .collect()
+    }
+
+    /// Pick the "best" concept from a list — the one with coverage in the most languages.
+    /// This prefers canonical/common meanings over rare specialized senses.
+    pub fn best_concept(&self, concepts: &[ConceptId]) -> Option<ConceptId> {
+        concepts
+            .iter()
+            .max_by_key(|cid| {
+                self.concept_to_surfaces
+                    .get(cid)
+                    .map(|v| {
+                        let mut langs = std::collections::HashSet::new();
+                        for (lang, _) in v {
+                            langs.insert(lang.clone());
+                        }
+                        langs.len()
+                    })
+                    .unwrap_or(0)
+            })
+            .copied()
+    }
+
+    /// Best concept matching POS (with graceful fallback to any-POS most-covered).
+    pub fn best_concept_for_pos(
+        &self,
+        lang: &str,
+        surface: &str,
+        target_pos: &str,
+    ) -> Option<ConceptId> {
+        let candidates = self.concepts_for_pos(lang, surface, target_pos);
+        if !candidates.is_empty() {
+            self.best_concept(&candidates)
+        } else {
+            let all = self.concepts_for(lang, surface);
+            self.best_concept(&all)
+        }
     }
 
     /// Get all (language, surface) forms for a concept.
@@ -188,6 +253,11 @@ impl ConceptStore {
             .values()
             .map(|v| v.len())
             .sum()
+    }
+
+    /// Iterator over all concept IDs (as u32 for convenience).
+    pub fn all_concept_ids(&self) -> Vec<u32> {
+        self.concepts.keys().map(|cid| cid.0).collect()
     }
 }
 
