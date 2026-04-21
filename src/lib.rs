@@ -27,7 +27,7 @@
 //!   downloaded on demand when user activates a language. Stored at
 //!   `~/.zets/packs/{code}_v{n}.pack`.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::must_use_candidate, clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions, clippy::missing_panics_doc)]
@@ -42,6 +42,8 @@ pub mod self_learner;
 pub mod piece_graph;
 pub mod piece_graph_loader;
 pub mod pack;
+pub mod mmap_core;
+pub mod mmap_lang;
 
 use std::fmt;
 
