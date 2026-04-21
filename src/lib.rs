@@ -215,6 +215,83 @@ pub enum Identity {
     Hash256([u8; 32]),
 }
 
+/// How much work to do for a single query.
+///
+/// This is the user-facing throttle that controls walk depth and
+/// confidence targets. Selection is always deterministic given the
+/// same query; only the budget differs.
+///
+/// | Mode       | Walk passes | Max depth | Target p50 latency | Use case                    |
+/// |------------|-------------|-----------|-------------------|-----------------------------|
+/// | Fast       | 1           | 2         | <50 ms            | factoid lookups             |
+/// | Standard   | 1-3         | 3         | <100 ms           | explanations (default)      |
+/// | Deliberate | 3-7         | 5         | <2 s              | complex / creative          |
+/// | Deep       | async       | unbounded | no latency bound  | background / "think on it"  |
+///
+/// All modes stop early if confidence >= 0.95.
+/// Cap on passes is a hard ceiling per SPEC V6.1 §IV.2.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ResponseMode {
+    Fast,
+    Standard,
+    Deliberate,
+    Deep,
+}
+
+impl Default for ResponseMode {
+    fn default() -> Self { Self::Standard }
+}
+
+impl ResponseMode {
+    /// Maximum number of forward+backward passes to run.
+    #[inline]
+    #[must_use]
+    pub const fn max_passes(self) -> u8 {
+        match self {
+            Self::Fast => 1,
+            Self::Standard => 3,
+            Self::Deliberate => 7,
+            Self::Deep => u8::MAX,  // effectively unbounded
+        }
+    }
+
+    /// Maximum walk depth from the seed synset.
+    #[inline]
+    #[must_use]
+    pub const fn max_depth(self) -> u8 {
+        match self {
+            Self::Fast => 2,
+            Self::Standard => 3,
+            Self::Deliberate => 5,
+            Self::Deep => u8::MAX,
+        }
+    }
+
+    /// Confidence threshold for early termination.
+    #[inline]
+    #[must_use]
+    pub const fn confidence_target(self) -> u8 {
+        // 0-100 integer scale (avoid f64 in const fn).
+        match self {
+            Self::Fast => 80,
+            Self::Standard => 90,
+            Self::Deliberate => 95,
+            Self::Deep => 99,
+        }
+    }
+
+    /// Human-readable label for logging and UI.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Fast => "fast",
+            Self::Standard => "standard",
+            Self::Deliberate => "deliberate",
+            Self::Deep => "deep",
+        }
+    }
+}
+
 // ============================================================================
 // HEBREW — character classification, niqud, stemmer
 // ============================================================================
@@ -1861,6 +1938,438 @@ pub mod graph {
     }
 }
 
+// ============================================================================
+// WALK — graph traversal with deterministic scoring
+// ============================================================================
+
+pub mod walk {
+    //! Forward + Backward passes over the graph, scored deterministically.
+    //!
+    //! # Multi-pass protocol (SPEC V6.1 §IV.2)
+    //!
+    //! Forward → Backward → Forward → ... until confidence reaches the
+    //! target from `ResponseMode`, with a hard cap on passes. Always
+    //! finalize on an even (forward) pass so candidates are coherent.
+    //!
+    //! # Determinism
+    //!
+    //! Given (graph_generation, seed, mode), always produces identical
+    //! candidate lists with identical scores. Edge ordering is stable
+    //! via sort by (target, relation, weight). No RNG.
+
+    use super::edge_store::{Edge, Relation};
+    use super::graph::Graph;
+    use super::{ResponseMode, SynsetId};
+    use std::collections::HashSet;
+
+    /// A reached node plus its derivation path.
+    #[derive(Debug, Clone)]
+    pub struct Candidate {
+        pub synset: SynsetId,
+        pub depth: u8,
+        /// Integer 0..=1000 score. No f64 — deterministic across platforms.
+        pub score: u32,
+        pub path: Vec<Edge>,
+    }
+
+    /// Summary of a multi-pass walk.
+    #[derive(Debug, Clone)]
+    pub struct WalkResult {
+        pub candidates: Vec<Candidate>,
+        pub passes_run: u8,
+        pub confidence: u8,
+        pub converged: bool,
+        pub seed: SynsetId,
+    }
+
+    /// BFS forward walk from `seed` up to `max_depth`.
+    ///
+    /// Returns candidates in score-descending order (ties broken by SynsetId asc).
+    #[must_use]
+    pub fn forward_pass(graph: &Graph, seed: SynsetId, max_depth: u8) -> Vec<Candidate> {
+        if !graph.might_contain(seed) {
+            return Vec::new();
+        }
+
+        let mut visited: HashSet<SynsetId> = HashSet::new();
+        visited.insert(seed);
+
+        let seed_cand = Candidate {
+            synset: seed,
+            depth: 0,
+            score: 1000,
+            path: Vec::new(),
+        };
+        let mut all: Vec<Candidate> = vec![seed_cand.clone()];
+        let mut layer: Vec<Candidate> = vec![seed_cand];
+
+        for depth in 1..=max_depth {
+            let mut next_layer: Vec<Candidate> = Vec::new();
+            layer.sort_by_key(|c| c.synset.0);
+
+            for cand in &layer {
+                let mut edges = graph.outgoing(cand.synset);
+                edges.sort_by_key(|e| (e.target.0, e.relation as u8, e.weight));
+
+                for edge in edges {
+                    if !visited.insert(edge.target) {
+                        continue;
+                    }
+                    // Score: parent_score × (weight/7) × depth_decay
+                    // All integer math for determinism.
+                    let edge_factor = (u32::from(edge.weight) * 1000) / 7;
+                    let depth_decay = 100u32.saturating_sub(u32::from(depth) * 10);
+                    let new_score = (cand.score * edge_factor / 1000) * depth_decay / 100;
+
+                    let mut new_path = cand.path.clone();
+                    new_path.push(edge);
+
+                    let new_cand = Candidate {
+                        synset: edge.target,
+                        depth,
+                        score: new_score,
+                        path: new_path,
+                    };
+                    next_layer.push(new_cand.clone());
+                    all.push(new_cand);
+                }
+            }
+
+            if next_layer.is_empty() {
+                break;
+            }
+            layer = next_layer;
+        }
+
+        all.sort_by(|a, b| b.score.cmp(&a.score).then(a.synset.0.cmp(&b.synset.0)));
+        all
+    }
+
+    /// Verify a candidate by walking its path backward. Returns 0..=100.
+    ///
+    /// Checks: (1) inverse edge exists where defined, (2) no CONTRADICTS
+    /// edge between source/target at any step.
+    #[must_use]
+    pub fn backward_pass(graph: &Graph, candidate: &Candidate) -> u8 {
+        if candidate.path.is_empty() {
+            return 100;
+        }
+
+        let mut valid = 0u32;
+        let total = u32::try_from(candidate.path.len()).unwrap_or(u32::MAX);
+
+        for edge in candidate.path.iter().rev() {
+            let inverse_ok = match edge.relation.inverse() {
+                Some(inv) => graph.outgoing(edge.target).iter()
+                    .any(|e| e.target == edge.source && e.relation == inv),
+                None => edge.weight > 0,
+            };
+            let contradiction = graph.outgoing(edge.source).iter()
+                .any(|e| e.target == edge.target && e.relation == Relation::Contradicts);
+            if inverse_ok && !contradiction {
+                valid += 1;
+            }
+        }
+
+        u8::try_from(valid * 100 / total).unwrap_or(100)
+    }
+
+    /// Full multi-pass walk, following SPEC V6.1 §IV.2.
+    #[must_use]
+    pub fn multi_pass(graph: &Graph, seed: SynsetId, mode: ResponseMode) -> WalkResult {
+        let max_passes = mode.max_passes();
+        let max_depth = mode.max_depth();
+        let target = mode.confidence_target();
+
+        let mut candidates = forward_pass(graph, seed, max_depth);
+        let mut passes = 1u8;
+        let mut conf = aggregate_confidence(&candidates);
+
+        while conf < target && passes < max_passes {
+            // Backward pass on top-16
+            let top_n: usize = 16.min(candidates.len());
+            for cand in candidates.iter_mut().take(top_n) {
+                let b = backward_pass(graph, cand);
+                cand.score = cand.score * u32::from(b) / 100;
+            }
+            candidates.sort_by(|a, b| b.score.cmp(&a.score).then(a.synset.0.cmp(&b.synset.0)));
+            passes += 1;
+            conf = aggregate_confidence(&candidates);
+
+            if conf >= target || passes >= max_passes {
+                break;
+            }
+
+            // Extra forward pass would go here; current design treats the
+            // first forward as exhaustive (full BFS). Reseeding from top
+            // candidates is a Week 4+ refinement.
+            passes += 1;
+        }
+
+        // Terminate on even pass (forward). If we'd exit on odd, add one.
+        if passes % 2 == 1 && passes < max_passes {
+            passes += 1;
+        }
+
+        let converged = conf >= target;
+        WalkResult { candidates, passes_run: passes, confidence: conf, converged, seed }
+    }
+
+    /// Mean of top-5 scores, scaled to 0..=100.
+    fn aggregate_confidence(candidates: &[Candidate]) -> u8 {
+        let top: Vec<&Candidate> = candidates.iter().take(5).collect();
+        if top.is_empty() { return 0; }
+        let sum: u32 = top.iter().map(|c| c.score).sum();
+        let mean = sum / u32::try_from(top.len()).unwrap_or(1);
+        u8::try_from(mean / 10).unwrap_or(100)
+    }
+}
+
+// ============================================================================
+// MEMORY — adaptive preload/evict policy based on access history
+// ============================================================================
+
+pub mod memory {
+    //! Adaptive memory management for the graph.
+    //!
+    //! Tracks per-synset statistics (access count, last-touched, neighbors
+    //! co-accessed) and exposes hints for what to preload or evict. The
+    //! learning is **hint-only** — it never changes what the graph returns
+    //! for a given query, so determinism is preserved.
+    //!
+    //! # Decisions surfaced
+    //!
+    //! - `preload_candidates(n)` — top-N synsets likely to be queried next
+    //!   based on co-access patterns from recent history
+    //! - `evict_candidates(n)` — bottom-N synsets that can be cold-paged
+    //! - `branch_heat(synset)` — how hot the subgraph rooted here is
+    //! - `is_marginal(synset)` — low degree + low access count
+    //!
+    //! # User control
+    //!
+    //! `set_strategy()` lets the user override the auto-learned policy:
+    //!   - `Auto` — learn from history (default)
+    //!   - `Keep(Vec<SynsetId>)` — explicit pin list, never evict these
+    //!   - `Conservative` — only preload when confidence is very high
+    //!   - `Off` — no preload, no evict recommendations
+
+    use super::SynsetId;
+    use std::collections::HashMap;
+
+    /// User-selectable memory strategy.
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub enum Strategy {
+        /// Learn from access patterns. Recommended default.
+        Auto,
+        /// Never evict these synsets; otherwise Auto.
+        Keep(Vec<SynsetId>),
+        /// Only preload when confidence very high (>= 90).
+        Conservative,
+        /// No preload / evict hints at all.
+        Off,
+    }
+
+    impl Default for Strategy {
+        fn default() -> Self { Self::Auto }
+    }
+
+    /// Per-synset access stats.
+    #[derive(Debug, Clone, Default)]
+    struct Stats {
+        /// How many times this synset was accessed.
+        count: u32,
+        /// Walk generation of last access (for recency).
+        last_gen: u64,
+        /// Synsets accessed in the same query (co-access) — up to 16.
+        neighbors: Vec<(SynsetId, u32)>,
+        /// Depth this synset was reached at (aggregate).
+        depth_sum: u64,
+        depth_count: u32,
+    }
+
+    /// Adaptive memory tracker.
+    pub struct MemoryManager {
+        stats: HashMap<SynsetId, Stats>,
+        strategy: Strategy,
+        current_gen: u64,
+        /// Rolling window of recent co-access groups (last ~100 queries).
+        recent_groups: Vec<Vec<SynsetId>>,
+        max_recent: usize,
+    }
+
+    impl MemoryManager {
+        #[must_use]
+        pub fn new() -> Self {
+            Self {
+                stats: HashMap::new(),
+                strategy: Strategy::Auto,
+                current_gen: 0,
+                recent_groups: Vec::new(),
+                max_recent: 100,
+            }
+        }
+
+        pub fn set_strategy(&mut self, s: Strategy) {
+            self.strategy = s;
+        }
+
+        #[inline]
+        #[must_use]
+        pub fn strategy(&self) -> &Strategy {
+            &self.strategy
+        }
+
+        /// Record a query access group. Call once per completed query with
+        /// the synsets visited.
+        pub fn record_access(&mut self, visited: &[SynsetId], max_depth: u8) {
+            self.current_gen += 1;
+            let gen = self.current_gen;
+
+            for (i, &syn) in visited.iter().enumerate() {
+                let entry = self.stats.entry(syn).or_default();
+                entry.count += 1;
+                entry.last_gen = gen;
+                entry.depth_sum += u64::from(u32::try_from(i).unwrap_or(u32::MAX).min(u32::from(max_depth)));
+                entry.depth_count += 1;
+
+                // Record co-access with up to 8 other visited nodes
+                for &other in visited.iter().take(8) {
+                    if other == syn {
+                        continue;
+                    }
+                    match entry.neighbors.iter_mut().find(|(s, _)| *s == other) {
+                        Some((_, cnt)) => *cnt += 1,
+                        None => {
+                            if entry.neighbors.len() < 16 {
+                                entry.neighbors.push((other, 1));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Record the group itself for recency pattern analysis
+            if self.recent_groups.len() >= self.max_recent {
+                self.recent_groups.remove(0);
+            }
+            self.recent_groups.push(visited.to_vec());
+        }
+
+        /// Branch heat — aggregate access count for this synset + its co-accessed neighbors.
+        #[must_use]
+        pub fn branch_heat(&self, synset: SynsetId) -> u32 {
+            match self.stats.get(&synset) {
+                Some(s) => s.count + s.neighbors.iter().map(|(_, c)| c).sum::<u32>(),
+                None => 0,
+            }
+        }
+
+        /// Marginal = low access count AND not recently touched.
+        /// Threshold: count <= 1 AND (gen - last_gen) > recent_window.
+        #[must_use]
+        pub fn is_marginal(&self, synset: SynsetId) -> bool {
+            match self.stats.get(&synset) {
+                Some(s) => {
+                    let age = self.current_gen.saturating_sub(s.last_gen);
+                    s.count <= 1 && age > 50
+                }
+                None => true,  // never seen = marginal
+            }
+        }
+
+        /// Top-N synsets likely queried next, based on co-access patterns
+        /// from recent history.
+        #[must_use]
+        pub fn preload_candidates(&self, n: usize) -> Vec<SynsetId> {
+            if matches!(self.strategy, Strategy::Off) {
+                return Vec::new();
+            }
+
+            // Aggregate co-access counts from recent groups
+            let mut scores: HashMap<SynsetId, u32> = HashMap::new();
+            let window = self.recent_groups.len().min(20);
+            for group in self.recent_groups.iter().rev().take(window) {
+                for &syn in group {
+                    *scores.entry(syn).or_insert(0) += 1;
+                }
+            }
+
+            let mut ranked: Vec<(SynsetId, u32)> = scores.into_iter().collect();
+            // Deterministic: score desc, synset_id asc
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.0.cmp(&b.0.0)));
+
+            // Conservative mode: only recommend synsets with score >= 3
+            let min_score = if matches!(self.strategy, Strategy::Conservative) { 3 } else { 1 };
+
+            ranked.into_iter()
+                .filter(|(_, s)| *s >= min_score)
+                .take(n)
+                .map(|(s, _)| s)
+                .collect()
+        }
+
+        /// Bottom-N synsets that can be safely evicted.
+        /// Never evicts anything in `Keep(pinned)`.
+        #[must_use]
+        pub fn evict_candidates(&self, n: usize) -> Vec<SynsetId> {
+            if matches!(self.strategy, Strategy::Off) {
+                return Vec::new();
+            }
+
+            let pinned: &[SynsetId] = match &self.strategy {
+                Strategy::Keep(v) => v.as_slice(),
+                _ => &[],
+            };
+
+            let mut candidates: Vec<(SynsetId, u32, u64)> = self.stats.iter()
+                .filter(|(s, _)| !pinned.contains(s))
+                .map(|(&s, stats)| {
+                    let age = self.current_gen.saturating_sub(stats.last_gen);
+                    (s, stats.count, age)
+                })
+                .collect();
+
+            // Sort by: low count first, then high age first, then synset_id asc
+            candidates.sort_by(|a, b| {
+                a.1.cmp(&b.1).then(b.2.cmp(&a.2)).then(a.0.0.cmp(&b.0.0))
+            });
+
+            candidates.into_iter().take(n).map(|(s, _, _)| s).collect()
+        }
+
+        /// Summary stats for diagnostics.
+        #[must_use]
+        pub fn summary(&self) -> MemorySummary {
+            MemorySummary {
+                tracked_synsets: self.stats.len(),
+                total_accesses: self.stats.values().map(|s| s.count as u64).sum(),
+                recent_groups: self.recent_groups.len(),
+                generation: self.current_gen,
+                strategy: match &self.strategy {
+                    Strategy::Auto => "auto",
+                    Strategy::Keep(_) => "keep",
+                    Strategy::Conservative => "conservative",
+                    Strategy::Off => "off",
+                },
+            }
+        }
+    }
+
+    impl Default for MemoryManager {
+        fn default() -> Self { Self::new() }
+    }
+
+    /// Diagnostic snapshot of the memory manager's state.
+    #[derive(Debug, Clone)]
+    pub struct MemorySummary {
+        pub tracked_synsets: usize,
+        pub total_accesses: u64,
+        pub recent_groups: usize,
+        pub generation: u64,
+        pub strategy: &'static str,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2559,6 +3068,150 @@ mod tests {
         let out = g.outgoing(SynsetId(20_050));
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].target, SynsetId(30_050));
+    }
+
+    // --- ResponseMode ---
+
+    #[test]
+    fn response_mode_defaults_to_standard() {
+        assert_eq!(ResponseMode::default(), ResponseMode::Standard);
+    }
+
+    #[test]
+    fn response_mode_parameters_ordered() {
+        use ResponseMode::*;
+        // max_depth increases with deliberation
+        assert!(Fast.max_depth() < Standard.max_depth());
+        assert!(Standard.max_depth() < Deliberate.max_depth());
+        // confidence target increases
+        assert!(Fast.confidence_target() < Deliberate.confidence_target());
+    }
+
+    // --- Walk ---
+
+    #[test]
+    fn walk_forward_returns_seed_as_depth_zero() {
+        use super::graph::Graph;
+        use super::edge_store::{Edge, Relation};
+        use super::walk;
+        let mut g = Graph::new();
+        g.push_edge(Edge {
+            source: SynsetId(10_001), target: SynsetId(10_002),
+            relation: Relation::IsA, weight: 7, provenance: 0,
+        });
+        let cands = walk::forward_pass(&g, SynsetId(10_001), 2);
+        assert!(!cands.is_empty());
+        let seed = cands.iter().find(|c| c.synset == SynsetId(10_001)).unwrap();
+        assert_eq!(seed.depth, 0);
+        assert_eq!(seed.score, 1000);
+        assert!(seed.path.is_empty());
+    }
+
+    #[test]
+    fn walk_forward_unknown_seed_returns_empty() {
+        use super::graph::Graph;
+        use super::walk;
+        let g = Graph::new();
+        let cands = walk::forward_pass(&g, SynsetId(99_999_999), 3);
+        assert!(cands.is_empty());
+    }
+
+    #[test]
+    fn walk_forward_is_deterministic() {
+        use super::graph::Graph;
+        use super::edge_store::{Edge, Relation};
+        use super::walk;
+        let mut g = Graph::new();
+        for i in 0..10u32 {
+            g.push_edge(Edge {
+                source: SynsetId(10_000),
+                target: SynsetId(20_000 + i),
+                relation: Relation::IsA,
+                weight: 7, provenance: 0,
+            });
+        }
+        let a = walk::forward_pass(&g, SynsetId(10_000), 2);
+        let b = walk::forward_pass(&g, SynsetId(10_000), 2);
+        assert_eq!(a.len(), b.len());
+        for (x, y) in a.iter().zip(b.iter()) {
+            assert_eq!(x.synset, y.synset);
+            assert_eq!(x.score, y.score);
+            assert_eq!(x.depth, y.depth);
+        }
+    }
+
+    #[test]
+    fn walk_multi_pass_terminates() {
+        use super::graph::Graph;
+        use super::edge_store::{Edge, Relation};
+        use super::walk;
+        let mut g = Graph::new();
+        g.push_edge(Edge {
+            source: SynsetId(10_001), target: SynsetId(10_002),
+            relation: Relation::IsA, weight: 7, provenance: 0,
+        });
+        let r = walk::multi_pass(&g, SynsetId(10_001), ResponseMode::Standard);
+        assert!(r.passes_run >= 1);
+        assert!(r.passes_run <= ResponseMode::Standard.max_passes() + 1);
+        assert_eq!(r.seed, SynsetId(10_001));
+    }
+
+    // --- Memory manager ---
+
+    #[test]
+    fn memory_records_access() {
+        use super::memory::MemoryManager;
+        let mut m = MemoryManager::new();
+        m.record_access(&[SynsetId(1), SynsetId(2), SynsetId(3)], 3);
+        assert_eq!(m.summary().tracked_synsets, 3);
+        assert_eq!(m.summary().total_accesses, 3);
+    }
+
+    #[test]
+    fn memory_preload_uses_recent_groups() {
+        use super::memory::MemoryManager;
+        let mut m = MemoryManager::new();
+        // Simulate 5 queries that all touched synset 42
+        for _ in 0..5 {
+            m.record_access(&[SynsetId(42), SynsetId(99)], 2);
+        }
+        let preload = m.preload_candidates(3);
+        assert!(preload.contains(&SynsetId(42)));
+    }
+
+    #[test]
+    fn memory_off_returns_no_hints() {
+        use super::memory::{MemoryManager, Strategy};
+        let mut m = MemoryManager::new();
+        m.record_access(&[SynsetId(1), SynsetId(2)], 2);
+        m.set_strategy(Strategy::Off);
+        assert!(m.preload_candidates(5).is_empty());
+        assert!(m.evict_candidates(5).is_empty());
+    }
+
+    #[test]
+    fn memory_keep_list_never_evicted() {
+        use super::memory::{MemoryManager, Strategy};
+        let mut m = MemoryManager::new();
+        m.record_access(&[SynsetId(1)], 1);
+        m.record_access(&[SynsetId(2)], 1);
+        // Pin synset 1
+        m.set_strategy(Strategy::Keep(vec![SynsetId(1)]));
+        let evict = m.evict_candidates(10);
+        assert!(!evict.contains(&SynsetId(1)));
+    }
+
+    #[test]
+    fn memory_marginal_detection() {
+        use super::memory::MemoryManager;
+        let mut m = MemoryManager::new();
+        m.record_access(&[SynsetId(1)], 1);
+        // Bump generation by 51 to make synset 1 marginal
+        for _ in 0..51 {
+            m.record_access(&[SynsetId(999)], 1);
+        }
+        assert!(m.is_marginal(SynsetId(1)));
+        assert!(!m.is_marginal(SynsetId(999)));
     }
 
 }

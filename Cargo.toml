@@ -30,6 +30,22 @@ path = "src/bin/scale_probe.rs"
 name = "unp_bench"
 path = "src/bin/unp_bench.rs"
 
+[[bin]]
+name = "compression_probe"
+path = "src/bin/compression_probe.rs"
+
+[[bin]]
+name = "base37_probe"
+path = "src/bin/base37_probe.rs"
+
+[[bin]]
+name = "multibase_probe"
+path = "src/bin/multibase_probe.rs"
+
+[[bin]]
+name = "keyboard_probe"
+path = "src/bin/keyboard_probe.rs"
+
 [dependencies]
 # None. stdlib only.
 
