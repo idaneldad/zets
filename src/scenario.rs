@@ -225,6 +225,33 @@ pub fn reactivate_by_similarity(
     scored
 }
 
+/// Auto-commit a session into a Scenario atom. Useful when a conversation ends:
+/// snapshot the active atoms + timestamp + optional emotion into the graph.
+///
+/// This is the bridge between ephemeral session memory and persistent long-term
+/// memory. After this call, the scenario is queryable via scenarios_of() and
+/// can be reactivated later via reactivate_by_similarity().
+///
+/// Returns None if the session has no active atoms (nothing to commit).
+pub fn auto_commit_session(
+    store: &mut AtomStore,
+    session: &crate::session::SessionContext,
+    person_id: AtomId,
+    timestamp: Timestamp,
+    label: &str,
+    emotion: Option<AtomId>,
+) -> Option<Scenario> {
+    let atoms: Vec<AtomId> = session.active_ids();
+    if atoms.is_empty() { return None; }
+
+    let mut builder = ScenarioBuilder::new(store, person_id, timestamp, label)
+        .mentioned_all(&atoms);
+    if let Some(e) = emotion {
+        builder = builder.with_emotion(e);
+    }
+    Some(builder.commit())
+}
+
 // ────────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────────
@@ -356,6 +383,29 @@ mod tests {
         // Same sequence of operations → same atom IDs
         assert_eq!(sc1.atom_id, sc2.atom_id);
         assert_eq!(sc1.mentioned_atoms, sc2.mentioned_atoms);
+    }
+
+    #[test]
+    fn auto_commit_session_creates_scenario() {
+        let (mut store, tamar, dog, tooth) = setup();
+        let mut session = crate::session::SessionContext::new();
+        session.mention(dog);
+        session.mention(tooth);
+
+        let sc = auto_commit_session(&mut store, &session, tamar, 5000, "auto-saved", None);
+        assert!(sc.is_some());
+        let sc = sc.unwrap();
+        assert_eq!(sc.mentioned_atoms.len(), 2);
+        let found = scenarios_of(&store, tamar);
+        assert!(found.contains(&sc.atom_id));
+    }
+
+    #[test]
+    fn auto_commit_empty_session_returns_none() {
+        let (mut store, tamar, _, _) = setup();
+        let session = crate::session::SessionContext::new();
+        let sc = auto_commit_session(&mut store, &session, tamar, 5000, "empty", None);
+        assert!(sc.is_none());
     }
 
     #[test]

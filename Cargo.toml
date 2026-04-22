@@ -124,3 +124,7 @@ path = "src/bin/autonomous_demo.rs"
 [[bin]]
 name = "scale-test"
 path = "src/bin/scale_test.rs"
+
+[[bin]]
+name = "planner-demo"
+path = "src/bin/planner_demo.rs"

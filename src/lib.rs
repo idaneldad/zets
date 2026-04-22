@@ -43,3 +43,4 @@ pub mod state_persist;
 pub mod bootstrap;
 pub mod ingestion;
 pub mod encrypted_installer;
+pub mod planner;
