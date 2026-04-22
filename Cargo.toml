@@ -74,3 +74,7 @@ path = "src/bin/cognitive_demo.rs"
 [[bin]]
 name = "zets-scene-demo"
 path = "src/bin/scene_demo.rs"
+
+[[bin]]
+name = "zets-zoology-demo"
+path = "src/bin/zoology_demo.rs"
