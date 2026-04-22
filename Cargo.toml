@@ -143,3 +143,8 @@ path = "src/bin/snapshot.rs"
 [[bin]]
 name = "pattern-demo"
 path = "src/bin/pattern_demo.rs"
+
+[[bin]]
+name = "dialogue-demo"
+path = "src/bin/dialogue_demo.rs"
+

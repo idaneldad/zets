@@ -48,4 +48,5 @@ pub mod benchmarks;
 pub mod llm_adapter;
 pub mod learning_layer;
 pub mod ethics_core;
+pub mod dialogue;
 pub mod gemini_http;
