@@ -33,3 +33,7 @@ pub mod persona;
 pub mod hopfield;
 pub mod session;
 pub mod spreading_activation;
+pub mod scenario;
+pub mod dreaming;
+pub mod skills;
+pub mod meta_learning;

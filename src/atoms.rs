@@ -312,6 +312,19 @@ impl AtomStore {
             .unwrap_or_default()
     }
 
+    /// Find all edges pointing TO `target` with the given relation.
+    /// O(E) — uses no incoming index, so avoid in hot paths.
+    /// Suitable for occasional dreaming / meta-reasoning queries.
+    pub fn incoming_by_relation(&self, target: AtomId, relation: u8) -> Vec<AtomEdge> {
+        self.edges.iter()
+            .filter(|e| e.to == target && e.relation == relation)
+            .copied()
+            .collect()
+    }
+
+    /// Total number of edges (for stats/metrics).
+    pub fn edge_count(&self) -> usize { self.edges.len() }
+
     // ── Statistics ──
 
     pub fn stats(&self) -> StoreStats {

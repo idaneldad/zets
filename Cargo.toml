@@ -111,3 +111,7 @@ path = "src/bin/vision_decomposer.rs"
 [[bin]]
 name = "context-demo"
 path = "src/bin/context_demo.rs"
+
+[[bin]]
+name = "live-brain-demo"
+path = "src/bin/live_brain_demo.rs"
