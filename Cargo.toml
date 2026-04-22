@@ -126,3 +126,7 @@ path = "src/bin/wal_demo.rs"
 [[bin]]
 name = "crypto-demo"
 path = "src/bin/crypto_demo.rs"
+
+[[bin]]
+name = "zets-engine"
+path = "src/bin/engine_cli.rs"
