@@ -37,3 +37,4 @@ pub mod scenario;
 pub mod dreaming;
 pub mod skills;
 pub mod meta_learning;
+pub mod smart_walk;
