@@ -128,3 +128,7 @@ path = "src/bin/scale_test.rs"
 [[bin]]
 name = "planner-demo"
 path = "src/bin/planner_demo.rs"
+
+[[bin]]
+name = "run-benchmark"
+path = "src/bin/run_benchmark.rs"

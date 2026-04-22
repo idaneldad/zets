@@ -44,3 +44,4 @@ pub mod bootstrap;
 pub mod ingestion;
 pub mod encrypted_installer;
 pub mod planner;
+pub mod benchmarks;
