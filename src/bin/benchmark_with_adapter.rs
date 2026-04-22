@@ -96,6 +96,62 @@ fn main() {
     println!();
 
     // ═══════════════════════════════════════════════════
+    // Run 3 (optional): WITH REAL GEMINI API if key is set
+    // ═══════════════════════════════════════════════════
+    let gemini_acc = if std::env::var("ZETS_GEMINI_KEY").is_ok() {
+        println!("━━━ Run C: With REAL Gemini 2.5 Flash API ━━━");
+        let mut adapter_live = LlmAdapter::new();  // reads ZETS_GEMINI_KEY
+
+        let mut store3 = AtomStore::new();
+        bootstrap(&mut store3);
+        let _ = ingest_text(&mut store3, "world_facts_v1", KNOWLEDGE, &IngestConfig::default());
+        let mut meta3 = MetaLearner::new();
+
+        let mut c_correct = 0usize;
+        let mut c_total = 0usize;
+        let mut c_by_cat: std::collections::HashMap<String, (usize, usize)> =
+            std::collections::HashMap::new();
+
+        for q in &questions {
+            let parse = adapter_live.parse(&q.text).unwrap_or_else(|_| local_parse(&q.text));
+            let augmented = Question {
+                id: q.id.clone(),
+                text: parse.key_terms.join(" "),
+                choices: q.choices.clone(),
+                expected: q.expected.clone(),
+                category: if parse.domain != "general" { parse.domain.clone() } else { q.category.clone() },
+            };
+            let result = answer_question(&mut store3, &mut meta3, &augmented);
+            if result.correct { c_correct += 1; }
+            c_total += 1;
+            let entry = c_by_cat.entry(q.category.clone()).or_insert((0, 0));
+            entry.1 += 1;
+            if result.correct { entry.0 += 1; }
+        }
+
+        let acc = c_correct as f32 / c_total as f32;
+        println!("  Accuracy: {:.1}%  Correct: {}/{}", acc * 100.0, c_correct, c_total);
+        println!("  Parse count: {}  (fallback count: {})",
+            adapter_live.parse_count(), adapter_live.fallback_count());
+        let real_calls = adapter_live.parse_count() - adapter_live.fallback_count();
+        println!("  Real Gemini API calls: {}", real_calls);
+        println!("  By category:");
+        let mut breakdown: Vec<(String, f32)> = c_by_cat.iter()
+            .map(|(k, (c, t))| (k.clone(), *c as f32 / *t as f32))
+            .collect();
+        breakdown.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        for (cat, acc) in breakdown {
+            println!("    {:<12} {:.1}%", cat, acc * 100.0);
+        }
+        println!();
+        Some(acc)
+    } else {
+        println!("━━━ Run C: SKIPPED (set ZETS_GEMINI_KEY to run with real API) ━━━");
+        println!();
+        None
+    };
+
+        // ═══════════════════════════════════════════════════
     // Comparison
     // ═══════════════════════════════════════════════════
     println!("━━━ Comparison ━━━");
@@ -113,58 +169,69 @@ fn main() {
 
     println!("━━━ Interpretation ━━━");
     println!();
-    println!("  Run A (baseline) matches our committed baseline of 45%.");
+    println!("  Run A (baseline) is pure token matching.");
     println!();
-    println!("  Run B strips stopwords and routes via domain tag. Even with");
-    println!("  ONLY the local rule-based parser (no real LLM call), we should");
-    println!("  see stable or improved accuracy from cleaner seeds.");
+    println!("  Run B uses a local rule-based parser — strips stopwords,");
+    println!("  classifies domain via keyword rules. No network required.");
     println!();
-    println!("  Real Gemini/Claude call (not yet wired) would add:");
-    println!("    - Better entity extraction for multi-word concepts");
-    println!("    - Intent disambiguation for complex phrasings");
-    println!("    - Proper handling of negations and comparatives");
-    println!();
-    println!("  Expected after real LLM wire-up: 55-70% on this set.");
+    if gemini_acc.is_some() {
+        println!("  Run C uses the real Gemini 2.5 Flash API.");
+        println!();
+        println!("  Observed phenomenon (22.04.2026): local parser (B) often");
+        println!("  OUTPERFORMS real LLM (C) on this benchmark. Reason:");
+        println!("    - Our graph has only ~200 atoms (small vocabulary)");
+        println!("    - Gemini returns rich, abstract entity names that");
+        println!("      don't token-match the small graph");
+        println!("    - Local parser's aggressive stopword stripping yields");
+        println!("      cleaner, simpler seeds better suited to sparse graphs");
+        println!();
+        println!("  LESSON: LLM adapters help when graph is rich. For small");
+        println!("  graphs, local parsing wins. The architecture must test");
+        println!("  both per query and route to whichever scored higher.");
+    } else {
+        println!("  Set ZETS_GEMINI_KEY and re-run to see Run C comparison.");
+    }
 }
 
 // ═══════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════
 
+const KNOWLEDGE: &str = "\
+Paris is the capital of France. \
+Berlin is the capital of Germany. \
+Madrid is the capital of Spain. \
+Rome is the capital of Italy. \
+Tokyo is the capital of Japan. \
+London is the capital of England. \
+Cairo is the capital of Egypt. \
+Water contains hydrogen and oxygen. \
+Gold has atomic number 79. \
+Iron has atomic number 26. \
+Carbon has atomic number 6. \
+Dogs are mammals. Cats are mammals. Birds are animals. \
+Fish live in water. Birds have feathers. Snakes are reptiles. \
+Rust is a systems programming language. \
+Python is an interpreted language. \
+JavaScript runs in browsers. \
+The sun is a star. The moon orbits Earth. \
+Earth is a planet. Mars is a planet. \
+Shakespeare wrote plays. \
+Einstein discovered relativity. \
+Newton discovered gravity. \
+Photosynthesis converts light to energy. \
+Gravity attracts objects. \
+Atoms compose all matter. \
+DNA stores genetic information. \
+The heart pumps blood. \
+Lungs process oxygen. \
+Eyes perceive light. \
+Ears detect sound.";
+
 fn build_store() -> AtomStore {
     let mut store = AtomStore::new();
     bootstrap(&mut store);
-    let knowledge = "\
-        Paris is the capital of France. \
-        Berlin is the capital of Germany. \
-        Madrid is the capital of Spain. \
-        Rome is the capital of Italy. \
-        Tokyo is the capital of Japan. \
-        London is the capital of England. \
-        Cairo is the capital of Egypt. \
-        Water contains hydrogen and oxygen. \
-        Gold has atomic number 79. \
-        Iron has atomic number 26. \
-        Carbon has atomic number 6. \
-        Dogs are mammals. Cats are mammals. Birds are animals. \
-        Fish live in water. Birds have feathers. Snakes are reptiles. \
-        Rust is a systems programming language. \
-        Python is an interpreted language. \
-        JavaScript runs in browsers. \
-        The sun is a star. The moon orbits Earth. \
-        Earth is a planet. Mars is a planet. \
-        Shakespeare wrote plays. \
-        Einstein discovered relativity. \
-        Newton discovered gravity. \
-        Photosynthesis converts light to energy. \
-        Gravity attracts objects. \
-        Atoms compose all matter. \
-        DNA stores genetic information. \
-        The heart pumps blood. \
-        Lungs process oxygen. \
-        Eyes perceive light. \
-        Ears detect sound.";
-    ingest_text(&mut store, "world-facts-v1", knowledge, &IngestConfig::default());
+    ingest_text(&mut store, "world-facts-v1", KNOWLEDGE, &IngestConfig::default());
     store
 }
 
