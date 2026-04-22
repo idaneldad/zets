@@ -152,3 +152,7 @@ path = "src/bin/dialogue_demo.rs"
 [[bin]]
 name = "distill-demo"
 path = "src/bin/distill_demo.rs"
+
+[[bin]]
+name = "explain-demo"
+path = "src/bin/explain_demo.rs"
