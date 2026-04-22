@@ -66,3 +66,7 @@ path = "src/bin/scopes_demo.rs"
 [[bin]]
 name = "zets-agi-demo"
 path = "src/bin/agi_demo.rs"
+
+[[bin]]
+name = "zets-cognitive-demo"
+path = "src/bin/cognitive_demo.rs"

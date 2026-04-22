@@ -23,3 +23,4 @@ pub mod system_graph;
 pub mod scopes;
 pub mod testing_sandbox;
 pub mod metacognition;
+pub mod cognitive_modes;
