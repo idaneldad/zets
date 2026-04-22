@@ -1,0 +1,37 @@
+Q1:
+  best: For "pre-load grammar-rules," I would focus on morphology tables and script+alphabet recognizers. Detection of "start getting real use" could be based on a token-frequency threshold or query-hit count. The unfreezing cost profile would likely involve a trade-off between loading the necessary data and the performance impact on the system. A simple approach would be to use a dictionary-based morphology table and a basic script recognizer. For unfreezing, a threshold-based approach could be used, such as loading a language pack when a certain number of queries are received within a short time frame.
+  risk: The risk is that the pre-loaded grammar rules might not be comprehensive enough, leading to poor performance or errors when dealing with unknown or rare linguistic constructs.
+  concrete: The **Morfessor** algorithm for morphology analysis and the ** ICU** (International Components for Unicode) library for script recognition.
+
+Q2:
+  best: For compressing graph data, I would recommend using a combination of graph-specific compression techniques, such as **GraphZip** or **WebGraph**, and a general-purpose compressor like **zstd**. Compressing per-cluster (10-100 atoms each) could provide a good balance between compression ratio and access time. The activation threshold for decompression could be based on the number of queries or the time since last access. The idle timeout for re-compression could be set based on system resources and query patterns.
+  risk: The risk is that the compression scheme might not be efficient enough, leading to slow decompression times or large memory usage.
+  concrete: The **GraphZip** algorithm for graph compression and the **zstd** library for general-purpose compression.
+
+Q3:
+  best: For personal graphs, I would recommend using a per-user overlay on the global graph, with separate graphs for shared atoms. Access control lists (ACLs) could be used per-edge or per-atom to ensure data privacy. Inheriting from a family member's graph could be achieved through a hierarchical graph structure. Lessons from Facebook and LinkedIn's social graph designs could be applied to improve scalability and performance.
+  risk: The risk is that the data model might become too complex, leading to performance issues or data inconsistencies.
+  concrete: The **Role-Based Access Control** (RBAC) model for ACLs and the **Neo4j** graph database for scalable graph storage.
+
+Q4:
+  best: For edge/cloud sync, I would recommend using a delta-based sync protocol, with per-atom or per-cluster deltas. The cloud could discover the need to learn through a count of "miss" queries on the same topic. Bandwidth constraints on phones could be addressed through delta compression and efficient data encoding. Conflict-free Replicated Data Types (CRDTs) could be used to ensure data consistency across devices.
+  risk: The risk is that the sync protocol might become too complex, leading to performance issues or data inconsistencies.
+  concrete: The **Operational Transformation** (OT) algorithm for delta-based sync and the **CRDT** library for conflict-free data replication.
+
+Q5:
+  best: For walk-based lazy decompression, I would recommend using a seekable compression format like **zstd-seekable** or **LZ4**. A small decompression unit could be achieved through chunked compression or mmap-based compression. A graph-level split approach could also be used, where each cluster is its own tiny snapshot.
+  risk: The risk is that the decompression overhead might become too high, leading to performance issues.
+  concrete: The **zstd-seekable** format for seekable compression and the **mmap** system call for efficient memory mapping.
+
+Q6:
+  best: For inference by analogy, I would recommend using the existing smart_walk algorithm with a modified scoring function that takes into account hypothetical attributes. The inferred attributes should be tagged as Hypothesis to avoid hallucination creep. A concrete example could be implemented using a simple graph with is_a and has_attribute edges.
+  risk: The risk is that the analogy-based inference might become too complex, leading to performance issues or incorrect results.
+  concrete: The **smart_walk** algorithm with a modified scoring function and the **GraphSAGE** algorithm for graph-based inference.
+
+cross_cutting_concerns: 
+- Scalability and performance across different devices and platforms.
+- Data consistency and integrity across different graphs and devices.
+- Efficient use of memory and storage resources.
+
+what_idan_is_missing: 
+- A clear evaluation plan and metrics for measuring the system's performance and accuracy across different use cases and domains.
