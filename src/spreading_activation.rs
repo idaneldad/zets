@@ -52,7 +52,11 @@ impl ActivationMap {
             .filter(|(aid, _)| !seed_set.contains(aid))
             .map(|(&aid, &score)| (aid, score))
             .collect();
-        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        // DETERMINISTIC sort: primary key = score (desc), secondary key = atom_id (asc).
+        // Without the AtomId tie-breaker, HashMap iteration order leaks into
+        // output order when scores tie. That breaks cross-process determinism.
+        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(&b.0)));
         v.truncate(k);
         v
     }
@@ -62,7 +66,9 @@ impl ActivationMap {
         let mut v: Vec<(AtomId, f32)> = self.scores.iter()
             .map(|(&aid, &score)| (aid, score))
             .collect();
-        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        // DETERMINISTIC sort: ties broken by AtomId ascending. See top_k_novel.
+        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(&b.0)));
         v.truncate(k);
         v
     }

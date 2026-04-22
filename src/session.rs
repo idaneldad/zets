@@ -127,11 +127,15 @@ impl SessionContext {
     }
 
     /// Evict the atom with lowest activation (LRU-ish).
+    /// DETERMINISTIC: when activations tie, evict the one with HIGHEST atom_id
+    /// (most recently allocated, assuming ID grows monotonically). This makes
+    /// the choice cross-process stable.
     fn evict_weakest(&mut self) {
         if let Some((&weakest_id, _)) = self.active.iter()
-            .min_by(|(_, a), (_, b)| {
+            .min_by(|(id_a, a), (id_b, b)| {
                 a.activation.partial_cmp(&b.activation)
                     .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| id_b.cmp(id_a))  // higher id loses tie (evicts newer)
             })
         {
             self.active.remove(&weakest_id);
@@ -149,18 +153,26 @@ impl SessionContext {
     }
 
     /// Top-K most active atoms (sorted by activation descending).
+    /// DETERMINISTIC: ties broken by AtomId ascending — cross-process stable.
     pub fn top_k(&self, k: usize) -> Vec<(AtomId, f32)> {
         let mut v: Vec<(AtomId, f32)> = self.active.iter()
             .map(|(&aid, e)| (aid, e.activation))
             .collect();
-        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(&b.0)));
         v.truncate(k);
         v
     }
 
     /// All currently-active atom_ids (useful as seeds for spreading activation).
+    /// DETERMINISTIC: returned in AtomId ascending order, NOT HashMap iteration
+    /// order (which is process-randomized by SipHash). Downstream consumers
+    /// (spreading_activation frontier) must see stable ordering to be
+    /// cross-process deterministic.
     pub fn active_ids(&self) -> Vec<AtomId> {
-        self.active.keys().copied().collect()
+        let mut v: Vec<AtomId> = self.active.keys().copied().collect();
+        v.sort_unstable();
+        v
     }
 
     pub fn size(&self) -> usize { self.active.len() }

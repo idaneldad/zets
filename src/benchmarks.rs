@@ -204,16 +204,50 @@ pub fn answer_question(
 
 /// Multi-choice prediction: score each choice by overlap with top candidates.
 fn predict_multichoice(walk: &WalkResult, choices: &[String], store: &AtomStore) -> String {
-    // Harvest text of top candidates
-    let candidate_texts: Vec<String> = walk.candidates.iter()
-        .take(5)
-        .filter_map(|(aid, _)| {
-            store.get(*aid)
-                .and_then(|a| std::str::from_utf8(&a.data).ok().map(String::from))
-        })
-        .collect();
+    // Harvest text of top candidates, filtering out meta/hub atoms that dominate
+    // spreading activation without carrying discriminative content.
+    // Ignored prefixes: 'sent:' (sentence hubs), 'source:', 'utt:',
+    //                   'zets:bootstrap:' (infrastructure atoms)
+    // The 'word:' prefix is KEPT but its value is the word after the prefix.
+    let is_meta = |text: &str| -> bool {
+        text.starts_with("sent:")
+            || text.starts_with("source:")
+            || text.starts_with("utt:")
+            || text.starts_with("zets:bootstrap:")
+            || text.starts_with("category:")
+    };
 
-    let combined = candidate_texts.join(" ").to_lowercase();
+    // Collect candidate labels, expanding 'word:X' to just 'X' for matching.
+    // Also follow sentence atoms to their content via outgoing edges if we
+    // need more candidates after filtering.
+    let mut candidate_labels: Vec<String> = Vec::new();
+    for (aid, _score) in walk.candidates.iter() {
+        if candidate_labels.len() >= 10 { break; }
+        if let Some(atom) = store.get(*aid) {
+            if let Ok(label) = std::str::from_utf8(&atom.data) {
+                if !is_meta(label) {
+                    // Strip 'word:' prefix if present
+                    let clean = label.strip_prefix("word:").unwrap_or(label);
+                    candidate_labels.push(clean.to_string());
+                }
+                // If it's a sentence, harvest its outgoing neighbors too
+                if label.starts_with("sent:") {
+                    for edge in store.outgoing(*aid).iter().take(8) {
+                        if let Some(n) = store.get(edge.to) {
+                            if let Ok(nlabel) = std::str::from_utf8(&n.data) {
+                                if !is_meta(nlabel) {
+                                    let clean = nlabel.strip_prefix("word:").unwrap_or(nlabel);
+                                    candidate_labels.push(clean.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let combined = candidate_labels.join(" ").to_lowercase();
 
     // Score each choice by how many of its words appear in combined
     let mut best_idx = 0usize;

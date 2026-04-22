@@ -172,3 +172,4 @@ path = "src/bin/benchmark_runner.rs"
 [[bin]]
 name = "training-demo"
 path = "src/bin/training_demo.rs"
+
