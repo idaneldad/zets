@@ -28,3 +28,4 @@ pub mod atoms;
 pub mod prototype;
 pub mod relations;
 pub mod appraisal;
+pub mod edge_extraction;

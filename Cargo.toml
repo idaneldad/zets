@@ -82,3 +82,23 @@ path = "src/bin/zoology_demo.rs"
 [[bin]]
 name = "zets-brain-demo"
 path = "src/bin/brain_demo.rs"
+
+[[bin]]
+name = "check-edges"
+path = "src/bin/check_edges.rs"
+
+[[bin]]
+name = "gloss-sample"
+path = "src/bin/gloss_sample.rs"
+
+[[bin]]
+name = "populate-edges"
+path = "src/bin/populate_edges.rs"
+
+[[bin]]
+name = "zets-personas-demo"
+path = "src/bin/personas_demo.rs"
+
+[[bin]]
+name = "populate-edges"
+path = "src/bin/populate_edges.rs"
