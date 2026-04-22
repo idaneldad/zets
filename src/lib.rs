@@ -31,3 +31,5 @@ pub mod appraisal;
 pub mod edge_extraction;
 pub mod persona;
 pub mod hopfield;
+pub mod session;
+pub mod spreading_activation;

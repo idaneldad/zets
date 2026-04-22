@@ -107,3 +107,7 @@ path = "src/bin/personas_demo.rs"
 [[bin]]
 name = "vision-decomposer"
 path = "src/bin/vision_decomposer.rs"
+
+[[bin]]
+name = "context-demo"
+path = "src/bin/context_demo.rs"
