@@ -44,6 +44,8 @@ pub mod piece_graph_loader;
 pub mod pack;
 pub mod mmap_core;
 pub mod mmap_lang;
+pub mod wal;
+pub mod crypto;
 
 use std::fmt;
 

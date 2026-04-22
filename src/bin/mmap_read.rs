@@ -87,45 +87,33 @@ fn main() -> std::io::Result<()> {
         ("tr", "köpek"),
         ("ja", "犬"),
     ];
+    let qt = Instant::now();
     for (lang, surface) in samples {
-        // Is this language loaded?
-        let Some(pack) = lang_packs.iter().find(|p| p.lang_code == *lang) else {
+        // Find the loaded language pack (mutable since we build lookup lazily)
+        let pack_idx = lang_packs.iter().position(|p| p.lang_code == *lang);
+        let Some(i) = pack_idx else {
             continue;
         };
-        // Find the piece_id via scanning (we don't have a reverse surface → id map yet)
-        // For demo we iterate through core.piece_count and find matching surface
-        let mut found_piece = None;
-        for pid in 0..core.piece_count {
-            if core.get_piece(pid) == *surface {
-                found_piece = Some(pid);
-                break;
-            }
+        // O(1) surface → concept lookup via reverse index (built on first call)
+        let concepts = lang_packs[i].concepts_for_surface(&core, surface);
+        if concepts.is_empty() {
+            println!("  [{}] \"{}\"  (no concepts)", lang, surface);
+            continue;
         }
-        match found_piece {
-            None => println!("  [{}] \"{}\"  (not in piece pool)", lang, surface),
-            Some(pid) => {
-                let concepts = pack.concepts_for_surface_piece(pid);
+        println!("  [{}] \"{}\"  →  {} concepts", lang, surface, concepts.len());
+        if let Some(&cid) = concepts.first() {
+            if let Some(c) = core.get_concept(cid) {
+                let anchor = core.get_piece(c.anchor_piece);
+                let gloss = core.get_piece(c.gloss_piece);
+                let gloss_short: String = gloss.chars().take(50).collect();
                 println!(
-                    "  [{}] \"{}\" piece={}  →  {} concepts",
-                    lang,
-                    surface,
-                    pid,
-                    concepts.len()
+                    "      c{} anchor=\"{}\" gloss=\"{}\" pos={}",
+                    cid, anchor, gloss_short, c.pos
                 );
-                if let Some(&cid) = concepts.first() {
-                    if let Some(c) = core.get_concept(cid) {
-                        let anchor = core.get_piece(c.anchor_piece);
-                        let gloss = core.get_piece(c.gloss_piece);
-                        let gloss_short: String = gloss.chars().take(50).collect();
-                        println!(
-                            "      c{} anchor=\"{}\" gloss=\"{}\" pos={}",
-                            cid, anchor, gloss_short, c.pos
-                        );
-                    }
-                }
             }
         }
     }
+    println!("  (queries took {:?})", qt.elapsed());
     println!();
 
     if force_all {

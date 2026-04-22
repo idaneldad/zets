@@ -51,7 +51,8 @@ name = "wiki_poc"
 path = "src/bin/wiki_poc.rs"
 
 [dependencies]
-memmap2 = "0.9"  # mmap support for Stage 3 lazy loading
+memmap2 = "0.9"    # mmap for lazy loading
+aes-gcm = "0.10"   # authenticated encryption for Stage 3
 
 [dev-dependencies]
 # None.
@@ -117,3 +118,11 @@ path = "src/bin/analyze_pool.rs"
 [[bin]]
 name = "mmap-read"
 path = "src/bin/mmap_read.rs"
+
+[[bin]]
+name = "wal-demo"
+path = "src/bin/wal_demo.rs"
+
+[[bin]]
+name = "crypto-demo"
+path = "src/bin/crypto_demo.rs"

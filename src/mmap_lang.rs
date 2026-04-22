@@ -36,6 +36,9 @@ pub struct MmapLangPack {
     pub antonyms_index: HashMap<PieceId, u32>,
     // Section 4: definitions index
     pub definitions_index: HashMap<PieceId, u32>,
+    /// Reverse lookup: surface string → piece_id.
+    /// Built lazily on first query via `build_surface_lookup`.
+    surface_lookup: Option<HashMap<String, PieceId>>,
 }
 
 impl MmapLangPack {
@@ -86,6 +89,7 @@ impl MmapLangPack {
             synonyms_index: HashMap::new(),
             antonyms_index: HashMap::new(),
             definitions_index: HashMap::new(),
+            surface_lookup: None,
         };
 
         // Section 0: surface → list of concepts
@@ -229,5 +233,38 @@ impl MmapLangPack {
 
     pub fn surface_count(&self) -> usize {
         self.surface_to_concepts_index.len()
+    }
+
+    /// Build reverse lookup: surface string → piece_id.
+    /// Called once on first `piece_id_of_surface` call. Cost: ~O(surface_count)
+    /// strings fetched from the core mmap (not owned by this pack).
+    /// Typical: 50K-300K entries per language pack = 2-15 MB RAM.
+    fn ensure_surface_lookup(&mut self, core: &crate::mmap_core::MmapCore) {
+        if self.surface_lookup.is_some() {
+            return;
+        }
+        let mut map = HashMap::with_capacity(self.surface_to_concepts_index.len());
+        for &piece_id in self.surface_to_concepts_index.keys() {
+            let s = core.get_piece(piece_id);
+            if !s.is_empty() {
+                map.insert(s.to_string(), piece_id);
+            }
+        }
+        self.surface_lookup = Some(map);
+    }
+
+    /// Look up surface → piece_id in O(1) after first call.
+    pub fn piece_id_of_surface(&mut self, core: &crate::mmap_core::MmapCore, surface: &str) -> Option<PieceId> {
+        self.ensure_surface_lookup(core);
+        self.surface_lookup.as_ref().and_then(|m| m.get(surface).copied())
+    }
+
+    /// Full query: surface string → concept_ids (no scan).
+    pub fn concepts_for_surface(&mut self, core: &crate::mmap_core::MmapCore, surface: &str) -> Vec<ConceptId> {
+        let piece_id = match self.piece_id_of_surface(core, surface) {
+            Some(p) => p,
+            None => return vec![],
+        };
+        self.concepts_for_surface_piece(piece_id)
     }
 }
