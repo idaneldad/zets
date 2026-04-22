@@ -127,3 +127,7 @@ path = "src/bin/planner_demo.rs"
 [[bin]]
 name = "run-benchmark"
 path = "src/bin/run_benchmark.rs"
+
+[[bin]]
+name = "measure-moats"
+path = "src/bin/measure_moats.rs"
