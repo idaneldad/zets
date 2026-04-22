@@ -387,6 +387,40 @@ pub const ALL_RELATIONS: &[RelationDef] = &[
         region: BrainRegion::MetaCognition, direction: Direction::Directed,
         transitivity: Transitivity::Never, affinity: ModeAffinity::precise(),
         hebrew_template: "{A} נסתר על-ידי {B}" },
+
+    // ── Persona / Social Identity (0x40-0x47) — added for rich person modeling ──
+    RelationDef { code: 0x40, name: "has_age", description: "Age of a person in years",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::precise(),
+        hebrew_template: "ל{A} יש גיל {B}" },
+    RelationDef { code: 0x41, name: "has_occupation", description: "Profession / job / role",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::precise(),
+        hebrew_template: "{A} עובד כ{B}" },
+    RelationDef { code: 0x42, name: "has_hobby", description: "Leisure pursuit",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::all(),
+        hebrew_template: "{A} נהנה מ{B}" },
+    RelationDef { code: 0x43, name: "speaks_language", description: "Can speak a language",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::precise(),
+        hebrew_template: "{A} מדבר {B}" },
+    RelationDef { code: 0x44, name: "lives_in", description: "Residence location",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::precise(),
+        hebrew_template: "{A} גר ב{B}" },
+    RelationDef { code: 0x45, name: "parent_of", description: "Parent-child relation",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::story(),
+        hebrew_template: "{A} הורה של {B}" },
+    RelationDef { code: 0x46, name: "married_to", description: "Spouse relationship",
+        region: BrainRegion::SocialMind, direction: Direction::Symmetric,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::story(),
+        hebrew_template: "{A} נשוי ל{B}" },
+    RelationDef { code: 0x47, name: "studied_at", description: "Educational institution",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::story(),
+        hebrew_template: "{A} למד ב{B}" },
 ];
 
 /// Lookup by code.
@@ -433,7 +467,7 @@ mod tests {
 
     #[test]
     fn sixty_four_relations_defined() {
-        assert_eq!(ALL_RELATIONS.len(), 64, "must have exactly 64 relations");
+        assert_eq!(ALL_RELATIONS.len(), 72, "must have exactly 72 relations (64 core + 8 persona)");
     }
 
     #[test]
@@ -441,7 +475,7 @@ mod tests {
         let mut seen = std::collections::HashSet::new();
         for r in ALL_RELATIONS {
             assert!(seen.insert(r.code), "duplicate code {} ({})", r.code, r.name);
-            assert!(r.code < 64, "code {} exceeds 6-bit range", r.code);
+            assert!(r.code < 128, "code {} exceeds 7-bit range", r.code);
         }
     }
 
@@ -458,7 +492,9 @@ mod tests {
         assert!(get(0x00).is_some());
         assert_eq!(get(0x00).unwrap().name, "is_a");
         assert_eq!(get(0x2A).unwrap().name, "emotion_triggered");
-        assert!(get(64).is_none());
+        assert!(get(128).is_none()); // 7-bit range
+        assert!(get(0x40).is_some());
+        assert_eq!(get(0x40).unwrap().name, "has_age");
     }
 
     #[test]
