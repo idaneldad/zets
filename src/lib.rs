@@ -47,6 +47,7 @@ pub mod mmap_lang;
 pub mod wal;
 pub mod crypto;
 pub mod engine;
+pub mod morphology;
 
 use std::fmt;
 
