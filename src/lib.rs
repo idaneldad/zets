@@ -26,3 +26,5 @@ pub mod metacognition;
 pub mod cognitive_modes;
 pub mod atoms;
 pub mod prototype;
+pub mod relations;
+pub mod appraisal;
