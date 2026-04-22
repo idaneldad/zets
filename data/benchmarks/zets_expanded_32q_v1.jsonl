@@ -1,0 +1,32 @@
+{"id":"m1","text":"What is the capital of France?","choices":["Berlin","Paris","Madrid","Rome"],"expected":"B","category":"geography"}
+{"id":"m2","text":"What is the capital of Germany?","choices":["Paris","Berlin","Rome","Madrid"],"expected":"B","category":"geography"}
+{"id":"m3","text":"What is the capital of Japan?","choices":["Beijing","Seoul","Tokyo","Bangkok"],"expected":"C","category":"geography"}
+{"id":"m4","text":"What is the capital of Italy?","choices":["Madrid","Athens","Rome","Paris"],"expected":"C","category":"geography"}
+{"id":"m5","text":"What is the capital of Spain?","choices":["Lisbon","Madrid","Barcelona","Seville"],"expected":"B","category":"geography"}
+{"id":"m6","text":"Cairo is the capital of which country?","choices":["Egypt","Libya","Sudan","Saudi Arabia"],"expected":"A","category":"geography"}
+{"id":"m7","text":"What is the capital of England?","choices":["Liverpool","London","Manchester","Oxford"],"expected":"B","category":"geography"}
+{"id":"b1","text":"What is a dog?","choices":["A plant","A mammal","A fish","A bird"],"expected":"B","category":"biology"}
+{"id":"b2","text":"What is a cat?","choices":["A reptile","A mammal","A fish","A bird"],"expected":"B","category":"biology"}
+{"id":"b3","text":"Where do fish live?","choices":["Trees","Water","Air","Underground"],"expected":"B","category":"biology"}
+{"id":"b4","text":"What do birds have?","choices":["Scales","Fur","Feathers","Gills"],"expected":"C","category":"biology"}
+{"id":"b5","text":"What kind of animal is a snake?","choices":["Mammal","Bird","Fish","Reptile"],"expected":"D","category":"biology"}
+{"id":"b6","text":"What stores genetic information?","choices":["Protein","RNA","DNA","Lipid"],"expected":"C","category":"biology"}
+{"id":"b7","text":"What does the heart do?","choices":["Digests food","Pumps blood","Filters waste","Breathes air"],"expected":"B","category":"biology"}
+{"id":"b8","text":"What do lungs process?","choices":["Food","Water","Oxygen","Light"],"expected":"C","category":"biology"}
+{"id":"c1","text":"Gold has what atomic number?","choices":["26","79","6","92"],"expected":"B","category":"chemistry"}
+{"id":"c2","text":"Iron has what atomic number?","choices":["26","79","6","1"],"expected":"A","category":"chemistry"}
+{"id":"c3","text":"Carbon has what atomic number?","choices":["79","26","6","1"],"expected":"C","category":"chemistry"}
+{"id":"c4","text":"Water contains which elements?","choices":["Carbon oxygen","Hydrogen oxygen","Iron sulfur","Nitrogen carbon"],"expected":"B","category":"chemistry"}
+{"id":"c5","text":"What composes all matter?","choices":["Waves","Cells","Atoms","Organs"],"expected":"C","category":"chemistry"}
+{"id":"cs1","text":"What kind of language is Rust?","choices":["A color","A systems programming language","A metal","A plant"],"expected":"B","category":"cs"}
+{"id":"cs2","text":"What kind of language is Python?","choices":["Compiled","Interpreted","Assembly","Machine"],"expected":"B","category":"cs"}
+{"id":"cs3","text":"Where does JavaScript run?","choices":["Kernels","Browsers","Mainframes","Embedded"],"expected":"B","category":"cs"}
+{"id":"p1","text":"What does gravity do?","choices":["Repels","Attracts","Spins","Glows"],"expected":"B","category":"physics"}
+{"id":"p2","text":"What does photosynthesis convert?","choices":["Water to ice","Light to energy","Air to oil","Stone to sand"],"expected":"B","category":"physics"}
+{"id":"a1","text":"What is the sun?","choices":["A planet","A moon","A star","A comet"],"expected":"C","category":"astronomy"}
+{"id":"a2","text":"What is Earth?","choices":["A star","A planet","A moon","A comet"],"expected":"B","category":"astronomy"}
+{"id":"a3","text":"What is Mars?","choices":["A star","A moon","A planet","A galaxy"],"expected":"C","category":"astronomy"}
+{"id":"a4","text":"What does the moon do?","choices":["Produces light","Orbits Earth","Grows plants","Makes rain"],"expected":"B","category":"astronomy"}
+{"id":"h1","text":"Who discovered relativity?","choices":["Newton","Einstein","Darwin","Galileo"],"expected":"B","category":"history"}
+{"id":"h2","text":"Who discovered gravity?","choices":["Newton","Einstein","Shakespeare","Curie"],"expected":"A","category":"history"}
+{"id":"h3","text":"Who wrote plays?","choices":["Einstein","Shakespeare","Newton","Darwin"],"expected":"B","category":"history"}

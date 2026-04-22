@@ -160,3 +160,11 @@ path = "src/bin/explain_demo.rs"
 [[bin]]
 name = "verify-demo"
 path = "src/bin/verify_demo.rs"
+
+[[bin]]
+name = "ingest-corpus"
+path = "src/bin/ingest_corpus.rs"
+
+[[bin]]
+name = "benchmark-runner"
+path = "src/bin/benchmark_runner.rs"
