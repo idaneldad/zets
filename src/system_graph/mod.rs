@@ -23,6 +23,7 @@ pub mod routes;
 pub mod vm;
 pub mod bootstrap;
 pub mod graph;
+pub mod reasoning;
 
 pub use opcodes::Opcode;
 pub use value::Value;
@@ -33,3 +34,4 @@ pub use bootstrap::{
     all_bootstrap_routes,
 };
 pub use graph::{SystemGraph, SystemGraphStats};
+pub use reasoning::{all_reasoning_routes, R_IS_ANCESTOR};

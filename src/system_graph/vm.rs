@@ -244,6 +244,95 @@ impl<'a> Vm<'a> {
                     // Metadata ops — pop value, ignore for now (used for reflection)
                     let _ = self.pop()?;
                 }
+
+                // ── Stack manipulation (NEW) ────────────────────────────
+                Opcode::Dup => {
+                    let top = self.stack.last().ok_or(VmError::StackUnderflow)?.clone();
+                    self.push(top)?;
+                }
+                Opcode::Swap => {
+                    let b = self.pop()?;
+                    let a = self.pop()?;
+                    self.push(b)?;
+                    self.push(a)?;
+                }
+                Opcode::Pop => {
+                    let _ = self.pop()?;
+                }
+
+                // ── List operations (NEW) ───────────────────────────────
+                Opcode::ListIndex => {
+                    let n = self.pop_int()?;
+                    let list_val = self.pop()?;
+                    match list_val {
+                        Value::List(items) => {
+                            let idx = n as usize;
+                            if n < 0 || idx >= items.len() {
+                                self.push(Value::Nil)?;
+                            } else {
+                                self.push(items[idx].clone())?;
+                            }
+                        }
+                        _ => self.push(Value::Nil)?,
+                    }
+                }
+                Opcode::ListLen => {
+                    let v = self.pop()?;
+                    let len = match v {
+                        Value::List(items) => items.len() as i64,
+                        Value::String(s) => s.chars().count() as i64,
+                        _ => 0,
+                    };
+                    self.push(Value::Int(len))?;
+                }
+                Opcode::ListEmpty => {
+                    let v = self.pop()?;
+                    let empty = match v {
+                        Value::List(items) => items.is_empty(),
+                        Value::String(s) => s.is_empty(),
+                        Value::Nil => true,
+                        _ => false,
+                    };
+                    self.push(Value::Bool(empty))?;
+                }
+
+                // ── Arithmetic (NEW) ────────────────────────────────────
+                Opcode::Add => {
+                    let b = self.pop_int().unwrap_or(0);
+                    let a = self.pop_int().unwrap_or(0);
+                    self.push(Value::Int(a.wrapping_add(b)))?;
+                }
+                Opcode::Sub => {
+                    let b = self.pop_int().unwrap_or(0);
+                    let a = self.pop_int().unwrap_or(0);
+                    self.push(Value::Int(a.wrapping_sub(b)))?;
+                }
+                Opcode::Lt => {
+                    let b = self.pop_int().unwrap_or(0);
+                    let a = self.pop_int().unwrap_or(0);
+                    self.push(Value::Bool(a < b))?;
+                }
+                Opcode::Gt => {
+                    let b = self.pop_int().unwrap_or(0);
+                    let a = self.pop_int().unwrap_or(0);
+                    self.push(Value::Bool(a > b))?;
+                }
+
+                // ── Boolean (NEW) ───────────────────────────────────────
+                Opcode::Not => {
+                    let v = self.pop()?;
+                    self.push(Value::Bool(!v.as_bool()))?;
+                }
+                Opcode::And => {
+                    let b = self.pop()?;
+                    let a = self.pop()?;
+                    self.push(Value::Bool(a.as_bool() && b.as_bool()))?;
+                }
+                Opcode::Or => {
+                    let b = self.pop()?;
+                    let a = self.pop()?;
+                    self.push(Value::Bool(a.as_bool() || b.as_bool()))?;
+                }
             }
         }
 
@@ -447,5 +536,139 @@ mod tests {
         let mut vm = Vm::new(&routes);
         let result = vm.run(1, vec![Value::String("DNA is a molecule that carries info".into())], &mut host).unwrap();
         assert_eq!(result, Value::Bool(true));
+    }
+    #[test]
+    fn vm_arithmetic_add() {
+        let mut r = Route::new(1, "add", super::super::routes::Tier::Hot, 2);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(0);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(1);
+        r.emit_u8(Opcode::Add.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![Value::Int(3), Value::Int(4)], &mut host).unwrap();
+        assert_eq!(result, Value::Int(7));
+    }
+
+    #[test]
+    fn vm_list_index() {
+        let mut r = Route::new(1, "idx", super::super::routes::Tier::Hot, 0);
+        let c_list = r.add_constant(Value::List(vec![
+            Value::Int(10), Value::Int(20), Value::Int(30),
+        ]));
+        let c_idx = r.add_constant(Value::Int(1));
+        r.emit_u8(Opcode::ConstLoad.as_u8()); r.emit_u16(c_list);
+        r.emit_u8(Opcode::ConstLoad.as_u8()); r.emit_u16(c_idx);
+        r.emit_u8(Opcode::ListIndex.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![], &mut host).unwrap();
+        assert_eq!(result, Value::Int(20));
+    }
+
+    #[test]
+    fn vm_list_index_out_of_range() {
+        let mut r = Route::new(1, "idx", super::super::routes::Tier::Hot, 0);
+        let c_list = r.add_constant(Value::List(vec![Value::Int(10)]));
+        let c_idx = r.add_constant(Value::Int(5));
+        r.emit_u8(Opcode::ConstLoad.as_u8()); r.emit_u16(c_list);
+        r.emit_u8(Opcode::ConstLoad.as_u8()); r.emit_u16(c_idx);
+        r.emit_u8(Opcode::ListIndex.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![], &mut host).unwrap();
+        assert!(result.is_nil());
+    }
+
+    #[test]
+    fn vm_list_len() {
+        let mut r = Route::new(1, "len", super::super::routes::Tier::Hot, 0);
+        let c_list = r.add_constant(Value::List(vec![
+            Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4),
+        ]));
+        r.emit_u8(Opcode::ConstLoad.as_u8()); r.emit_u16(c_list);
+        r.emit_u8(Opcode::ListLen.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![], &mut host).unwrap();
+        assert_eq!(result, Value::Int(4));
+    }
+
+    #[test]
+    fn vm_list_empty() {
+        let mut r = Route::new(1, "empty", super::super::routes::Tier::Hot, 0);
+        let c_list = r.add_constant(Value::List(vec![]));
+        r.emit_u8(Opcode::ConstLoad.as_u8()); r.emit_u16(c_list);
+        r.emit_u8(Opcode::ListEmpty.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![], &mut host).unwrap();
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn vm_comparison_lt() {
+        let mut r = Route::new(1, "lt", super::super::routes::Tier::Hot, 2);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(0);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(1);
+        r.emit_u8(Opcode::Lt.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![Value::Int(3), Value::Int(5)], &mut host).unwrap();
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn vm_dup_doubles_top() {
+        let mut r = Route::new(1, "dup", super::super::routes::Tier::Hot, 1);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(0);
+        r.emit_u8(Opcode::Dup.as_u8());
+        r.emit_u8(Opcode::Add.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![Value::Int(7)], &mut host).unwrap();
+        assert_eq!(result, Value::Int(14));
+    }
+
+    #[test]
+    fn vm_swap_reorders() {
+        let mut r = Route::new(1, "swap", super::super::routes::Tier::Hot, 2);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(0);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(1);
+        r.emit_u8(Opcode::Swap.as_u8());
+        r.emit_u8(Opcode::Sub.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        // params: 10, 3 -> swap -> stack is [3, 10] -> sub -> 3 - 10 = -7
+        let result = vm.run(1, vec![Value::Int(10), Value::Int(3)], &mut host).unwrap();
+        assert_eq!(result, Value::Int(-7));
+    }
+
+    #[test]
+    fn vm_not_inverts_bool() {
+        let mut r = Route::new(1, "not", super::super::routes::Tier::Hot, 1);
+        r.emit_u8(Opcode::ParamLoad.as_u8()); r.emit_u16(0);
+        r.emit_u8(Opcode::Not.as_u8());
+        r.emit_u8(Opcode::Return.as_u8());
+        let routes = build_routes(r);
+        let mut host = MockHost::new();
+        let mut vm = Vm::new(&routes);
+        let result = vm.run(1, vec![Value::Bool(true)], &mut host).unwrap();
+        assert_eq!(result, Value::Bool(false));
     }
 }

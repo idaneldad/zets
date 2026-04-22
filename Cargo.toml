@@ -62,3 +62,7 @@ path = "src/bin/system_graph_demo.rs"
 [[bin]]
 name = "zets-scopes-demo"
 path = "src/bin/scopes_demo.rs"
+
+[[bin]]
+name = "zets-agi-demo"
+path = "src/bin/agi_demo.rs"
