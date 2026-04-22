@@ -1,0 +1,19 @@
+{
+  "name": "v1_world_facts",
+  "created_utc": "2026-04-22",
+  "format_version": 1,
+  "atoms": 236,
+  "edges": 459,
+  "bytes_on_disk": 14754,
+  "bootstrapped": true,
+  "corpus": "data/corpora/world_facts_v1.txt",
+  "ingestions": [
+    {
+      "label": "world_facts_v1",
+      "sentences": 35,
+      "unique_tokens": 81,
+      "new_atoms": 117,
+      "new_edges": 341
+    }
+  ]
+}

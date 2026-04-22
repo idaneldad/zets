@@ -1,0 +1,20 @@
+{"id":"geo1","text":"Which city is the capital of France?","choices":["Berlin","Paris","Rome","Madrid"],"expected":"B","category":"geography"}
+{"id":"geo2","text":"What is the capital of Germany?","choices":["Paris","Berlin","Rome","Madrid"],"expected":"B","category":"geography"}
+{"id":"geo3","text":"Which country's capital is Tokyo?","choices":["China","Korea","Japan","Thailand"],"expected":"C","category":"geography"}
+{"id":"geo4","text":"What is capital of Italy?","choices":["Madrid","Athens","Rome","Paris"],"expected":"C","category":"geography"}
+{"id":"geo5","text":"Cairo is the capital of which country?","choices":["Egypt","Libya","Sudan","Israel"],"expected":"A","category":"geography"}
+{"id":"bio1","text":"What kind of animal is a dog?","choices":["Plants","Reptiles","Mammals","Fish"],"expected":"C","category":"biology"}
+{"id":"bio2","text":"Where do fish live?","choices":["Trees","Water","Clouds","Underground"],"expected":"B","category":"biology"}
+{"id":"bio3","text":"What do birds have?","choices":["Scales","Fur","Feathers","Gills"],"expected":"C","category":"biology"}
+{"id":"bio4","text":"Snakes are what kind of animals?","choices":["Mammals","Birds","Fish","Reptiles"],"expected":"D","category":"biology"}
+{"id":"bio5","text":"What stores genetic information?","choices":["RNA","Proteins","DNA","Lipids"],"expected":"C","category":"biology"}
+{"id":"chem1","text":"What is gold's atomic number?","choices":["26","79","6","92"],"expected":"B","category":"chemistry"}
+{"id":"chem2","text":"Water contains which elements?","choices":["Nitrogen carbon","Hydrogen oxygen","Helium neon","Iron sulfur"],"expected":"B","category":"chemistry"}
+{"id":"chem3","text":"What compose all matter?","choices":["Cells","Organs","Atoms","Waves"],"expected":"C","category":"chemistry"}
+{"id":"cs1","text":"What is Rust?","choices":["A metal","A systems programming language","A color","A plant"],"expected":"B","category":"cs"}
+{"id":"cs2","text":"What kind of language is Python?","choices":["Compiled","Interpreted","Assembly","Machine"],"expected":"B","category":"cs"}
+{"id":"cs3","text":"Where does JavaScript run?","choices":["Browsers","Kernels","Phones only","Mainframes"],"expected":"A","category":"cs"}
+{"id":"cs4","text":"What is carbon's atomic number?","choices":["79","26","6","1"],"expected":"C","category":"chemistry"}
+{"id":"astro1","text":"What is the sun?","choices":["A planet","A moon","A star","A comet"],"expected":"C","category":"astronomy"}
+{"id":"astro2","text":"What does gravity do?","choices":["Repels","Attracts","Rotates","Glows"],"expected":"B","category":"physics"}
+{"id":"hist1","text":"Who discovered relativity?","choices":["Newton","Einstein","Darwin","Galileo"],"expected":"B","category":"history"}

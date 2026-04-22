@@ -1,0 +1,19 @@
+{
+  "name": "v1_pet_facts",
+  "created_utc": "2026-04-22",
+  "format_version": 1,
+  "atoms": 159,
+  "edges": 255,
+  "bytes_on_disk": 10153,
+  "bootstrapped": true,
+  "corpus": "data/corpora/pet_facts_v1.txt",
+  "ingestions": [
+    {
+      "label": "pet_facts_v1",
+      "sentences": 13,
+      "unique_tokens": 26,
+      "new_atoms": 40,
+      "new_edges": 137
+    }
+  ]
+}

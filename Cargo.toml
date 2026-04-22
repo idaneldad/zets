@@ -135,3 +135,7 @@ path = "src/bin/measure_moats.rs"
 [[bin]]
 name = "benchmark-with-adapter"
 path = "src/bin/benchmark_with_adapter.rs"
+
+[[bin]]
+name = "snapshot"
+path = "src/bin/snapshot.rs"

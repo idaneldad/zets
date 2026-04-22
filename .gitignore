@@ -29,3 +29,10 @@ Thumbs.db
 #       (small, part of build.rs compilation)
 data/packs/
 research/.venv/
+
+# New versioned data subdirs — SMALL, tracked:
+# data/baseline/ (< 100KB per snapshot)
+# data/benchmarks/ (JSONL)
+# data/corpora/ (source texts)
+# data/installer/ (encrypted blobs, small)
+# These are explicit exceptions to the large-data rules above.

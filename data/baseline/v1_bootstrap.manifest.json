@@ -1,0 +1,11 @@
+{
+  "name": "v1_bootstrap",
+  "created_utc": "2026-04-22",
+  "format_version": 1,
+  "atoms": 119,
+  "edges": 118,
+  "bytes_on_disk": 7451,
+  "bootstrapped": true,
+  "ingestions": [
+  ]
+}
