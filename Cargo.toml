@@ -120,3 +120,7 @@ path = "src/bin/live_brain_demo.rs"
 [[bin]]
 name = "autonomous-demo"
 path = "src/bin/autonomous_demo.rs"
+
+[[bin]]
+name = "scale-test"
+path = "src/bin/scale_test.rs"
