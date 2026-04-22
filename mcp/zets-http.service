@@ -1,0 +1,21 @@
+[Unit]
+Description=ZETS HTTP API (REST bridge for zets-gui)
+After=network.target
+
+[Service]
+Type=simple
+User=dinio
+Group=dinio
+WorkingDirectory=/home/dinio/zets
+Environment="ZETS_ROOT=/home/dinio/zets"
+Environment="ZETS_HTTP_PORT=3147"
+Environment="ZETS_DEFAULT_SNAPSHOT=wiki_all_domains_v1"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/home/dinio/.cargo/bin"
+ExecStart=/usr/bin/python3 /home/dinio/zets/mcp/zets_http_api.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/dinio/zets/mcp/logs/http.out
+StandardError=append:/home/dinio/zets/mcp/logs/http.err
+
+[Install]
+WantedBy=multi-user.target

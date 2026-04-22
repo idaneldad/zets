@@ -1,0 +1,22 @@
+[Unit]
+Description=ZETS MCP Server (AI/AGI cognitive kernel access for Claude)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dinio
+Group=dinio
+WorkingDirectory=/home/dinio/zets
+Environment="ZETS_ROOT=/home/dinio/zets"
+Environment="ZETS_MCP_PORT=3145"
+Environment="ZETS_DEFAULT_SNAPSHOT=wiki_all_domains_v1"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/home/dinio/.cargo/bin"
+ExecStart=/usr/bin/python3 /home/dinio/zets/mcp/zets_mcp_server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/dinio/zets/mcp/logs/mcp.out
+StandardError=append:/home/dinio/zets/mcp/logs/mcp.err
+
+[Install]
+WantedBy=multi-user.target
