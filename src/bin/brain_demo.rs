@@ -16,7 +16,7 @@
 
 use zets::appraisal::{Appraisal, AppraisalValence, Attribution, EmotionalEvent, EmotionalHistory};
 use zets::atoms::{AtomKind, AtomStore};
-use zets::relations::{self, BrainRegion};
+use zets::relations::{self};
 
 fn main() {
     println!("═══ ZETS 9-Region Brain Graph Demo ═══");

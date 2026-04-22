@@ -29,7 +29,7 @@
 use std::io::Write;
 use std::path::Path;
 
-use crate::atoms::{Atom, AtomEdge, AtomId, AtomKind, AtomStore};
+use crate::atoms::{AtomKind, AtomStore};
 
 const MAGIC: &[u8; 4] = b"ZETS";
 const VERSION: u32 = 1;

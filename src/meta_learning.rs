@@ -19,7 +19,6 @@
 //!   2 = Gestalt     (pattern synthesis)
 //!   3 = Narrative   (causal-temporal)
 
-use crate::atoms::AtomId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CognitiveMode {

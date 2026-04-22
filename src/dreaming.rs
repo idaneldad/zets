@@ -24,7 +24,7 @@
 
 use std::collections::HashSet;
 
-use crate::atoms::{AtomEdge, AtomId, AtomStore};
+use crate::atoms::{AtomId, AtomStore};
 use crate::relations;
 
 /// A candidate edge proposed by the dreaming process.

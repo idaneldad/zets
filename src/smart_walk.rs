@@ -19,7 +19,7 @@
 //! has learned works for this kind of query.
 
 use crate::atoms::{AtomId, AtomStore};
-use crate::dreaming::{dream, DreamResult};
+use crate::dreaming::{dream};
 use crate::meta_learning::{CognitiveMode, MetaLearner, query_hash};
 use crate::session::SessionContext;
 use crate::spreading_activation::{spread_from_session, ActivationMap, SpreadConfig};

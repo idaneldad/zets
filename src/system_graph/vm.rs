@@ -98,7 +98,7 @@ impl<'a> Vm<'a> {
 
         let mut pc = 0usize;
         let bc = &route.bytecode;
-        let mut local_params = params;
+        let local_params = params;
 
         while pc < bc.len() {
             self.ops_executed += 1;

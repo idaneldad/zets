@@ -7,10 +7,9 @@
 //!   4. Testing sandbox with staged change → test → verify → promote
 //!   5. Decision log (audit trail per query)
 
-use std::path::PathBuf;
 
 use zets::scopes::router::{default_trust, LogEntry, ScopeRouter, TrustProfile};
-use zets::scopes::{EncryptionTier, GraphScope, ScopeId, ScopePaths, ScopeRegistry};
+use zets::scopes::{ScopeId, ScopeRegistry};
 use zets::testing_sandbox::{ChangeKind, TestResult, TestingSandbox};
 
 fn main() {

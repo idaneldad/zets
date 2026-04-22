@@ -15,7 +15,7 @@
 //!   7. Meta-learner updates posterior (tree 11)
 
 use zets::atoms::{AtomKind, AtomStore};
-use zets::dreaming::{dream, propose_via_two_hop, evaluate};
+use zets::dreaming::{propose_via_two_hop, evaluate};
 use zets::meta_learning::{CognitiveMode, MetaLearner, query_hash};
 use zets::relations;
 use zets::scenario::ScenarioBuilder;
@@ -24,7 +24,7 @@ use zets::skills::{
     attach_skill, people_with_skill, proficiency_of, register_skill,
     reinforce_skill, skill_solves, skills_of, skill_label, Proficiency,
 };
-use zets::spreading_activation::{disambiguate, spread_from_session, SpreadConfig};
+use zets::spreading_activation::{spread_from_session, SpreadConfig};
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════╗");

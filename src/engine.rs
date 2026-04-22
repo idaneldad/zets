@@ -16,6 +16,7 @@
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
+#[allow(unused_imports)]
 use std::time::Instant;
 
 use crate::mmap_core::MmapCore;

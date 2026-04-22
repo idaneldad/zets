@@ -7,6 +7,7 @@
 //! internally by the `languages::*` factories.
 
 use super::core::{MorphologyCore, Typology};
+#[allow(unused_imports)]
 use super::rules::{PrefixFamily, PrefixRule, SuffixRule};
 use super::core::Feature;
 

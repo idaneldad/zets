@@ -98,7 +98,7 @@ fn main() {
         .id();
 
     // Standard Poodle (standard size)
-    let standard_poodle = Prototype::create(&mut store, "StandardPoodle", Some(poodle))
+    let _standard_poodle = Prototype::create(&mut store, "StandardPoodle", Some(poodle))
         .add_slot("size", size_standard)
         .id();
 

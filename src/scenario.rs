@@ -18,8 +18,6 @@
 //! where TAU is the time constant (default: 30 days = 2.6M seconds).
 //! This matches human episodic memory decay curves.
 
-use std::collections::HashMap;
-
 use crate::atoms::{AtomId, AtomKind, AtomStore};
 use crate::relations;
 

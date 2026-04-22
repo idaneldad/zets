@@ -14,7 +14,7 @@
 
 use memmap2::Mmap;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::{self};
 use std::path::Path;
 
 use crate::pack::{CORE_MAGIC, FORMAT_VERSION};
@@ -36,6 +36,7 @@ pub struct SectionOffsets {
 /// that the OS services lazily — only pages you touch end up in RAM.
 pub struct MmapCore {
     mmap: Mmap,
+    #[allow(dead_code)]
     sections: SectionOffsets,
     /// Decoded language registry (small, eager read)
     pub lang_codes: Vec<String>,
@@ -86,7 +87,7 @@ impl MmapCore {
             ));
         }
 
-        let mut read_u64 = |off: usize| u64::from_le_bytes(mmap[off..off + 8].try_into().unwrap());
+        let read_u64 = |off: usize| u64::from_le_bytes(mmap[off..off + 8].try_into().unwrap());
         let sections = SectionOffsets {
             lang_registry: (
                 read_u64(section_table_offset),

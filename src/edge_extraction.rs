@@ -8,6 +8,7 @@
 
 use std::collections::HashMap;
 
+#[allow(unused_imports)]
 use crate::piece_graph::{ConceptId, ConceptNode, EdgeKind, PackedEdge, PieceGraph};
 
 /// Pattern that can extract an IS_A target from a gloss.

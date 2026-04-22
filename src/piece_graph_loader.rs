@@ -14,7 +14,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::piece_graph::{
-    pos_str_to_code, ConceptId, ConceptNode, EdgeKind, LangIndex, PackedEdge, PieceGraph, POS_NONE,
+    pos_str_to_code, ConceptId, ConceptNode, LangIndex, PieceGraph, POS_NONE,
 };
 
 pub struct PieceGraphLoader {
@@ -308,7 +308,7 @@ impl PieceGraphLoader {
     /// Build cross-language TranslatesTo edges between concepts that share a meaning.
     /// This materializes the "big EN ↔ gadol HE" relationship as explicit edges.
     #[allow(dead_code)]
-    pub fn build_cross_lang_edges(graph: &mut PieceGraph) {
+    pub fn build_cross_lang_edges(_graph: &mut PieceGraph) {
         // For each concept, connect it to concepts that share at least one surface context.
         // (Not done by default — concept graph already encodes this implicitly via shared concept_id.)
     }

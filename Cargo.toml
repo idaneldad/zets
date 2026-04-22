@@ -92,11 +92,6 @@ name = "gloss-sample"
 path = "src/bin/gloss_sample.rs"
 
 [[bin]]
-name = "zets-personas-demo"
-path = "src/bin/personas_demo.rs"
-
-
-[[bin]]
 name = "populate-edges"
 path = "src/bin/populate_edges.rs"
 

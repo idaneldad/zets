@@ -273,7 +273,6 @@ pub fn run_benchmark(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::atoms::AtomKind;
     use crate::ingestion::{ingest_text, IngestConfig};
 
     fn knowledgeable_store() -> AtomStore {

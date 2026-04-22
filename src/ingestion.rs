@@ -162,8 +162,7 @@ pub fn ingest_text(
 
     // ── 2. Split into sentences ──
     let sentences = split_sentences(text);
-    let near_rel = relations::by_name("near").unwrap().code;
-    let co_occurs = relations::by_name("co_occurs_with").unwrap().code;
+        let co_occurs = relations::by_name("co_occurs_with").unwrap().code;
     let part_of = relations::by_name("part_of").unwrap().code;
 
     let mut all_unique_tokens: HashSet<String> = HashSet::new();

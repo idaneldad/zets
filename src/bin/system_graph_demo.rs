@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use zets::system_graph::{
-    all_bootstrap_routes, Host, Route, SystemGraph, Value, Vm,
+    Host, Route, SystemGraph, Value, Vm,
     R_EXTRACT_HEARST_X_IS_A_Y,
 };
 
