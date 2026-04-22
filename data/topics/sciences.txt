@@ -1,0 +1,64 @@
+# Sciences — Physics, Chemistry, Biology, Astronomy (60 topics)
+# Physics
+Gravity
+Electromagnetism
+Quantum mechanics
+Relativity
+Thermodynamics
+Energy
+Momentum
+Newton's laws of motion
+Atom
+Electron
+Proton
+Neutron
+Light
+Sound
+Heat
+Electricity
+Magnetism
+Nuclear fission
+Nuclear fusion
+Radioactivity
+# Chemistry
+Periodic table
+Chemical bond
+Acid
+Base (chemistry)
+Oxidation
+Reduction (chemistry)
+Chemical reaction
+Molecule
+Ion
+Isotope
+Organic chemistry
+Water
+Oxygen
+Hydrogen
+Carbon
+Nitrogen
+Gold
+Iron
+Uranium
+Sodium chloride
+# Astronomy
+Sun
+Moon
+Earth
+Mars
+Jupiter
+Saturn
+Venus
+Mercury (planet)
+Neptune
+Uranus
+Pluto
+Milky Way
+Black hole
+Star
+Galaxy
+Solar System
+Big Bang
+Supernova
+Nebula
+Exoplanet

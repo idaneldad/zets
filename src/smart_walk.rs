@@ -77,25 +77,52 @@ pub fn smart_walk(
         .unwrap_or_else(|| meta.global.sample_by_hash(qhash));
 
     // Step 2: convert mode to SpreadConfig preset
-    let config = match mode {
-        CognitiveMode::Precision => SpreadConfig::precise(),
-        CognitiveMode::Divergent => SpreadConfig::divergent(),
-        CognitiveMode::Gestalt => SpreadConfig {
-            max_depth: 3,
-            hop_decay: 0.5,
-            min_activation: 0.03,
-            max_nodes: 500,
-            allowed_relations: None,
-            weight_matters: false,  // treat weak edges equally — helps gestalt
-        },
-        CognitiveMode::Narrative => SpreadConfig {
-            max_depth: 4,
-            hop_decay: 0.5,
-            min_activation: 0.05,
-            max_nodes: 800,
-            allowed_relations: None,
-            weight_matters: true,
-        },
+    //
+    // SCALE-ADAPTIVE: at >=5K atoms, mode defaults explore too wide and get
+    // truncated by max_nodes in the wrong order. Override with scale-tuned
+    // configs that stay shallow+wide instead. The cognitive mode's intent
+    // (precision vs divergent) is preserved through min_activation and
+    // hop_decay tweaks on top of the scale baseline.
+    let atom_count = store.atom_count();
+    let config = if atom_count >= 5_000 {
+        let mut base = SpreadConfig::scale_adaptive(atom_count);
+        // Mode personality layered on scale baseline
+        match mode {
+            CognitiveMode::Precision => {
+                base.min_activation = (base.min_activation * 2.0).max(0.05);
+                base.max_nodes = (base.max_nodes / 2).max(1000);
+            }
+            CognitiveMode::Divergent => {
+                base.min_activation *= 0.5;
+                base.max_nodes *= 2;
+            }
+            CognitiveMode::Gestalt => { base.weight_matters = false; }
+            CognitiveMode::Narrative => {
+                if atom_count < 100_000 { base.max_depth = base.max_depth.saturating_add(1); }
+            }
+        }
+        base
+    } else {
+        match mode {
+            CognitiveMode::Precision => SpreadConfig::precise(),
+            CognitiveMode::Divergent => SpreadConfig::divergent(),
+            CognitiveMode::Gestalt => SpreadConfig {
+                max_depth: 3,
+                hop_decay: 0.5,
+                min_activation: 0.03,
+                max_nodes: 500,
+                allowed_relations: None,
+                weight_matters: false,  // treat weak edges equally — helps gestalt
+            },
+            CognitiveMode::Narrative => SpreadConfig {
+                max_depth: 4,
+                hop_decay: 0.5,
+                min_activation: 0.05,
+                max_nodes: 800,
+                allowed_relations: None,
+                weight_matters: true,
+            },
+        }
     };
 
     // Step 3: spread activation

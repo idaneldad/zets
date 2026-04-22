@@ -119,20 +119,96 @@ pub fn find_relevant_atoms(store: &AtomStore, text: &str, max: usize) -> Vec<Ato
         .collect();
 
     let (atoms, _) = store.snapshot();
-    let mut matched: Vec<AtomId> = Vec::new();
+
+    // Meta-atom filter: these hubs dominate spreading but carry no content
+    let is_meta = |s: &str| -> bool {
+        s.starts_with("sent:") || s.starts_with("source:") || s.starts_with("utt:")
+            || s.starts_with("zets:bootstrap:") || s.starts_with("category:")
+    };
+
+    // Two-pass match:
+    //   Pass 1: EXACT match on the atom's core label (after stripping `word:`).
+    //           This prevents "france" from matching "frances"/"francesco".
+    //   Pass 2: plural/singular variant match — ONLY invoked if pass 1 found
+    //           no atoms for a given token. Covers "dog" vs "dogs",
+    //           "country" vs "countries", etc.
+    //
+    // Critical: we return pass-1 matches in full before considering pass-2,
+    // and pass-2 is per-token (if any token got exact match, we don't relax it).
+
+    // Collect all atoms by their core label for O(1) lookup
+    let mut exact_matches: Vec<AtomId> = Vec::new();
+    let mut tokens_with_exact: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     for (atom_id, atom) in atoms.iter().enumerate() {
         let data_str = match std::str::from_utf8(&atom.data) {
             Ok(s) => s.to_lowercase(),
             Err(_) => continue,
         };
+        if is_meta(&data_str) { continue; }
+        let core = data_str.strip_prefix("word:").unwrap_or(&data_str);
         for token in &tokens {
-            if data_str.contains(token) {
-                matched.push(atom_id as AtomId);
+            if core == token.as_str() {
+                exact_matches.push(atom_id as AtomId);
+                tokens_with_exact.insert(token.clone());
                 break;
             }
         }
+    }
+
+    // If exact matches cover ALL tokens, we're done
+    if tokens_with_exact.len() == tokens.len() || exact_matches.len() >= max {
+        exact_matches.truncate(max);
+        return exact_matches;
+    }
+
+    // Pass 2: for tokens with no exact match, try plural/singular variants.
+    // Only these "lonely" tokens get relaxed matching — tokens that already
+    // have exact hits stay exact.
+    let needs_fallback: Vec<&String> = tokens.iter()
+        .filter(|t| !tokens_with_exact.contains(t.as_str()))
+        .collect();
+
+    if needs_fallback.is_empty() {
+        exact_matches.truncate(max);
+        return exact_matches;
+    }
+
+    let mut matched = exact_matches;
+    for (atom_id, atom) in atoms.iter().enumerate() {
         if matched.len() >= max { break; }
+        let data_str = match std::str::from_utf8(&atom.data) {
+            Ok(s) => s.to_lowercase(),
+            Err(_) => continue,
+        };
+        if is_meta(&data_str) { continue; }
+        let core = data_str.strip_prefix("word:").unwrap_or(&data_str);
+
+        // Don't double-add atoms already in matched
+        if matched.contains(&(atom_id as AtomId)) { continue; }
+
+        let mut hit = false;
+        for token in &needs_fallback {
+            let t = token.as_str();
+            // token + 's' matches core (token "dog" -> atom "dogs")
+            if core.len() == t.len() + 1 && core.starts_with(t) && core.ends_with('s') {
+                hit = true; break;
+            }
+            // token - 's' matches core (token "dogs" -> atom "dog")
+            if t.len() == core.len() + 1 && t.starts_with(core) && t.ends_with('s') {
+                hit = true; break;
+            }
+            // -y / -ies swap
+            if t.ends_with('y') && core.len() == t.len() + 2
+                && core.starts_with(&t[..t.len()-1]) && core.ends_with("ies") {
+                hit = true; break;
+            }
+            if core.ends_with('y') && t.len() == core.len() + 2
+                && t.starts_with(&core[..core.len()-1]) && t.ends_with("ies") {
+                hit = true; break;
+            }
+        }
+        if hit { matched.push(atom_id as AtomId); }
     }
     matched
 }
@@ -179,7 +255,7 @@ pub fn answer_question(
     //     share tokens with that choice. Pick highest.
     //   - Free-text: return the top candidate's label (stripped of prefix).
     let predicted = if !question.choices.is_empty() {
-        predict_multichoice(&walk, &question.choices, store)
+        predict_multichoice(&walk, &seeds, &question.choices, store)
     } else {
         predict_free_text(&walk, store)
     };
@@ -203,7 +279,7 @@ pub fn answer_question(
 }
 
 /// Multi-choice prediction: score each choice by overlap with top candidates.
-fn predict_multichoice(walk: &WalkResult, choices: &[String], store: &AtomStore) -> String {
+fn predict_multichoice(walk: &WalkResult, seeds: &[AtomId], choices: &[String], store: &AtomStore) -> String {
     // Harvest text of top candidates, filtering out meta/hub atoms that dominate
     // spreading activation without carrying discriminative content.
     // Ignored prefixes: 'sent:' (sentence hubs), 'source:', 'utt:',
@@ -217,6 +293,48 @@ fn predict_multichoice(walk: &WalkResult, choices: &[String], store: &AtomStore)
             || text.starts_with("category:")
     };
 
+    // GENERIC WORD DENYLIST: English function words and high-frequency nouns
+    // that appear in almost every Wikipedia article. These dominate spreading
+    // activation when the graph is large, displacing discriminative content.
+    // This is a pragmatic precursor to TF-IDF degree weighting.
+    let is_generic = |w: &str| -> bool {
+        matches!(w,
+            // articles, pronouns, auxiliaries
+            "the" | "a" | "an" | "this" | "that" | "these" | "those"
+            | "it" | "its" | "they" | "them" | "their"
+            | "is" | "was" | "are" | "were" | "be" | "been" | "being"
+            | "has" | "have" | "had" | "do" | "does" | "did"
+            | "will" | "would" | "could" | "should" | "may" | "might"
+            | "of" | "to" | "in" | "on" | "at" | "by" | "for" | "with"
+            | "from" | "about" | "into" | "onto" | "over" | "under"
+            | "and" | "or" | "but" | "not" | "also" | "then" | "than" | "so"
+            | "what" | "which" | "who" | "whom" | "where" | "when" | "why" | "how"
+            | "as" | "if" | "because" | "while" | "though" | "although"
+            // time/place adverbs
+            | "now" | "here" | "today" | "yesterday" | "tomorrow"
+            | "often" | "sometimes" | "always" | "never" | "again" | "still"
+            | "ago" | "soon" | "later" | "before" | "after" | "first" | "last"
+            | "once" | "twice"
+            // high-frequency generic nouns/verbs (the REAL problem at scale)
+            | "one" | "two" | "three" | "four" | "five" | "many" | "few" | "some" | "all"
+            | "other" | "others" | "another" | "more" | "most" | "less" | "least"
+            | "new" | "old" | "young" | "same" | "different" | "such"
+            | "year" | "years" | "day" | "days" | "time" | "times" | "way" | "ways"
+            | "part" | "parts" | "place" | "places" | "thing" | "things"
+            | "people" | "person" | "world" | "century" | "number" | "numbers"
+            | "name" | "names" | "form" | "forms" | "use" | "used" | "using" | "uses"
+            | "make" | "made" | "making" | "makes" | "take" | "took" | "taken"
+            | "became" | "become" | "becomes" | "becoming"
+            | "include" | "included" | "includes" | "including"
+            | "known" | "called" | "named" | "found"
+            | "like" | "see" | "seen" | "seeing" | "say" | "said" | "says"
+            | "both" | "each" | "every" | "any" | "none"
+            // common filler adjectives
+            | "large" | "small" | "big" | "little" | "long" | "short" | "high" | "low"
+            | "good" | "bad" | "great" | "best" | "worst" | "important" | "main" | "major"
+        )
+    };
+
     // Collect candidate labels, expanding 'word:X' to just 'X' for matching.
     // Also follow sentence atoms to their content via outgoing edges if we
     // need more candidates after filtering.
@@ -228,7 +346,11 @@ fn predict_multichoice(walk: &WalkResult, choices: &[String], store: &AtomStore)
                 if !is_meta(label) {
                     // Strip 'word:' prefix if present
                     let clean = label.strip_prefix("word:").unwrap_or(label);
-                    candidate_labels.push(clean.to_string());
+                    // Skip generic function/high-freq words — at scale these
+                    // are pure noise that never constitute a valid answer.
+                    if !is_generic(clean) {
+                        candidate_labels.push(clean.to_string());
+                    }
                 }
                 // If it's a sentence, harvest its outgoing neighbors too
                 if label.starts_with("sent:") {
@@ -249,16 +371,69 @@ fn predict_multichoice(walk: &WalkResult, choices: &[String], store: &AtomStore)
 
     let combined = candidate_labels.join(" ").to_lowercase();
 
-    // Score each choice by how many of its words appear in combined
+    // DIRECT-EDGE SIGNAL: the highest-value check at scale.
+    // For each choice word, find its atom (if exists) and count how many
+    // direct edges connect it to ANY seed. A word with 20 edges to seeds
+    // is almost certainly the answer, regardless of spreading activation.
+    // This is what rescues "Paris" answers when generic hubs dominate the
+    // spread — Paris has 22 direct edges to 'france', nothing else does.
+    //
+    // Build once: map of word -> atom_id for known choice tokens.
+    let (all_atoms, _) = store.snapshot();
+    let choice_word_to_atom = |word: &str| -> Option<AtomId> {
+        let lower = word.to_lowercase();
+        for (idx, atom) in all_atoms.iter().enumerate() {
+            if let Ok(label) = std::str::from_utf8(&atom.data) {
+                let core = label.strip_prefix("word:").unwrap_or(label).to_lowercase();
+                if core == lower { return Some(idx as AtomId); }
+            }
+        }
+        None
+    };
+
+    // For each choice, compute both:
+    //   - candidate_hits: how many choice words appear in top candidate labels
+    //   - direct_edges: total direct edges between choice atoms and seeds
+    let seed_set: std::collections::HashSet<AtomId> = seeds.iter().copied().collect();
     let mut best_idx = 0usize;
-    let mut best_score = -1i32;
+    let mut best_direct_edges: i32 = -1;
+    let mut best_candidate_hits: i32 = -1;
+
     for (i, choice) in choices.iter().enumerate() {
-        let score: i32 = choice.split_whitespace()
+        let words: Vec<String> = choice.split_whitespace()
             .filter(|w| w.len() >= 3)
-            .map(|w| if combined.contains(&w.to_lowercase()) { 1 } else { 0 })
+            .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+            .filter(|w| !w.is_empty())
+            .collect();
+
+        let candidate_hits: i32 = words.iter()
+            .map(|w| if combined.contains(w.as_str()) { 1 } else { 0 })
             .sum();
-        if score > best_score {
-            best_score = score;
+
+        let mut direct_edges: i32 = 0;
+        for word in &words {
+            if let Some(aid) = choice_word_to_atom(word) {
+                // Count edges from choice atom to any seed + edges from
+                // any seed to choice atom. Symmetrical signal.
+                for edge in store.outgoing(aid).iter() {
+                    if seed_set.contains(&edge.to) { direct_edges += 1; }
+                }
+                for &seed in seeds.iter() {
+                    for edge in store.outgoing(seed).iter() {
+                        if edge.to == aid { direct_edges += 1; }
+                    }
+                }
+            }
+        }
+
+        // Primary: direct edges (ground truth signal)
+        // Tie-break: candidate_hits (spreading activation signal)
+        // Final tie-break: choice index (deterministic)
+        let better = direct_edges > best_direct_edges
+            || (direct_edges == best_direct_edges && candidate_hits > best_candidate_hits);
+        if better {
+            best_direct_edges = direct_edges;
+            best_candidate_hits = candidate_hits;
             best_idx = i;
         }
     }

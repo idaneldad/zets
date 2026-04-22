@@ -1,0 +1,63 @@
+# Geography (50 topics)
+# Continents
+Africa
+Antarctica
+Asia
+Australia (continent)
+Europe
+North America
+South America
+# Major countries (capital-country queries)
+France
+Germany
+United States
+United Kingdom
+China
+Japan
+India
+Russia
+Brazil
+Canada
+Australia
+Italy
+Spain
+Mexico
+Argentina
+Egypt
+South Africa
+Israel
+Saudi Arabia
+Iran
+Turkey
+Greece
+Sweden
+Norway
+Netherlands
+Poland
+# Capitals
+Paris
+Berlin
+London
+Tokyo
+Beijing
+Moscow
+Washington, D.C.
+New Delhi
+Rome
+Madrid
+Cairo
+Jerusalem
+Athens
+# Physical geography
+Mountain
+Ocean
+River
+Desert
+Forest
+Lake
+Island
+Amazon rainforest
+Sahara
+Mount Everest
+Pacific Ocean
+Atlantic Ocean

@@ -134,6 +134,41 @@ impl SpreadConfig {
             weight_matters: false, // treat weak edges as equal to strong
         }
     }
+
+    /// Scale-adaptive — auto-tune based on graph size.
+    /// At ~200K atoms, depth-3 BFS explores millions of paths and max_nodes
+    /// truncates to the wrong 1000 (BFS-first, not most-relevant). So for
+    /// large graphs we MUST stay shallow to keep signal/noise usable.
+    ///
+    /// Critical insight: at Wikipedia scale, the answer is almost always
+    /// a DIRECT NEIGHBOR of some seed. Paris -> France has 22 direct edges.
+    /// Deeper spreading just adds generic-hub noise.
+    pub fn scale_adaptive(graph_atom_count: usize) -> Self {
+        if graph_atom_count >= 100_000 {
+            // Big graph (Wikipedia-scale): depth-1 only, wide exploration at that depth
+            Self {
+                max_depth: 1,
+                hop_decay: 1.0,       // no decay — depth-1 only
+                min_activation: 0.01,
+                max_nodes: 5000,      // allow many direct neighbors
+                allowed_relations: None,
+                weight_matters: true,
+            }
+        } else if graph_atom_count >= 5_000 {
+            // Medium graph: depth-2 with tight cutoff
+            Self {
+                max_depth: 2,
+                hop_decay: 0.4,
+                min_activation: 0.05,
+                max_nodes: 2000,
+                allowed_relations: None,
+                weight_matters: true,
+            }
+        } else {
+            // Small graph: the old default is fine
+            Self::default()
+        }
+    }
 }
 
 /// Spread activation from a set of seed atoms (with initial activations)

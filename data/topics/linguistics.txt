@@ -1,0 +1,41 @@
+# Linguistics (40 topics)
+Linguistics
+Language
+Grammar
+Syntax
+Semantics
+Phonology
+Phonetics
+Morphology (linguistics)
+Lexicon
+Word
+Sentence (linguistics)
+Noun
+Verb
+Adjective
+Adverb
+Pronoun
+Preposition
+Consonant
+Vowel
+Alphabet
+Writing system
+Phoneme
+Syllable
+Etymology
+Language family
+Indo-European languages
+Semitic languages
+English language
+Hebrew language
+Arabic language
+Chinese language
+Latin
+Sanskrit
+Ancient Greek
+Historical linguistics
+Sociolinguistics
+Psycholinguistics
+Computational linguistics
+Natural language processing
+Translation

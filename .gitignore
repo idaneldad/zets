@@ -36,3 +36,10 @@ research/.venv/
 # data/corpora/ (source texts)
 # data/installer/ (encrypted blobs, small)
 # These are explicit exceptions to the large-data rules above.
+
+# Wikipedia-scale snapshots — regeneratable from data/wikipedia_dumps/ via stream-ingest
+data/baseline/wiki_*.atoms
+data/baseline/wiki_*.manifest.json
+
+# stream-ingest logs (regenerated per run)
+data/log/

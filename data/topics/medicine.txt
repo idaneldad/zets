@@ -1,0 +1,62 @@
+# Medicine — 60 core topics for initial ingestion
+# Source: top-covered biomedical concepts on Wikipedia
+Heart
+Lung
+Brain
+Kidney
+Liver
+Stomach
+Skin
+Bone
+Muscle
+Blood
+Neuron
+Diabetes
+Cancer
+Asthma
+Hypertension
+Pneumonia
+Influenza
+Tuberculosis
+Malaria
+HIV/AIDS
+Alzheimer's disease
+Parkinson's disease
+Multiple sclerosis
+Epilepsy
+Stroke
+Myocardial infarction
+Insulin
+Adrenaline
+Serotonin
+Dopamine
+Antibiotic
+Vaccine
+Chemotherapy
+Immune system
+Antibody
+Hormone
+DNA
+RNA
+Protein
+Enzyme
+Virus
+Bacteria
+Fungus
+Parasite
+Mitochondrion
+Cell nucleus
+Ribosome
+Photosynthesis
+Cellular respiration
+Circulatory system
+Digestive system
+Nervous system
+Respiratory system
+Endocrine system
+Pregnancy
+Vitamin
+Mineral (nutrient)
+Cholesterol
+Hemoglobin
+Metabolism

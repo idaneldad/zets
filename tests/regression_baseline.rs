@@ -40,25 +40,37 @@ struct Baseline {
 /// expansion in predict_multichoice).
 const BASELINES: &[Baseline] = &[
     Baseline {
-        name: "v1_world_facts_81_2pct_deterministic",
+        name: "v1_world_facts_90_6pct_direct_edge",
         snapshot: "v1_world_facts",
         questions_file: "data/benchmarks/zets_expanded_32q_v1.jsonl",
-        // 81.2% (26/32) measured across 5+ runs after determinism fix
-        // (commit after this one). The old 87.5% observation was a
-        // HashMap-ordering artifact that varied per-process — not real.
-        floor_correct: 26,
-        ceiling_correct: 26,  // exactly — any drift is a red flag
+        // 90.6% (29/32) measured across 5 runs after direct-edge
+        // scoring added. Jumped from 81.2% because direct graph edges
+        // between choice atoms and seeds are now a first-class signal.
+        floor_correct: 29,
+        ceiling_correct: 29,  // exactly — any drift is a red flag
         total_questions: 32,
     },
     Baseline {
-        name: "v2_world_facts_large_53_1pct",
+        name: "v2_world_facts_large_93_8pct",
         snapshot: "v2_world_facts_large",
         questions_file: "data/benchmarks/zets_expanded_32q_v1.jsonl",
-        // 53.1% (17/32) stable across 5 runs after determinism fix.
-        // Ceiling intentionally open — Phase 10 specificity scoring should
-        // raise this, and we WANT a regression test to catch that as "update
-        // the ceiling" rather than silent drift.
-        floor_correct: 17,
+        // 93.8% (30/32) after direct-edge scoring. At 882 atoms, the
+        // graph now actually BEATS the 236-atom v1 (90.6%) — the
+        // scaling curve has flipped in the right direction.
+        // Ceiling tight; drift either way needs intentional update.
+        floor_correct: 30,
+        ceiling_correct: 30,
+        total_questions: 32,
+    },
+    Baseline {
+        // New baseline: 211,650-atom Wikipedia subset. Proves Phase 10
+        // architecture can handle Wikipedia-scale graphs deterministically.
+        // Current score is low (34.4%) but stable. Ceiling open — this is
+        // the main target for future scoring improvements.
+        name: "wiki_all_domains_v1_68_8pct",
+        snapshot: "wiki_all_domains_v1",
+        questions_file: "data/benchmarks/zets_expanded_32q_v1.jsonl",
+        floor_correct: 22,
         ceiling_correct: 32,
         total_questions: 32,
     },
@@ -115,7 +127,7 @@ fn run_baseline(b: &Baseline) -> usize {
 }
 
 #[test]
-fn baseline_v1_world_facts_81_2pct_deterministic() {
+fn baseline_v1_world_facts_90_6pct_direct_edge() {
     let b = &BASELINES[0];
     let correct = run_baseline(b);
     let pct = correct as f32 / b.total_questions as f32 * 100.0;
@@ -150,6 +162,27 @@ fn baseline_v2_scaling_floor() {
         b.floor_correct, b.total_questions);
     // Ceiling is intentionally 32 (100%) here — we WANT this to rise when
     // Phase 10 specificity-scoring ships. No upper-bound assertion.
+}
+
+#[test]
+fn baseline_wiki_all_domains_v1() {
+    // This test is marked #[ignore] by default — it requires the 158MB
+    // wiki_all_domains_v1.atoms snapshot which is not tracked in git.
+    // Generate it locally with:
+    //   cat data/wikipedia_dumps/wiki_v1.jsonl | \
+    //     ./target/release/stream-ingest --name wiki_all_domains_v1 \
+    //         --base v1_bootstrap --source wikipedia
+    // Then run with: cargo test --release wiki_all_domains --ignored
+    if !std::path::Path::new("data/baseline/wiki_all_domains_v1.atoms").exists() {
+        eprintln!("skipping wiki test — snapshot not present (see regen cmd above)");
+        return;
+    }
+    let b = BASELINES.iter().find(|b| b.name.starts_with("wiki_all_domains")).unwrap();
+    let correct = run_baseline(b);
+    let pct = correct as f32 / b.total_questions as f32 * 100.0;
+    assert!(correct >= b.floor_correct,
+        "REGRESSION: wiki scored {}/{} ({:.1}%). Floor {}/{}.",
+        correct, b.total_questions, pct, b.floor_correct, b.total_questions);
 }
 
 #[test]

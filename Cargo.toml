@@ -173,3 +173,8 @@ path = "src/bin/benchmark_runner.rs"
 name = "training-demo"
 path = "src/bin/training_demo.rs"
 
+
+[[bin]]
+name = "stream-ingest"
+path = "src/bin/stream_ingest.rs"
+

@@ -1,0 +1,60 @@
+# Mathematics (50 topics)
+# Foundations
+Mathematics
+Number
+Integer
+Rational number
+Real number
+Complex number
+Natural number
+Prime number
+Infinity
+Set (mathematics)
+Function (mathematics)
+Logic
+Mathematical proof
+# Algebra
+Algebra
+Equation
+Variable (mathematics)
+Polynomial
+Linear algebra
+Matrix (mathematics)
+Vector space
+Group (mathematics)
+Field (mathematics)
+# Geometry
+Geometry
+Triangle
+Circle
+Euclidean geometry
+Trigonometry
+Pythagorean theorem
+Angle
+Area
+Volume
+# Calculus
+Calculus
+Derivative
+Integral
+Limit (mathematics)
+Differential equation
+# Probability & Statistics
+Probability
+Statistics
+Normal distribution
+Standard deviation
+Bayes' theorem
+# Discrete
+Graph theory
+Combinatorics
+Number theory
+Boolean algebra
+# Famous problems & people
+Fermat's Last Theorem
+Riemann hypothesis
+Euclid
+Isaac Newton
+Leonhard Euler
+Carl Friedrich Gauss
+Alan Turing

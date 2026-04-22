@@ -1,0 +1,65 @@
+# Computer Science & Programming Languages (60 topics)
+# Core CS
+Algorithm
+Data structure
+Computer science
+Artificial intelligence
+Machine learning
+Neural network
+Deep learning
+Computer program
+Operating system
+Compiler
+Interpreter (computing)
+Database
+SQL
+Computer network
+Internet
+World Wide Web
+HTTP
+TCP/IP
+Encryption
+Cryptography
+Hash function
+Binary number
+Floating-point arithmetic
+Unicode
+Character encoding
+Regular expression
+Recursion (computer science)
+Graph (abstract data type)
+Tree (data structure)
+Hash table
+# Programming Languages
+Rust (programming language)
+Python (programming language)
+JavaScript
+Java (programming language)
+C (programming language)
+C++
+C Sharp (programming language)
+Go (programming language)
+Kotlin (programming language)
+Swift (programming language)
+Ruby (programming language)
+TypeScript
+PHP
+Perl
+Lisp (programming language)
+Haskell
+Scala (programming language)
+Erlang (programming language)
+# CS Concepts
+Object-oriented programming
+Functional programming
+Concurrency (computer science)
+Thread (computing)
+Process (computing)
+Memory management
+Garbage collection (computer science)
+Virtual machine
+Kernel (operating system)
+File system
+Git
+Version control
+Cloud computing
