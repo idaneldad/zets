@@ -267,6 +267,154 @@ pub fn run_benchmark(
 }
 
 // ────────────────────────────────────────────────────────────────
+// JSONL loader — load questions from data/benchmarks/*.jsonl
+// ────────────────────────────────────────────────────────────────
+
+/// Load a benchmark question set from JSONL (one JSON object per line).
+///
+/// Expected fields per line:
+///   id: string
+///   text: string
+///   choices: array of strings (optional, empty for free-text)
+///   expected: string (letter A-D for multi-choice, else free text)
+///   category: string
+///
+/// The parser is deliberately minimal — no serde dependency. It handles
+/// the specific format we use, nothing fancier. If the file includes
+/// trailing whitespace or empty lines, those are skipped.
+pub fn load_jsonl(path: &std::path::Path) -> std::io::Result<Vec<Question>> {
+    let content = std::fs::read_to_string(path)?;
+    let mut questions = Vec::new();
+    for (line_num, raw) in content.lines().enumerate() {
+        let line = raw.trim();
+        if line.is_empty() { continue; }
+        match parse_question_line(line) {
+            Ok(q) => questions.push(q),
+            Err(e) => return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("line {}: {}", line_num + 1, e))),
+        }
+    }
+    Ok(questions)
+}
+
+fn parse_question_line(line: &str) -> Result<Question, String> {
+    // Minimal JSON object parser — handles string/array/flat fields.
+    // Not a general-purpose JSON parser. Good enough for our JSONL schema.
+    let trimmed = line.trim();
+    if !trimmed.starts_with('{') || !trimmed.ends_with('}') {
+        return Err("not a JSON object".to_string());
+    }
+
+    let mut q = Question {
+        id: String::new(),
+        text: String::new(),
+        choices: Vec::new(),
+        expected: String::new(),
+        category: String::new(),
+    };
+
+    // Extract each field by searching for its key
+    q.id = extract_string_field(trimmed, "id")?;
+    q.text = extract_string_field(trimmed, "text")?;
+    q.expected = extract_string_field(trimmed, "expected")?;
+    q.category = extract_string_field(trimmed, "category")?;
+    q.choices = extract_array_field(trimmed, "choices")?;
+
+    Ok(q)
+}
+
+fn extract_string_field(json: &str, key: &str) -> Result<String, String> {
+    let needle = format!("\"{}\":", key);
+    let start = json.find(&needle)
+        .ok_or_else(|| format!("missing field '{}'", key))?;
+    let after_colon = &json[start + needle.len()..];
+    let trimmed = after_colon.trim_start();
+    if !trimmed.starts_with('"') {
+        return Err(format!("field '{}' not a string", key));
+    }
+    // Find closing quote, respecting simple escapes
+    let body = &trimmed[1..];
+    let mut result = String::new();
+    let mut escape = false;
+    for ch in body.chars() {
+        if escape {
+            match ch {
+                'n' => result.push('\n'),
+                't' => result.push('\t'),
+                '\\' => result.push('\\'),
+                '"' => result.push('"'),
+                _ => result.push(ch),
+            }
+            escape = false;
+            continue;
+        }
+        if ch == '\\' { escape = true; continue; }
+        if ch == '"' { return Ok(result); }
+        result.push(ch);
+    }
+    Err(format!("unterminated string for field '{}'", key))
+}
+
+fn extract_array_field(json: &str, key: &str) -> Result<Vec<String>, String> {
+    let needle = format!("\"{}\":", key);
+    let start = match json.find(&needle) {
+        Some(p) => p,
+        None => return Ok(Vec::new()),  // optional field
+    };
+    let after_colon = &json[start + needle.len()..];
+    let trimmed = after_colon.trim_start();
+    if !trimmed.starts_with('[') {
+        return Err(format!("field '{}' not an array", key));
+    }
+    // Find matching ]
+    let body_start = 1;
+    let mut depth = 1;
+    let mut end = 0;
+    for (i, ch) in trimmed.chars().enumerate().skip(1) {
+        match ch {
+            '[' => depth += 1,
+            ']' => { depth -= 1; if depth == 0 { end = i; break; } },
+            _ => {}
+        }
+    }
+    if end == 0 {
+        return Err(format!("unterminated array for field '{}'", key));
+    }
+    let body = &trimmed[body_start..end];
+
+    // Parse comma-separated strings inside
+    let mut items = Vec::new();
+    let mut current = String::new();
+    let mut in_string = false;
+    let mut escape = false;
+    for ch in body.chars() {
+        if escape {
+            match ch {
+                'n' => current.push('\n'),
+                't' => current.push('\t'),
+                '\\' => current.push('\\'),
+                '"' => current.push('"'),
+                _ => current.push(ch),
+            }
+            escape = false;
+            continue;
+        }
+        if ch == '\\' { escape = true; continue; }
+        if ch == '"' {
+            if in_string {
+                items.push(current.clone());
+                current.clear();
+            }
+            in_string = !in_string;
+            continue;
+        }
+        if in_string { current.push(ch); }
+    }
+    Ok(items)
+}
+
+// ────────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────────
 
@@ -436,6 +584,68 @@ mod tests {
         assert_eq!(score.accuracy(), 0.0);
         assert_eq!(score.relevance_rate(), 0.0);
     }
+
+    #[test]
+    fn load_jsonl_parses_20q_file() {
+        let path = std::path::Path::new("data/benchmarks/zets_baseline_20q_v1.jsonl");
+        if !path.exists() {
+            eprintln!("skipping — run `snapshot bootstrap-default` to create baseline data");
+            return;
+        }
+        let questions = load_jsonl(path).expect("load 20q JSONL");
+        assert_eq!(questions.len(), 20, "expected 20 questions");
+        // Spot-check first question
+        assert_eq!(questions[0].id, "geo1");
+        assert_eq!(questions[0].choices.len(), 4);
+        assert_eq!(questions[0].expected, "B");
+        assert_eq!(questions[0].category, "geography");
+    }
+
+    #[test]
+    fn parse_question_line_handles_basic() {
+        let line = r#"{"id":"t1","text":"What?","choices":["A","B","C","D"],"expected":"A","category":"test"}"#;
+        let q = parse_question_line(line).unwrap();
+        assert_eq!(q.id, "t1");
+        assert_eq!(q.text, "What?");
+        assert_eq!(q.choices, vec!["A", "B", "C", "D"]);
+        assert_eq!(q.expected, "A");
+        assert_eq!(q.category, "test");
+    }
+
+    #[test]
+    fn parse_question_line_handles_empty_choices() {
+        let line = r#"{"id":"t2","text":"Free text","choices":[],"expected":"Paris","category":"geo"}"#;
+        let q = parse_question_line(line).unwrap();
+        assert_eq!(q.choices.len(), 0);
+        assert_eq!(q.expected, "Paris");
+    }
+
+    #[test]
+    fn parse_question_line_rejects_malformed() {
+        let malformed = r#"not json"#;
+        assert!(parse_question_line(malformed).is_err());
+    }
+
+    #[test]
+    fn extract_string_field_finds_value() {
+        let json = r#"{"key":"value","other":"x"}"#;
+        assert_eq!(extract_string_field(json, "key").unwrap(), "value");
+        assert_eq!(extract_string_field(json, "other").unwrap(), "x");
+    }
+
+    #[test]
+    fn extract_array_field_parses_strings() {
+        let json = r#"{"items":["a","b","c"]}"#;
+        assert_eq!(extract_array_field(json, "items").unwrap(),
+                   vec!["a", "b", "c"]);
+    }
+
+    #[test]
+    fn extract_array_field_empty() {
+        let json = r#"{"items":[]}"#;
+        assert_eq!(extract_array_field(json, "items").unwrap().len(), 0);
+    }
+
 
     #[test]
     fn determinism_same_questions_same_score() {

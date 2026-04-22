@@ -126,10 +126,22 @@ impl LlmAdapter {
             return Ok(local_parse(question));
         }
 
-        // TODO: wire up actual HTTP call to Gemini.
-        // For now, return local parse + flag that we WOULD have called the API.
-        self.fallback_count += 1;
-        Ok(local_parse(question))
+        // Try the real API call, fall back to local on any failure.
+        match self.call_gemini_parse(question) {
+            Ok(parsed) => Ok(parsed),
+            Err(_) => {
+                self.fallback_count += 1;
+                Ok(local_parse(question))
+            }
+        }
+    }
+
+    /// Call Gemini, parse its JSON response into a QuestionParse.
+    fn call_gemini_parse(&self, question: &str) -> Result<QuestionParse, AdapterError> {
+        let prompt = Self::build_prompt(question);
+        let raw = crate::gemini_http::call_gemini(&prompt, self.timeout)
+            .map_err(|e| AdapterError::Network(e))?;
+        parse_gemini_json_response(&raw)
     }
 
     /// Build the exact prompt string we'd send to Gemini.
@@ -251,6 +263,114 @@ fn classify_domain(lower: &str) -> String {
 // ────────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────────
+
+/// Parse Gemini's JSON response into a QuestionParse.
+///
+/// Gemini's actual output (when asked to return JSON) is usually
+/// something like:
+///   ```json
+///   {"intent": "lookup", "key_terms": ["france", "capital"], ...}
+///   ```
+/// But it often wraps the JSON in markdown backticks. We strip those.
+pub fn parse_gemini_json_response(raw: &str) -> Result<QuestionParse, AdapterError> {
+    // Strip markdown fences if present: ```json ... ``` or ``` ... ```
+    let cleaned = raw.trim();
+    let without_fence = if let Some(stripped) = cleaned.strip_prefix("```json") {
+        stripped.trim_start()
+    } else if let Some(stripped) = cleaned.strip_prefix("```") {
+        stripped.trim_start()
+    } else {
+        cleaned
+    };
+    let body = without_fence
+        .trim_end_matches("```")
+        .trim_end_matches('\n')
+        .trim();
+
+    // Find { ... }
+    let start = body.find('{')
+        .ok_or_else(|| AdapterError::ParseFailure(format!("no opening brace: {}", body)))?;
+    let end = body.rfind('}')
+        .ok_or_else(|| AdapterError::ParseFailure(format!("no closing brace: {}", body)))?;
+    if end <= start {
+        return Err(AdapterError::ParseFailure(format!("malformed braces: {}", body)));
+    }
+    let json = &body[start..=end];
+
+    let intent = extract_json_string(json, "intent").unwrap_or_else(|| "lookup".to_string());
+    let answer_type = extract_json_string(json, "answer_type")
+        .unwrap_or_else(|| "name".to_string());
+    let domain = extract_json_string(json, "domain").unwrap_or_else(|| "general".to_string());
+    let key_terms = extract_json_string_array(json, "key_terms").unwrap_or_default();
+
+    Ok(QuestionParse {
+        intent,
+        key_terms,
+        answer_type,
+        raw_response: raw.to_string(),
+        domain,
+    })
+}
+
+fn extract_json_string(json: &str, key: &str) -> Option<String> {
+    let needle = format!("\"{}\"", key);
+    let start = json.find(&needle)?;
+    let after_key = &json[start + needle.len()..];
+    let after_colon = after_key.trim_start().trim_start_matches(':').trim_start();
+    if !after_colon.starts_with('"') { return None; }
+    let body = &after_colon[1..];
+    let mut out = String::new();
+    let mut escape = false;
+    for ch in body.chars() {
+        if escape {
+            match ch {
+                'n' => out.push('\n'),
+                't' => out.push('\t'),
+                '"' => out.push('"'),
+                '\\' => out.push('\\'),
+                c => out.push(c),
+            }
+            escape = false;
+            continue;
+        }
+        if ch == '\\' { escape = true; continue; }
+        if ch == '"' { return Some(out); }
+        out.push(ch);
+    }
+    None
+}
+
+fn extract_json_string_array(json: &str, key: &str) -> Option<Vec<String>> {
+    let needle = format!("\"{}\"", key);
+    let start = json.find(&needle)?;
+    let after_key = &json[start + needle.len()..];
+    let after_colon = after_key.trim_start().trim_start_matches(':').trim_start();
+    if !after_colon.starts_with('[') { return None; }
+    let body = &after_colon[1..];
+    let mut items = Vec::new();
+    let mut current = String::new();
+    let mut in_str = false;
+    let mut escape = false;
+    for ch in body.chars() {
+        if escape {
+            current.push(ch);
+            escape = false;
+            continue;
+        }
+        if ch == '\\' { escape = true; continue; }
+        if ch == '"' {
+            if in_str {
+                items.push(current.clone());
+                current.clear();
+            }
+            in_str = !in_str;
+            continue;
+        }
+        if ch == ']' && !in_str { break; }
+        if in_str { current.push(ch); }
+    }
+    Some(items)
+}
 
 #[cfg(test)]
 mod tests {

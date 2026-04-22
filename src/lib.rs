@@ -46,3 +46,4 @@ pub mod encrypted_installer;
 pub mod planner;
 pub mod benchmarks;
 pub mod llm_adapter;
+pub mod gemini_http;
