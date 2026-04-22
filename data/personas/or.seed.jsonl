@@ -1,0 +1,13 @@
+{"subject": "or", "relation": "is_a", "object": "human"}
+{"subject": "or", "relation": "has_attribute", "object": "Or"}
+{"subject": "or", "relation": "has_attribute", "object": "אור"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "or", "relation": "speaks_language", "object": "he"}
+{"subject": "or", "relation": "speaks_language", "object": "en"}
+{"subject": "or", "relation": "has_attribute", "object": "adult"}
+{"subject": "or", "relation": "has_attribute", "object": "interest_business"}
+{"subject": "or", "relation": "has_attribute", "object": "interest_growth"}
+{"subject": "or", "relation": "has_attribute", "object": "interest_opportunity"}
+{"subject": "or", "relation": "has_attribute", "object": "interest_markets"}
+{"subject": "or", "relation": "has_occupation", "object": "entrepreneur"}

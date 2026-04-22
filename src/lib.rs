@@ -39,6 +39,8 @@ pub mod skills;
 pub mod meta_learning;
 pub mod smart_walk;
 pub mod inference;
+pub mod hash_registry;
+pub mod http_server;
 pub mod atom_persist;
 pub mod state_persist;
 pub mod bootstrap;

@@ -1,0 +1,96 @@
+{
+  "persona_name": "Michel",
+  "persona_port": 3259,
+  "atoms": {
+    "name": "Michel",
+    "name_he": "מישל",
+    "age_hint": "senior",
+    "lang": "he+en",
+    "bio": "Elder, widely read, generous with knowledge and time. Contextual.",
+    "cognitive_note": "Broad knowledge base. Patient with both peers and young learners.",
+    "likes": [
+      "history",
+      "literature",
+      "science",
+      "teaching"
+    ],
+    "avoids": []
+  },
+  "learned": {
+    "תספר לי על כדורגל": {
+      "answer": "╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Throughp",
+      "confidence": 0.73,
+      "source": "peer_3261",
+      "ts": 1776889716.2565393
+    }
+  },
+  "plan": [
+    {
+      "topic": "history",
+      "priority": 1.0,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "literature",
+      "priority": 0.9,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "science",
+      "priority": 0.8,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "teaching",
+      "priority": 0.7,
+      "knowledge_gained": 0,
+      "last_asked": null
+    }
+  ],
+  "sync_log": [
+    {
+      "ts": 1776889716.2565713,
+      "q": "תספר לי על כדורגל",
+      "asker": "Rotem",
+      "source": "peer_3261",
+      "conf": 0.73,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 24.6
+    },
+    {
+      "ts": 1776889716.3290436,
+      "q": "תספר לי על כדורגל",
+      "asker": "Eli",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776889716.432946,
+      "q": "תספר לי על כדורגל",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776889716.510922,
+      "q": "תספר לי על כדורגל",
+      "asker": "Roni",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    }
+  ],
+  "conversations": []
+}

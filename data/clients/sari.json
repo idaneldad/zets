@@ -1,52 +1,50 @@
 {
-  "persona_name": "Idan",
-  "persona_port": 3251,
+  "persona_name": "Sari",
+  "persona_port": 3256,
   "atoms": {
-    "name": "Idan",
-    "name_he": "עידן",
+    "name": "Sari",
+    "name_he": "שרי",
     "age_hint": "adult",
-    "lang": "he+en",
-    "bio": "Architect and founder. Thinks systemically, jumps between abstractions.",
-    "cognitive_note": "High-intensity focus on problems; distractible on unrelated topics.",
+    "lang": "he",
+    "bio": "Opinionated, forms strong views quickly, defends them.",
+    "cognitive_note": "Assertive communicator. High confidence in own judgments.",
     "likes": [
-      "architecture",
-      "zets",
-      "kabbalah",
-      "systems"
+      "opinions",
+      "debate"
     ],
     "avoids": [
-      "gossip"
+      "uncertainty"
     ]
   },
   "learned": {
     "תספר לי על כדורגל": {
       "answer": "שלום! שלום! Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1. 🎵",
-      "confidence": 0.85,
-      "source": "peer_3265",
-      "ts": 1776889716.2069218
+      "confidence": 0.725,
+      "source": "peer_3251",
+      "ts": 1776889716.4060624
     }
   },
   "plan": [
     {
-      "topic": "architecture",
+      "topic": "opinions",
       "priority": 1.0,
       "knowledge_gained": 0,
       "last_asked": null
     },
     {
-      "topic": "zets",
+      "topic": "debate",
       "priority": 0.9,
       "knowledge_gained": 0,
       "last_asked": null
     },
     {
-      "topic": "kabbalah",
+      "topic": "world_facts",
       "priority": 0.8,
       "knowledge_gained": 0,
       "last_asked": null
     },
     {
-      "topic": "systems",
+      "topic": "everyday",
       "priority": 0.7,
       "knowledge_gained": 0,
       "last_asked": null
@@ -54,24 +52,14 @@
   ],
   "sync_log": [
     {
-      "ts": 1776889716.2069619,
+      "ts": 1776889716.4060898,
       "q": "תספר לי על כדורגל",
       "asker": "user",
-      "source": "peer_3265",
-      "conf": 0.85,
+      "source": "peer_3251",
+      "conf": 0.72,
       "peer_hit": true,
       "cloud_hit": false,
-      "elapsed_ms": 748.7
-    },
-    {
-      "ts": 1776889716.4055183,
-      "q": "תספר לי על כדורגל",
-      "asker": "Sari",
-      "source": "local",
-      "conf": 0.85,
-      "peer_hit": false,
-      "cloud_hit": false,
-      "elapsed_ms": 0.1
+      "elapsed_ms": 24.5
     }
   ],
   "conversations": []

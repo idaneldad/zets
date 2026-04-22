@@ -1,0 +1,10 @@
+{"subject": "bentz", "relation": "is_a", "object": "human"}
+{"subject": "bentz", "relation": "has_attribute", "object": "Bentz"}
+{"subject": "bentz", "relation": "has_attribute", "object": "בנץ"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "bentz", "relation": "speaks_language", "object": "he"}
+{"subject": "bentz", "relation": "has_attribute", "object": "adult"}
+{"subject": "bentz", "relation": "has_attribute", "object": "interest_rules"}
+{"subject": "bentz", "relation": "has_attribute", "object": "interest_systems"}
+{"subject": "bentz", "relation": "has_attribute", "object": "interest_exact_facts"}

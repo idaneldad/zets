@@ -1,0 +1,13 @@
+{"subject": "idan", "relation": "is_a", "object": "human"}
+{"subject": "idan", "relation": "has_attribute", "object": "Idan"}
+{"subject": "idan", "relation": "has_attribute", "object": "עידן"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "idan", "relation": "speaks_language", "object": "he"}
+{"subject": "idan", "relation": "speaks_language", "object": "en"}
+{"subject": "idan", "relation": "has_attribute", "object": "adult"}
+{"subject": "idan", "relation": "has_attribute", "object": "interest_architecture"}
+{"subject": "idan", "relation": "has_attribute", "object": "interest_zets"}
+{"subject": "idan", "relation": "has_attribute", "object": "interest_kabbalah"}
+{"subject": "idan", "relation": "has_attribute", "object": "interest_systems"}
+{"subject": "idan", "relation": "has_occupation", "object": "architect"}

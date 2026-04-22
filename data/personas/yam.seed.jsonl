@@ -1,0 +1,13 @@
+{"subject": "yam", "relation": "is_a", "object": "human"}
+{"subject": "yam", "relation": "has_attribute", "object": "Yam"}
+{"subject": "yam", "relation": "has_attribute", "object": "ים"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "yam", "relation": "speaks_language", "object": "he"}
+{"subject": "yam", "relation": "has_attribute", "object": "child"}
+{"subject": "yam", "relation": "has_attribute", "object": "interest_videos"}
+{"subject": "yam", "relation": "has_attribute", "object": "interest_crafts"}
+{"subject": "yam", "relation": "has_attribute", "object": "interest_animals"}
+{"subject": "yam", "relation": "has_attribute", "object": "interest_colors"}
+{"subject": "yam", "relation": "has_occupation", "object": "child"}
+{"subject": "yam", "relation": "has_occupation", "object": "creative"}

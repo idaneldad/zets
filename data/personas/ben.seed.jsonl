@@ -1,0 +1,11 @@
+{"subject": "ben", "relation": "is_a", "object": "human"}
+{"subject": "ben", "relation": "has_attribute", "object": "Ben"}
+{"subject": "ben", "relation": "has_attribute", "object": "בן"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "ben", "relation": "speaks_language", "object": "he"}
+{"subject": "ben", "relation": "has_attribute", "object": "teen"}
+{"subject": "ben", "relation": "has_attribute", "object": "interest_football"}
+{"subject": "ben", "relation": "has_attribute", "object": "interest_games"}
+{"subject": "ben", "relation": "has_attribute", "object": "interest_friends"}
+{"subject": "ben", "relation": "has_occupation", "object": "teenager"}

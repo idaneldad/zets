@@ -1,0 +1,88 @@
+{
+  "persona_name": "Adrian",
+  "persona_port": 3261,
+  "atoms": {
+    "name": "Adrian",
+    "name_he": "אדריאן",
+    "age_hint": "adult",
+    "lang": "en+he",
+    "bio": "Creative, musician, warm. Thinks in analogies and rhythms.",
+    "cognitive_note": "Artistic cognition; pattern-and-rhythm sensitive.",
+    "likes": [
+      "music",
+      "art",
+      "poetry",
+      "creativity"
+    ],
+    "avoids": [
+      "bureaucracy"
+    ]
+  },
+  "learned": {
+    "תספר לי על כדורגל": {
+      "answer": "╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Throughp",
+      "confidence": 0.7,
+      "source": "cloud",
+      "ts": 1776889716.2048218
+    }
+  },
+  "plan": [
+    {
+      "topic": "music",
+      "priority": 1.0,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "art",
+      "priority": 0.9,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "poetry",
+      "priority": 0.8,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "creativity",
+      "priority": 0.7,
+      "knowledge_gained": 0,
+      "last_asked": null
+    }
+  ],
+  "sync_log": [
+    {
+      "ts": 1776889716.204864,
+      "q": "תספר לי על כדורגל",
+      "asker": "Shai",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 675.3
+    },
+    {
+      "ts": 1776889716.2559774,
+      "q": "תספר לי על כדורגל",
+      "asker": "Michel",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776889716.4345376,
+      "q": "תספר לי על כדורגל",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    }
+  ],
+  "conversations": []
+}

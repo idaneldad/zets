@@ -1,0 +1,12 @@
+{"subject": "michel", "relation": "is_a", "object": "human"}
+{"subject": "michel", "relation": "has_attribute", "object": "Michel"}
+{"subject": "michel", "relation": "has_attribute", "object": "מישל"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "michel", "relation": "speaks_language", "object": "he"}
+{"subject": "michel", "relation": "speaks_language", "object": "en"}
+{"subject": "michel", "relation": "has_attribute", "object": "senior"}
+{"subject": "michel", "relation": "has_attribute", "object": "interest_history"}
+{"subject": "michel", "relation": "has_attribute", "object": "interest_literature"}
+{"subject": "michel", "relation": "has_attribute", "object": "interest_science"}
+{"subject": "michel", "relation": "has_attribute", "object": "interest_teaching"}

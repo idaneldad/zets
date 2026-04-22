@@ -1,40 +1,61 @@
 {
-  "persona": {
-    "port": 3252,
-    "name": "Ben",
-    "role": "teenager",
-    "interests": [
-      "gaming",
-      "sports"
-    ],
-    "lang": "he"
-  },
+  "persona_name": "Ben",
+  "persona_port": 3264,
   "atoms": {
     "name": "Ben",
-    "role": "teenager",
+    "name_he": "בן",
+    "age_hint": "teen",
     "lang": "he",
-    "interest_0": "gaming",
-    "interest_1": "sports"
+    "bio": "Teenager. Loves football, casual, short attention for non-interests.",
+    "cognitive_note": "Adolescent cognition; peer-focused, topic-selective attention.",
+    "likes": [
+      "football",
+      "games",
+      "friends"
+    ],
+    "avoids": [
+      "homework"
+    ]
   },
-  "edges": [
+  "learned": {
+    "תספר לי על כדורגל": {
+      "answer": "שלום! ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Th",
+      "confidence": 0.87,
+      "source": "peer_3254",
+      "ts": 1776889716.485668
+    }
+  },
+  "plan": [
     {
-      "from": "self",
-      "to": "interest_0",
-      "rel": "likes"
+      "topic": "football",
+      "priority": 1.0,
+      "knowledge_gained": 0,
+      "last_asked": null
     },
     {
-      "from": "self",
-      "to": "interest_1",
-      "rel": "likes"
+      "topic": "games",
+      "priority": 0.9,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "friends",
+      "priority": 0.8,
+      "knowledge_gained": 0,
+      "last_asked": null
     }
   ],
   "sync_log": [
     {
-      "ts": 1776888608.0463808,
-      "q": "שלום, תגיד לי על עצמך",
-      "hit_local": false,
-      "hit_cloud": true,
-      "elapsed_ms": 686.6
+      "ts": 1776889716.4857008,
+      "q": "תספר לי על כדורגל",
+      "asker": "user",
+      "source": "peer_3254",
+      "conf": 0.87,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 24.1
     }
-  ]
+  ],
+  "conversations": []
 }

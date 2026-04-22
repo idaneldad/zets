@@ -1,0 +1,12 @@
+{"subject": "roni", "relation": "is_a", "object": "human"}
+{"subject": "roni", "relation": "has_attribute", "object": "Roni"}
+{"subject": "roni", "relation": "has_attribute", "object": "רוני"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "roni", "relation": "speaks_language", "object": "he"}
+{"subject": "roni", "relation": "has_attribute", "object": "adult"}
+{"subject": "roni", "relation": "has_attribute", "object": "interest_family"}
+{"subject": "roni", "relation": "has_attribute", "object": "interest_care"}
+{"subject": "roni", "relation": "has_attribute", "object": "interest_music"}
+{"subject": "roni", "relation": "has_attribute", "object": "interest_home"}
+{"subject": "roni", "relation": "has_occupation", "object": "parent"}

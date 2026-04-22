@@ -1,0 +1,9 @@
+{"subject": "arik", "relation": "is_a", "object": "human"}
+{"subject": "arik", "relation": "has_attribute", "object": "Arik"}
+{"subject": "arik", "relation": "has_attribute", "object": "אריק"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "arik", "relation": "speaks_language", "object": "he"}
+{"subject": "arik", "relation": "has_attribute", "object": "adult"}
+{"subject": "arik", "relation": "has_attribute", "object": "interest_humor"}
+{"subject": "arik", "relation": "has_attribute", "object": "interest_everyday"}

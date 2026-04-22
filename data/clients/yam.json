@@ -1,32 +1,78 @@
 {
-  "persona": {
-    "port": 3254,
-    "name": "Yam",
-    "role": "toddler",
-    "interests": [
-      "songs",
-      "colors"
-    ],
-    "lang": "he"
-  },
+  "persona_name": "Yam",
+  "persona_port": 3265,
   "atoms": {
     "name": "Yam",
-    "role": "toddler",
+    "name_he": "ים",
+    "age_hint": "child",
     "lang": "he",
-    "interest_0": "songs",
-    "interest_1": "colors"
+    "bio": "Child. Loves YouTube, TikTok, creative play, bright emotions.",
+    "cognitive_note": "Child cognition; high curiosity, concrete imagery, play-driven.",
+    "likes": [
+      "videos",
+      "crafts",
+      "animals",
+      "colors"
+    ],
+    "avoids": [
+      "complex"
+    ]
   },
-  "edges": [
+  "learned": {
+    "תספר לי על כדורגל": {
+      "answer": "שלום! Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo 🎵",
+      "confidence": 0.96,
+      "source": "peer_3258",
+      "ts": 1776889716.206217
+    }
+  },
+  "plan": [
     {
-      "from": "self",
-      "to": "interest_0",
-      "rel": "likes"
+      "topic": "videos",
+      "priority": 1.0,
+      "knowledge_gained": 0,
+      "last_asked": null
     },
     {
-      "from": "self",
-      "to": "interest_1",
-      "rel": "likes"
+      "topic": "crafts",
+      "priority": 0.9,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "animals",
+      "priority": 0.8,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "colors",
+      "priority": 0.7,
+      "knowledge_gained": 0,
+      "last_asked": null
     }
   ],
-  "sync_log": []
+  "sync_log": [
+    {
+      "ts": 1776889716.206258,
+      "q": "תספר לי על כדורגל",
+      "asker": "Idan",
+      "source": "peer_3258",
+      "conf": 0.96,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 724.0
+    },
+    {
+      "ts": 1776889716.4865794,
+      "q": "תספר לי על כדורגל",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.96,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    }
+  ],
+  "conversations": []
 }

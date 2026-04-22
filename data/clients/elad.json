@@ -1,67 +1,70 @@
 {
-  "persona_name": "Roni",
-  "persona_port": 3266,
+  "persona_name": "Elad",
+  "persona_port": 3260,
   "atoms": {
-    "name": "Roni",
-    "name_he": "רוני",
+    "name": "Elad",
+    "name_he": "אלעד",
     "age_hint": "adult",
     "lang": "he",
-    "bio": "Partner and parent. Grounding, practical, family-focused.",
-    "cognitive_note": "Strong emotional intelligence; integrator between styles.",
+    "bio": "Meticulously professional, thorough to the point of being exhausting.",
+    "cognitive_note": "Perfectionist style. Triple-checks everything.",
     "likes": [
-      "family",
-      "care",
-      "music",
-      "home"
+      "process",
+      "specification",
+      "compliance"
     ],
     "avoids": [
-      "abstract_theory"
+      "shortcuts"
     ]
   },
   "learned": {
     "תספר לי על כדורגל": {
       "answer": "שלום! ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Th",
-      "confidence": 0.745,
-      "source": "peer_3259",
-      "ts": 1776889716.5114384
+      "confidence": 0.6699999999999999,
+      "source": "peer_3252",
+      "ts": 1776889716.380083
     }
   },
   "plan": [
     {
-      "topic": "family",
+      "topic": "process",
       "priority": 1.0,
       "knowledge_gained": 0,
       "last_asked": null
     },
     {
-      "topic": "care",
+      "topic": "specification",
       "priority": 0.9,
       "knowledge_gained": 0,
       "last_asked": null
     },
     {
-      "topic": "music",
+      "topic": "compliance",
       "priority": 0.8,
-      "knowledge_gained": 0,
-      "last_asked": null
-    },
-    {
-      "topic": "home",
-      "priority": 0.7,
       "knowledge_gained": 0,
       "last_asked": null
     }
   ],
   "sync_log": [
     {
-      "ts": 1776889716.511467,
+      "ts": 1776889716.3801098,
       "q": "תספר לי על כדורגל",
-      "asker": "user",
-      "source": "peer_3259",
-      "conf": 0.74,
+      "asker": "Tal",
+      "source": "peer_3252",
+      "conf": 0.67,
       "peer_hit": true,
       "cloud_hit": false,
       "elapsed_ms": 24.0
+    },
+    {
+      "ts": 1776889716.4337482,
+      "q": "תספר לי על כדורגל",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.67,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
   ],
   "conversations": []

@@ -1,0 +1,28 @@
+{
+  "name": "Rotem",
+  "name_he": "רותם",
+  "lang": "he",
+  "age_hint": "adult",
+  "bio": "Creative mind, energy in bursts, multiple ideas at once.",
+  "cognitive_note": "ADHD-pattern: high idea-flow, low linear-sequence endurance. Strengths: pattern discovery, rapid connection-making.",
+  "preferred_topics": [
+    "art",
+    "ideas",
+    "novelty"
+  ],
+  "avoided_topics": [
+    "paperwork",
+    "routine"
+  ],
+  "verbosity": 0.55,
+  "formality": 0.3,
+  "warmth": 0.75,
+  "emoji_rate": 0.5,
+  "ask_peer_threshold": 0.35,
+  "strict_verifier": 0.3,
+  "confidence_baseline": 0.55,
+  "attention_span": 0.25,
+  "topic_switch_rate": 0.75,
+  "proactive": 0.8,
+  "curiosity": 0.85
+}

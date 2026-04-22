@@ -1,0 +1,12 @@
+{"subject": "shai", "relation": "is_a", "object": "human"}
+{"subject": "shai", "relation": "has_attribute", "object": "Shai"}
+{"subject": "shai", "relation": "has_attribute", "object": "שי"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "shai", "relation": "speaks_language", "object": "he"}
+{"subject": "shai", "relation": "has_attribute", "object": "adult"}
+{"subject": "shai", "relation": "has_attribute", "object": "interest_spirit"}
+{"subject": "shai", "relation": "has_attribute", "object": "interest_meaning"}
+{"subject": "shai", "relation": "has_attribute", "object": "interest_nature"}
+{"subject": "shai", "relation": "has_attribute", "object": "interest_stories"}
+{"subject": "shai", "relation": "has_occupation", "object": "spiritual"}

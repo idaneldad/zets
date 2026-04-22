@@ -1,40 +1,78 @@
 {
-  "persona": {
-    "port": 3251,
-    "name": "Shai",
-    "role": "student",
-    "interests": [
-      "art",
-      "literature"
-    ],
-    "lang": "he"
-  },
+  "persona_name": "Shai",
+  "persona_port": 3258,
   "atoms": {
     "name": "Shai",
-    "role": "student",
+    "name_he": "שי",
+    "age_hint": "adult",
     "lang": "he",
-    "interest_0": "art",
-    "interest_1": "literature"
+    "bio": "Spiritual, contemplative, holistic thinker.",
+    "cognitive_note": "Intuition-weighted reasoning; comfortable with ambiguity and metaphor.",
+    "likes": [
+      "spirit",
+      "meaning",
+      "nature",
+      "stories"
+    ],
+    "avoids": [
+      "raw_data"
+    ]
   },
-  "edges": [
+  "learned": {
+    "תספר לי על כדורגל": {
+      "answer": "Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo 🎵",
+      "confidence": 0.7849999999999999,
+      "source": "peer_3261",
+      "ts": 1776889716.2055373
+    }
+  },
+  "plan": [
     {
-      "from": "self",
-      "to": "interest_0",
-      "rel": "likes"
+      "topic": "spirit",
+      "priority": 1.0,
+      "knowledge_gained": 0,
+      "last_asked": null
     },
     {
-      "from": "self",
-      "to": "interest_1",
-      "rel": "likes"
+      "topic": "meaning",
+      "priority": 0.9,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "nature",
+      "priority": 0.8,
+      "knowledge_gained": 0,
+      "last_asked": null
+    },
+    {
+      "topic": "stories",
+      "priority": 0.7,
+      "knowledge_gained": 0,
+      "last_asked": null
     }
   ],
   "sync_log": [
     {
-      "ts": 1776888420.0165865,
-      "q": "מה שמך?",
-      "hit_local": false,
-      "hit_cloud": true,
-      "elapsed_ms": 690.3
+      "ts": 1776889716.2055688,
+      "q": "תספר לי על כדורגל",
+      "asker": "Yam",
+      "source": "peer_3261",
+      "conf": 0.78,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 699.6
+    },
+    {
+      "ts": 1776889716.4321206,
+      "q": "תספר לי על כדורגל",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.78,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
-  ]
+  ],
+  "conversations": []
 }

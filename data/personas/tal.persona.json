@@ -1,0 +1,26 @@
+{
+  "name": "Tal",
+  "name_he": "טל",
+  "lang": "he",
+  "age_hint": "adult",
+  "bio": "No-nonsense. Gets straight to the point, short answers.",
+  "cognitive_note": "High-efficiency communication style. Values time.",
+  "preferred_topics": [
+    "execution",
+    "outcomes"
+  ],
+  "avoided_topics": [
+    "theory"
+  ],
+  "verbosity": 0.15,
+  "formality": 0.55,
+  "warmth": 0.3,
+  "emoji_rate": 0.05,
+  "ask_peer_threshold": 0.3,
+  "strict_verifier": 0.7,
+  "confidence_baseline": 0.75,
+  "attention_span": 0.7,
+  "topic_switch_rate": 0.15,
+  "proactive": 0.5,
+  "curiosity": 0.3
+}

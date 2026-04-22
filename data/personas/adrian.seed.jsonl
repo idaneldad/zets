@@ -1,0 +1,14 @@
+{"subject": "adrian", "relation": "is_a", "object": "human"}
+{"subject": "adrian", "relation": "has_attribute", "object": "Adrian"}
+{"subject": "adrian", "relation": "has_attribute", "object": "אדריאן"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "adrian", "relation": "speaks_language", "object": "en"}
+{"subject": "adrian", "relation": "speaks_language", "object": "he"}
+{"subject": "adrian", "relation": "has_attribute", "object": "adult"}
+{"subject": "adrian", "relation": "has_attribute", "object": "interest_music"}
+{"subject": "adrian", "relation": "has_attribute", "object": "interest_art"}
+{"subject": "adrian", "relation": "has_attribute", "object": "interest_poetry"}
+{"subject": "adrian", "relation": "has_attribute", "object": "interest_creativity"}
+{"subject": "adrian", "relation": "has_occupation", "object": "musician"}
+{"subject": "adrian", "relation": "has_occupation", "object": "creative"}

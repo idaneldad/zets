@@ -1,0 +1,10 @@
+{"subject": "elad", "relation": "is_a", "object": "human"}
+{"subject": "elad", "relation": "has_attribute", "object": "Elad"}
+{"subject": "elad", "relation": "has_attribute", "object": "אלעד"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "elad", "relation": "speaks_language", "object": "he"}
+{"subject": "elad", "relation": "has_attribute", "object": "adult"}
+{"subject": "elad", "relation": "has_attribute", "object": "interest_process"}
+{"subject": "elad", "relation": "has_attribute", "object": "interest_specification"}
+{"subject": "elad", "relation": "has_attribute", "object": "interest_compliance"}

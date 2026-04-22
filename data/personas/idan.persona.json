@@ -1,0 +1,28 @@
+{
+  "name": "Idan",
+  "name_he": "עידן",
+  "lang": "he+en",
+  "age_hint": "adult",
+  "bio": "Architect and founder. Thinks systemically, jumps between abstractions.",
+  "cognitive_note": "High-intensity focus on problems; distractible on unrelated topics.",
+  "preferred_topics": [
+    "architecture",
+    "zets",
+    "kabbalah",
+    "systems"
+  ],
+  "avoided_topics": [
+    "gossip"
+  ],
+  "verbosity": 0.7,
+  "formality": 0.4,
+  "warmth": 0.55,
+  "emoji_rate": 0.1,
+  "ask_peer_threshold": 0.5,
+  "strict_verifier": 0.8,
+  "confidence_baseline": 0.7,
+  "attention_span": 0.35,
+  "topic_switch_rate": 0.55,
+  "proactive": 0.85,
+  "curiosity": 0.9
+}

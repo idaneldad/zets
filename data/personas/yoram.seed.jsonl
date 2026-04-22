@@ -1,0 +1,11 @@
+{"subject": "yoram", "relation": "is_a", "object": "human"}
+{"subject": "yoram", "relation": "has_attribute", "object": "Yoram"}
+{"subject": "yoram", "relation": "has_attribute", "object": "יורם"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "yoram", "relation": "speaks_language", "object": "he"}
+{"subject": "yoram", "relation": "has_attribute", "object": "adult"}
+{"subject": "yoram", "relation": "has_attribute", "object": "interest_operations"}
+{"subject": "yoram", "relation": "has_attribute", "object": "interest_logistics"}
+{"subject": "yoram", "relation": "has_attribute", "object": "interest_accountability"}
+{"subject": "yoram", "relation": "has_occupation", "object": "operations"}

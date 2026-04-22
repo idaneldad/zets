@@ -1,0 +1,11 @@
+{"subject": "eli", "relation": "is_a", "object": "human"}
+{"subject": "eli", "relation": "has_attribute", "object": "Eli"}
+{"subject": "eli", "relation": "has_attribute", "object": "אלי"}
+{"subject": "human", "relation": "is_a", "object": "living_being"}
+{"subject": "living_being", "relation": "has_attribute", "object": "alive"}
+{"subject": "eli", "relation": "speaks_language", "object": "he"}
+{"subject": "eli", "relation": "speaks_language", "object": "en"}
+{"subject": "eli", "relation": "has_attribute", "object": "adult"}
+{"subject": "eli", "relation": "has_attribute", "object": "interest_planning"}
+{"subject": "eli", "relation": "has_attribute", "object": "interest_operations"}
+{"subject": "eli", "relation": "has_attribute", "object": "interest_execution"}
