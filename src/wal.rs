@@ -231,23 +231,45 @@ impl WalReader {
         Ok(Self { file })
     }
 
-    /// Read the next record, or Ok(None) at EOF.
+    /// Read the next record, or Ok(None) at EOF or torn-write boundary.
+    ///
+    /// CRASH SAFETY: If a record is incomplete (power loss mid-write or
+    /// checksum mismatch), we return Ok(None) rather than error. This is
+    /// standard WAL semantics — all records up to the first torn one are
+    /// valid; everything after is discarded as if the crash never happened.
+    /// Caller can re-truncate the file to drop the torn suffix if desired.
     pub fn next_record(&mut self) -> io::Result<Option<Record>> {
+        // Try to read 1 byte — 0 means clean EOF.
         let mut kind_buf = [0u8; 1];
         match self.file.read(&mut kind_buf)? {
             0 => return Ok(None),
             1 => {}
             _ => unreachable!(),
         }
+
+        // Helper: try to read exact; torn write returns Ok(None)
         let mut ts_buf = [0u8; 8];
-        self.file.read_exact(&mut ts_buf)?;
+        if !read_or_eof(&mut self.file, &mut ts_buf)? {
+            return Ok(None);
+        }
         let mut len_buf = [0u8; 2];
-        self.file.read_exact(&mut len_buf)?;
+        if !read_or_eof(&mut self.file, &mut len_buf)? {
+            return Ok(None);
+        }
         let plen = u16::from_le_bytes(len_buf) as usize;
+        // Sanity: payload length shouldn't be absurd
+        if plen > 1 << 20 {
+            // Torn or corrupt — treat as EOF
+            return Ok(None);
+        }
         let mut payload = vec![0u8; plen];
-        self.file.read_exact(&mut payload)?;
+        if !read_or_eof(&mut self.file, &mut payload)? {
+            return Ok(None);
+        }
         let mut cs_buf = [0u8; 2];
-        self.file.read_exact(&mut cs_buf)?;
+        if !read_or_eof(&mut self.file, &mut cs_buf)? {
+            return Ok(None);
+        }
         let cs_read = u16::from_le_bytes(cs_buf);
 
         let r = Record {
@@ -255,16 +277,9 @@ impl WalReader {
             timestamp_ms: u64::from_le_bytes(ts_buf),
             payload,
         };
+        // Checksum mismatch = torn write or bit flip. Skip rest of file.
         if r.checksum() != cs_read {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!(
-                    "WAL checksum mismatch at ts {}: computed {}, stored {}",
-                    r.timestamp_ms,
-                    r.checksum(),
-                    cs_read
-                ),
-            ));
+            return Ok(None);
         }
         Ok(Some(r))
     }
@@ -277,6 +292,19 @@ impl WalReader {
         }
         Ok(out)
     }
+}
+
+/// Read exactly `buf.len()` bytes. Returns Ok(true) on success, Ok(false) on EOF
+/// or partial read (torn write). Never returns an error for short reads.
+fn read_or_eof(f: &mut File, buf: &mut [u8]) -> io::Result<bool> {
+    let mut total = 0;
+    while total < buf.len() {
+        match f.read(&mut buf[total..])? {
+            0 => return Ok(false), // EOF / torn write
+            n => total += n,
+        }
+    }
+    Ok(true)
 }
 
 /// Convenience: default WAL location for a given lang code.
@@ -335,6 +363,52 @@ mod tests {
         assert_eq!(records[3].kind, RecordKind::DeletePos);
         assert_eq!(records[2].as_learn_order(), Some((0u8, 1u8, 90u16)));
 
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+
+    #[test]
+    fn wal_torn_write_recovery() {
+        // Write 3 records, truncate mid-last, reopen — should recover first 2.
+        let dir = std::env::temp_dir().join(format!("zets_wal_torn_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("torn.wal");
+
+        {
+            let mut w = WalWriter::open(&path).unwrap();
+            w.append(&Record::learn_pos(0, 1, 1)).unwrap();
+            w.append(&Record::learn_pos(0, 2, 2)).unwrap();
+            w.append(&Record::learn_pos(0, 3, 3)).unwrap();
+            w.sync().unwrap();
+        }
+
+        // Truncate last 3 bytes to simulate interrupted write
+        let full = std::fs::read(&path).unwrap();
+        std::fs::write(&path, &full[..full.len() - 3]).unwrap();
+
+        let mut r = WalReader::open(&path).unwrap();
+        let records = r.read_all().unwrap();
+        assert_eq!(records.len(), 2, "should recover the 2 complete records");
+        assert_eq!(records[0].as_learn_pos(), Some((0u8, 1u32, 1u8)));
+        assert_eq!(records[1].as_learn_pos(), Some((0u8, 2u32, 2u8)));
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn wal_empty_file_after_header() {
+        // Just header, no records — should read cleanly as empty.
+        let dir = std::env::temp_dir().join(format!("zets_wal_empty_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("empty.wal");
+        {
+            let _ = WalWriter::open(&path).unwrap();
+        }
+        let mut r = WalReader::open(&path).unwrap();
+        let records = r.read_all().unwrap();
+        assert_eq!(records.len(), 0);
         let _ = std::fs::remove_file(&path);
         let _ = std::fs::remove_dir(&dir);
     }
