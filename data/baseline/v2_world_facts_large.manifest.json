@@ -1,0 +1,17 @@
+{
+  "name": "v2_world_facts_large",
+  "source": "world_facts_v2",
+  "input_file": "data/corpora/world_facts_v2_large.txt",
+  "base_snapshot": "v1_bootstrap",
+  "created_utc": "2026-04-22",
+  "format_version": 1,
+  "atoms": 882,
+  "edges": 2566,
+  "ingest_elapsed_sec": 0.001,
+  "ingestion_stats": {
+    "sentences": 293,
+    "unique_tokens": 469,
+    "new_atoms": 763,
+    "new_edges": 2448
+  }
+}

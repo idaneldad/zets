@@ -1,0 +1,46 @@
+Paris is the capital of France. Berlin is the capital of Germany. Madrid is the capital of Spain. Rome is the capital of Italy. Tokyo is the capital of Japan. London is the capital of England. Cairo is the capital of Egypt. Beijing is the capital of China. Moscow is the capital of Russia. Washington is the capital of America. Ottawa is the capital of Canada. Brasilia is the capital of Brazil. Delhi is the capital of India. Canberra is the capital of Australia. Seoul is the capital of Korea. Bangkok is the capital of Thailand. Athens is the capital of Greece. Lisbon is the capital of Portugal. Dublin is the capital of Ireland. Amsterdam is the capital of Netherlands. Stockholm is the capital of Sweden. Oslo is the capital of Norway. Helsinki is the capital of Finland. Vienna is the capital of Austria. Warsaw is the capital of Poland.
+France is in Europe. Germany is in Europe. Japan is in Asia. Egypt is in Africa. Brazil is in America. Australia is a continent. Europe is a continent. Asia is a continent. Africa is a continent.
+Water contains hydrogen and oxygen. Water is liquid. Ice is frozen water. Steam is hot water. Oceans contain water. Rivers contain water. Lakes contain water.
+Hydrogen has atomic number 1. Helium has atomic number 2. Carbon has atomic number 6. Nitrogen has atomic number 7. Oxygen has atomic number 8. Iron has atomic number 26. Silver has atomic number 47. Gold has atomic number 79. Uranium has atomic number 92. Plutonium has atomic number 94.
+Dogs are mammals. Cats are mammals. Horses are mammals. Whales are mammals. Dolphins are mammals. Bears are mammals. Lions are mammals. Tigers are mammals. Elephants are mammals. Humans are mammals.
+Birds have feathers. Birds have wings. Birds lay eggs. Eagles are birds. Penguins are birds. Owls are birds. Sparrows are birds. Ducks are birds. Chickens are birds.
+Fish live in water. Fish have gills. Sharks are fish. Salmon are fish. Tuna are fish.
+Snakes are reptiles. Lizards are reptiles. Crocodiles are reptiles. Turtles are reptiles. Reptiles have scales.
+Frogs are amphibians. Salamanders are amphibians.
+Spiders are arachnids. Spiders have eight legs. Scorpions are arachnids. Ants are insects. Bees are insects. Butterflies are insects. Insects have six legs.
+Trees are plants. Flowers are plants. Grass is a plant. Plants need water. Plants need sunlight. Plants produce oxygen.
+Photosynthesis converts light to energy. Photosynthesis produces oxygen. Chlorophyll absorbs light. Leaves perform photosynthesis.
+DNA stores genetic information. DNA is in cells. Cells compose organisms. Proteins build cells. RNA copies DNA.
+The heart pumps blood. Blood carries oxygen. Lungs process oxygen. Kidneys filter blood. The liver cleans blood. The brain controls thought. The stomach digests food. Intestines absorb nutrients.
+Eyes perceive light. Ears detect sound. Nose smells odors. Tongue tastes flavors. Skin feels touch.
+Rust is a programming language. Python is a programming language. JavaScript is a programming language. Java is a programming language. C is a programming language. Ruby is a programming language. Swift is a programming language. Go is a programming language. Kotlin is a programming language. TypeScript is a programming language.
+Python is interpreted. Rust is compiled. Java is compiled. JavaScript is interpreted. C is compiled.
+Rust is a systems language. Python is a general language. JavaScript runs in browsers. Java runs on JVM. C produces fast code.
+Linux is an operating system. Windows is an operating system. MacOS is an operating system. Android is an operating system.
+Browsers display websites. Servers host websites. Databases store data. Networks connect computers.
+The sun is a star. The moon orbits Earth. Earth is a planet. Mars is a planet. Jupiter is a planet. Venus is a planet. Mercury is a planet. Saturn is a planet. Neptune is a planet. Uranus is a planet.
+Stars produce light. Planets orbit stars. Moons orbit planets. Galaxies contain stars. The Milky Way is a galaxy.
+Gravity attracts objects. Gravity keeps planets orbiting. Gravity makes things fall.
+Einstein discovered relativity. Einstein was a physicist. Newton discovered gravity. Newton was a physicist. Darwin discovered evolution. Darwin was a biologist. Curie discovered radium. Curie was a chemist. Pasteur discovered germs. Pasteur was a biologist. Tesla invented electricity. Edison invented lightbulbs. Turing invented computers.
+Shakespeare wrote plays. Shakespeare was a writer. Dante wrote poetry. Homer wrote epics. Tolstoy wrote novels. Austen wrote novels. Dickens wrote novels.
+Atoms compose matter. Electrons orbit nuclei. Protons have positive charge. Electrons have negative charge. Neutrons have no charge.
+Light travels fast. Sound travels through air. Heat flows from hot to cold. Magnets attract iron. Electricity powers machines.
+Mathematics studies numbers. Algebra uses variables. Geometry studies shapes. Calculus studies change. Statistics studies data.
+Physics studies matter. Chemistry studies elements. Biology studies life. Astronomy studies stars. Geology studies earth.
+Music has rhythm. Music has melody. Songs have lyrics. Piano is an instrument. Guitar is an instrument. Drums are instruments.
+Paintings are art. Sculptures are art. Photographs are art. Movies are art. Books are literature.
+Exercise builds strength. Sleep restores energy. Food provides nutrients. Water hydrates body. Vitamins support health.
+Friends provide support. Family provides love. Teachers provide education. Doctors provide care. Police provide safety.
+Clouds produce rain. Rain waters plants. Snow falls in winter. Wind moves air. Storms bring rain.
+Mountains are tall. Valleys are low. Deserts are dry. Forests have trees. Oceans have salt water.
+Cars have wheels. Planes have wings. Boats float on water. Trains run on rails. Bicycles have two wheels.
+Phones connect people. Computers process data. Printers produce paper. Cameras capture images. Speakers play sound.
+Cotton makes cloth. Wool comes from sheep. Silk comes from worms. Leather comes from animals. Plastic is synthetic.
+Wood comes from trees. Paper comes from wood. Books have pages. Pages have text. Text contains words.
+Words have meaning. Sentences contain words. Paragraphs contain sentences. Stories tell events. Events involve characters.
+Time moves forward. Days have 24 hours. Weeks have 7 days. Months have 30 days. Years have 365 days.
+Seasons change. Summer is hot. Winter is cold. Spring brings growth. Autumn brings leaves.
+Colors include red and blue. Red is warm. Blue is cool. Green is natural. Yellow is bright.
+Numbers are abstract. One is smallest. Two follows one. Ten has two digits. Hundreds have three digits.
+Happiness is an emotion. Sadness is an emotion. Anger is an emotion. Fear is an emotion. Love is an emotion. Joy is an emotion. Surprise is an emotion. Disgust is an emotion. Trust is an emotion. Anticipation is an emotion.
+Emotions affect behavior. Thoughts shape feelings. Memories store experiences. Dreams occur during sleep.
