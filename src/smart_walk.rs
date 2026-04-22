@@ -20,6 +20,7 @@
 
 use crate::atoms::{AtomId, AtomStore};
 use crate::dreaming::{dream};
+use crate::learning_layer::{EdgeKey, Provenance, ProvenanceLog, ProvenanceRecord};
 use crate::meta_learning::{CognitiveMode, MetaLearner, query_hash};
 use crate::session::SessionContext;
 use crate::spreading_activation::{spread_from_session, ActivationMap, SpreadConfig};
@@ -148,6 +149,80 @@ pub fn record_outcome(
     meta.record(query_context, walk_result.mode_used, usefulness);
 }
 
+/// Filter policy for cognitive modes — which provenance tiers are visible.
+///
+/// This is what makes learning layer "real" — it changes what the reasoner
+/// can see based on the cognitive mode. Precision mode sees only trusted
+/// facts; Divergent sees hypotheses too.
+pub fn mode_provenance_filter(mode: CognitiveMode) -> Box<dyn Fn(&ProvenanceRecord) -> bool> {
+    match mode {
+        CognitiveMode::Precision => Box::new(|r| {
+            // Only asserted facts + high-confidence learned patterns
+            r.provenance == Provenance::Asserted
+            || (r.provenance == Provenance::Learned && r.confidence >= 200)
+        }),
+        CognitiveMode::Gestalt => Box::new(|r| {
+            // Asserted + Learned (any confidence) + Observed
+            r.provenance != Provenance::Hypothesis
+        }),
+        CognitiveMode::Narrative => Box::new(|r| {
+            // Non-hypothesis (real memory + facts)
+            r.provenance != Provenance::Hypothesis
+        }),
+        CognitiveMode::Divergent => Box::new(|_| {
+            // Exploratory — see everything including hypotheses
+            true
+        }),
+    }
+}
+
+/// Smart walk with provenance filtering.
+///
+/// Same pipeline as smart_walk() but post-filters candidates: keeps only
+/// atoms that have at least one edge (to or from them) passing the mode's
+/// provenance filter. Atoms without any tagged edges are kept by default
+/// (treated as Asserted via ProvenanceLog::get_or_asserted semantics).
+pub fn smart_walk_with_provenance(
+    store: &mut AtomStore,
+    session: &SessionContext,
+    meta: &MetaLearner,
+    prov_log: &ProvenanceLog,
+    query_text: &str,
+    query_context: &str,
+    top_k: usize,
+) -> WalkResult {
+    let mut result = smart_walk(store, session, meta, query_text, query_context, top_k);
+
+    // If no provenance tagged at all, no filtering needed (backward compat)
+    if prov_log.is_empty() {
+        return result;
+    }
+
+    let filter = mode_provenance_filter(result.mode_used);
+
+    // Keep only candidates that have at least one visible edge.
+    // An atom is "visible" if any edge touching it either (a) has no tag
+    // (default=Asserted) or (b) has a tag that passes the filter.
+    result.candidates.retain(|(atom_id, _score)| {
+        let outgoing = store.outgoing(*atom_id);
+
+        // Check if ANY outgoing edge passes the filter.
+        // Untagged edges default to Asserted (ProvenanceLog::get_or_asserted semantics).
+        let has_visible = outgoing.iter().any(|edge| {
+            let key = EdgeKey::new(*atom_id, edge.to, edge.relation);
+            match prov_log.get(&key) {
+                Some(record) => filter(record),
+                None => true,  // untagged = Asserted by default, always passes
+            }
+        });
+
+        // If atom has no outgoing edges at all, keep it (terminal nodes visible)
+        outgoing.is_empty() || has_visible
+    });
+
+    result
+}
+
 // ────────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────────
@@ -268,4 +343,78 @@ mod tests {
         // Should return no candidates without seeds, but shouldn't panic
         assert!(result.candidates.is_empty());
     }
+
+    #[test]
+    fn mode_filter_precision_strict() {
+        let filter = mode_provenance_filter(CognitiveMode::Precision);
+        assert!(filter(&ProvenanceRecord::asserted()));
+        assert!(filter(&ProvenanceRecord::learned(210)));
+        assert!(!filter(&ProvenanceRecord::learned(150)));  // below threshold
+        assert!(!filter(&ProvenanceRecord::observed()));
+        assert!(!filter(&ProvenanceRecord::hypothesis()));
+    }
+
+    #[test]
+    fn mode_filter_divergent_permissive() {
+        let filter = mode_provenance_filter(CognitiveMode::Divergent);
+        assert!(filter(&ProvenanceRecord::asserted()));
+        assert!(filter(&ProvenanceRecord::learned(50)));
+        assert!(filter(&ProvenanceRecord::observed()));
+        assert!(filter(&ProvenanceRecord::hypothesis()));
+    }
+
+    #[test]
+    fn mode_filter_narrative_excludes_hypothesis() {
+        let filter = mode_provenance_filter(CognitiveMode::Narrative);
+        assert!(filter(&ProvenanceRecord::asserted()));
+        assert!(filter(&ProvenanceRecord::learned(100)));
+        assert!(filter(&ProvenanceRecord::observed()));
+        assert!(!filter(&ProvenanceRecord::hypothesis()));
+    }
+
+    #[test]
+    fn smart_walk_with_empty_log_keeps_candidates() {
+        let (mut store, a, _, _, _) = build_graph();
+        let mut session = SessionContext::new();
+        session.mention(a);
+        let meta = MetaLearner::new();
+        let prov_log = ProvenanceLog::new();  // empty
+
+        let result = smart_walk_with_provenance(&mut store, &session, &meta, &prov_log,
+                                                 "q", "factual", 3);
+        // With empty log, all untagged edges default to Asserted -> visible for any mode
+        // so we should still get candidates from the graph
+        assert!(!result.candidates.is_empty() || result.dreamed);
+    }
+
+    #[test]
+    fn smart_walk_with_hypothesis_filtered_in_precision() {
+        let (mut store, a, b, c, d) = build_graph();
+        let mut session = SessionContext::new();
+        session.mention(a);
+        let mut meta = MetaLearner::new();
+        // Force Precision mode
+        for _ in 0..200 {
+            meta.record("precision_test", CognitiveMode::Precision, 1.0);
+        }
+
+        // Tag all graph edges as Hypothesis — they should vanish in Precision
+        let mut prov_log = ProvenanceLog::new();
+        let near = crate::relations::by_name("near").unwrap().code;
+        prov_log.tag(EdgeKey::new(a, b, near), ProvenanceRecord::hypothesis());
+        prov_log.tag(EdgeKey::new(b, c, near), ProvenanceRecord::hypothesis());
+        prov_log.tag(EdgeKey::new(c, d, near), ProvenanceRecord::hypothesis());
+
+        let result = smart_walk_with_provenance(&mut store, &session, &meta, &prov_log,
+                                                 "strict query", "precision_test", 5);
+
+        // With meta biased to Precision and all edges tagged Hypothesis, the filter
+        // should remove most candidates. We don't guarantee mode selection from a
+        // single hash, but IF Precision is chosen, candidates should be empty or minimal.
+        if result.mode_used == CognitiveMode::Precision {
+            assert!(result.candidates.len() <= 1,
+                "Precision with all-Hypothesis edges should filter nearly everything");
+        }
+    }
+
 }
