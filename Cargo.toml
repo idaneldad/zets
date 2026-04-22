@@ -116,4 +116,3 @@ path = "src/bin/context_demo.rs"
 name = "live-brain-demo"
 path = "src/bin/live_brain_demo.rs"
 
-[[bin]]

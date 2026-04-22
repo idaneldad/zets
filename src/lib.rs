@@ -41,3 +41,5 @@ pub mod smart_walk;
 pub mod atom_persist;
 pub mod state_persist;
 pub mod bootstrap;
+pub mod ingestion;
+pub mod encrypted_installer;
