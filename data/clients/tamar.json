@@ -1,0 +1,32 @@
+{
+  "persona": {
+    "port": 3260,
+    "name": "Tamar",
+    "role": "manager",
+    "interests": [
+      "team",
+      "product"
+    ],
+    "lang": "he"
+  },
+  "atoms": {
+    "name": "Tamar",
+    "role": "manager",
+    "lang": "he",
+    "interest_0": "team",
+    "interest_1": "product"
+  },
+  "edges": [
+    {
+      "from": "self",
+      "to": "interest_0",
+      "rel": "likes"
+    },
+    {
+      "from": "self",
+      "to": "interest_1",
+      "rel": "likes"
+    }
+  ],
+  "sync_log": []
+}

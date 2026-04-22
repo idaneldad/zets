@@ -1,0 +1,32 @@
+{
+  "persona": {
+    "port": 3255,
+    "name": "Roni",
+    "role": "parent",
+    "interests": [
+      "family",
+      "music"
+    ],
+    "lang": "he"
+  },
+  "atoms": {
+    "name": "Roni",
+    "role": "parent",
+    "lang": "he",
+    "interest_0": "family",
+    "interest_1": "music"
+  },
+  "edges": [
+    {
+      "from": "self",
+      "to": "interest_0",
+      "rel": "likes"
+    },
+    {
+      "from": "self",
+      "to": "interest_1",
+      "rel": "likes"
+    }
+  ],
+  "sync_log": []
+}
