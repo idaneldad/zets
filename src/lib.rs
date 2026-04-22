@@ -48,6 +48,7 @@ pub mod wal;
 pub mod crypto;
 pub mod engine;
 pub mod morphology;
+pub mod system_graph;
 
 use std::fmt;
 
