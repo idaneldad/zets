@@ -51,4 +51,5 @@ pub mod ethics_core;
 pub mod dialogue;
 pub mod distillation;
 pub mod explain;
+pub mod verify;
 pub mod gemini_http;
