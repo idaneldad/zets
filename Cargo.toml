@@ -103,3 +103,7 @@ path = "src/bin/populate_edges.rs"
 [[bin]]
 name = "personas-demo"
 path = "src/bin/personas_demo.rs"
+
+[[bin]]
+name = "vision-decomposer"
+path = "src/bin/vision_decomposer.rs"

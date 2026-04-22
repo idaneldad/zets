@@ -30,3 +30,4 @@ pub mod relations;
 pub mod appraisal;
 pub mod edge_extraction;
 pub mod persona;
+pub mod hopfield;
