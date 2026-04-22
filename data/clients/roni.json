@@ -24,6 +24,12 @@
       "confidence": 0.745,
       "source": "peer_3259",
       "ts": 1776889716.5114384
+    },
+    "ספר לי על world_facts": {
+      "answer": "Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo",
+      "confidence": 0.855,
+      "source": "peer_3254",
+      "ts": 1776892181.2355585
     }
   },
   "plan": [
@@ -62,6 +68,36 @@
       "peer_hit": true,
       "cloud_hit": false,
       "elapsed_ms": 24.0
+    },
+    {
+      "ts": 1776892180.1800456,
+      "q": "איך עובד family?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.2355888,
+      "q": "ספר לי על world_facts",
+      "asker": "Sari",
+      "source": "peer_3254",
+      "conf": 0.85,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 723.3
+    },
+    {
+      "ts": 1776892181.2489555,
+      "q": "ספר לי על care",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
     }
   ],
   "conversations": []

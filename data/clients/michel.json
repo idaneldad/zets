@@ -90,6 +90,36 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776892180.1701515,
+      "q": "איך עובד literature?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892180.5830538,
+      "q": "ספר לי על world_facts",
+      "asker": "Eli",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.240317,
+      "q": "ספר לי על history",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
     }
   ],
   "conversations": []

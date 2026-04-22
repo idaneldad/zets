@@ -82,6 +82,26 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892180.1730483,
+      "q": "What is poetry?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.242937,
+      "q": "How does poetry work?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
   ],
   "conversations": []

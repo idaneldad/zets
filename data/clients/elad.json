@@ -65,6 +65,26 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892180.1714914,
+      "q": "איך עובד process?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.2415822,
+      "q": "איך עובד process?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
   ],
   "conversations": []

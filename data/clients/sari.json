@@ -22,6 +22,12 @@
       "confidence": 0.725,
       "source": "peer_3251",
       "ts": 1776889716.4060624
+    },
+    "ספר לי על world_facts": {
+      "answer": "שלום! Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo",
+      "confidence": 0.73,
+      "source": "peer_3266",
+      "ts": 1776892181.236233
     }
   },
   "plan": [
@@ -60,6 +66,26 @@
       "peer_hit": true,
       "cloud_hit": false,
       "elapsed_ms": 24.5
+    },
+    {
+      "ts": 1776892180.1659606,
+      "q": "מה זה opinions?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.2362623,
+      "q": "ספר לי על world_facts",
+      "asker": "user",
+      "source": "peer_3266",
+      "conf": 0.73,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 747.8
     }
   ],
   "conversations": []

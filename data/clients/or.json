@@ -62,6 +62,26 @@
       "peer_hit": true,
       "cloud_hit": false,
       "elapsed_ms": 24.2
+    },
+    {
+      "ts": 1776892180.1673388,
+      "q": "ספר לי על business",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.237826,
+      "q": "מה זה business?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
   ],
   "conversations": []

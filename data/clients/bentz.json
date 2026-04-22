@@ -66,6 +66,26 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892180.1614041,
+      "q": "ספר לי על rules",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.2
+    },
+    {
+      "ts": 1776892180.4842737,
+      "q": "איך עובד rules?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
   ],
   "conversations": []

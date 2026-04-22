@@ -60,6 +60,26 @@
       "peer_hit": true,
       "cloud_hit": false,
       "elapsed_ms": 48.0
+    },
+    {
+      "ts": 1776892180.1645422,
+      "q": "איך עובד execution?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892180.4872305,
+      "q": "למה execution חשוב?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
     }
   ],
   "conversations": []

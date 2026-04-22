@@ -85,6 +85,72 @@ impl EdgeKey {
     }
 }
 
+
+/// Register / formality level for an edge (see docs/working/20260422_formality_diglossia_design.md).
+///
+/// Strict-register languages (Arabic MSA vs colloquial) MUST NOT mix levels on
+/// the same walk. Non-strict languages (Hebrew, English) may mix but prefer
+/// same-register edges.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum RegisterLevel {
+    /// Sacred / religious texts (Tanakh, Quran, Vedas).
+    Sacred = 0,
+    /// Literary / poetic (Shakespeare, Bialik, classical Arabic fusha).
+    Literary = 1,
+    /// Formal / journalistic / academic.
+    Formal = 2,
+    /// Neutral — default. Works in most contexts.
+    Neutral = 3,
+    /// Colloquial — everyday spoken / WhatsApp-level.
+    Colloquial = 4,
+    /// Slang — rapidly-changing informal terms.
+    Slang = 5,
+    /// Child-friendly — baby talk, simplified terms.
+    Child = 6,
+}
+
+impl RegisterLevel {
+    pub fn as_u8(self) -> u8 { self as u8 }
+    pub fn from_u8(b: u8) -> Option<Self> {
+        match b {
+            0 => Some(Self::Sacred),
+            1 => Some(Self::Literary),
+            2 => Some(Self::Formal),
+            3 => Some(Self::Neutral),
+            4 => Some(Self::Colloquial),
+            5 => Some(Self::Slang),
+            6 => Some(Self::Child),
+            _ => None,
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Sacred => "sacred",
+            Self::Literary => "literary",
+            Self::Formal => "formal",
+            Self::Neutral => "neutral",
+            Self::Colloquial => "colloquial",
+            Self::Slang => "slang",
+            Self::Child => "child",
+        }
+    }
+    /// Is this register considered safe for children?
+    /// Child mode (Yam, Ben) filters out registers beyond this threshold.
+    pub fn is_child_safe(self) -> bool {
+        // Sacred/Literary/Formal/Neutral/Child — all ok. Colloquial borderline. Slang excluded.
+        (self as u8) != Self::Slang as u8
+    }
+    /// Is this register suitable for formal output (journalism, contracts)?
+    pub fn is_formal_appropriate(self) -> bool {
+        matches!(self, Self::Sacred | Self::Literary | Self::Formal | Self::Neutral)
+    }
+}
+
+impl Default for RegisterLevel {
+    fn default() -> Self { Self::Neutral }
+}
+
 /// Provenance + confidence for a single edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProvenanceRecord {
@@ -95,20 +161,26 @@ pub struct ProvenanceRecord {
     /// For Learned: proportional to cluster size + stability (e.g., 200+ if stable).
     /// For Hypothesis: 50-150 (dreaming quality).
     pub confidence: u8,
+    /// Register / formality level. Defaults to Neutral.
+    pub register: RegisterLevel,
 }
 
 impl ProvenanceRecord {
     pub fn asserted() -> Self {
-        Self { provenance: Provenance::Asserted, confidence: 240 }
+        Self { provenance: Provenance::Asserted, confidence: 240, register: RegisterLevel::Neutral }
+    }
+
+    pub fn asserted_with_register(register: RegisterLevel) -> Self {
+        Self { provenance: Provenance::Asserted, confidence: 240, register }
     }
     pub fn observed() -> Self {
-        Self { provenance: Provenance::Observed, confidence: 128 }
+        Self { provenance: Provenance::Observed, confidence: 128, register: RegisterLevel::Neutral }
     }
     pub fn learned(confidence: u8) -> Self {
-        Self { provenance: Provenance::Learned, confidence }
+        Self { provenance: Provenance::Learned, confidence, register: RegisterLevel::Neutral }
     }
     pub fn hypothesis() -> Self {
-        Self { provenance: Provenance::Hypothesis, confidence: 100 }
+        Self { provenance: Provenance::Hypothesis, confidence: 100, register: RegisterLevel::Neutral }
     }
 }
 

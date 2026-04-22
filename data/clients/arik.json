@@ -22,6 +22,12 @@
       "confidence": 0.835,
       "source": "peer_3262",
       "ts": 1776889716.3301716
+    },
+    "ספר לי על world_facts": {
+      "answer": "Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo",
+      "confidence": 0.84,
+      "source": "peer_3262",
+      "ts": 1776892181.234847
     }
   },
   "plan": [
@@ -90,6 +96,36 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776892180.1630166,
+      "q": "מה זה everyday?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892180.485718,
+      "q": "איך עובד humor?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776892181.2348747,
+      "q": "ספר לי על world_facts",
+      "asker": "Roni",
+      "source": "peer_3262",
+      "conf": 0.84,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 699.1
     }
   ],
   "conversations": []
