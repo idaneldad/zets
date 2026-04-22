@@ -49,4 +49,5 @@ pub mod llm_adapter;
 pub mod learning_layer;
 pub mod ethics_core;
 pub mod dialogue;
+pub mod distillation;
 pub mod gemini_http;
