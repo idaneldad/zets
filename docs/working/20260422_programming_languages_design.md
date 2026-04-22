@@ -200,3 +200,27 @@ Start small: 500 functions from Python stdlib + 500 from Rust std. Cross-map.
 3. **Phase 12 (dialect overlay)** — אחרי register attribute
 4. **Language re-learn pipeline** (התובנה הגאונית של עידן מהturn הקודם)
 5. Programming languages — **Phase 20+, לא עכשיו**
+
+---
+
+## UPDATE 22.04.2026 evening — seed implementation shipped
+
+After Idan supplied a 24-dimension classification (9 paradigms × 4 execution × 5 types × 6 purposes) plus 7 automation use-cases, a seed taxonomy snapshot was built:
+
+**Files:**
+- `src/bin/seed_programming_taxonomy.rs` — builds the snapshot.
+- `src/bin/prog_lang_query.rs` — queries the taxonomy.
+- `data/baseline/programming_taxonomy_v1.atoms` — 86 atoms, 284 edges, 5.3KB.
+
+**Verified live:**
+- "What for Linux server admin?" → `bash, python`
+- "Functional languages?" → 19 languages (Clojure, Haskell, F#, Rust with functional features, etc.)
+- "Python profile?" → `scripting+OO+imperative+functional, dynamic, interpreted, used for: api_client, automation_general, browser_automation, data_science, test_automation, web_scraping, etc.`
+- "Rust profile?" → `imperative+functional, trait_based, compiled, systems programming`
+
+**Not yet done:**
+- Bridge to Wikipedia snapshot (wiki has 330+ "Python" occurrences; hash_registry can connect)
+- Execution verification (Track C)
+- Ingestion of function-level details from stdlib corpora
+
+**Total cost:** 5.3KB on disk, builds in seconds, answers queries in <1ms. Proves the concept without blowing up scope.
