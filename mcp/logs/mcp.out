@@ -1,9 +1,0 @@
-ZETS MCP Server | port 3145 | zets_root=/home/dinio/zets
-  Snapshots: 5
-  Binaries:  94
-  Tools:     zets_health, zets_list_snapshots, zets_benchmark,
-             zets_verify, zets_ingest_text, zets_stream_ingest_file,
-             zets_distill, zets_explain, zets_measure_moats, zets_tests,
-             shell_run, file_read, file_write, git_status
-
-INFO:     127.0.0.1:43972 - "POST /sse HTTP/1.1" 405 Method Not Allowed
