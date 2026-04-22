@@ -232,12 +232,10 @@ pub fn skill_label(store: &AtomStore, skill: AtomId) -> Option<String> {
     text.strip_prefix("skill:").map(|s| s.to_string())
 }
 
-/// Get the relation code for has_skill, using a fallback if not yet registered.
+/// Get the relation code for has_skill. Now first-class in the registry (0x48).
 fn get_has_skill_code() -> u8 {
-    // Try the official has_skill relation; fall back to has_attribute if absent.
     relations::by_name("has_skill")
-        .or_else(|| relations::by_name("has_attribute"))
-        .unwrap()
+        .expect("has_skill relation must be registered (code 0x48)")
         .code
 }
 

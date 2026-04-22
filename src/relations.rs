@@ -421,6 +421,24 @@ pub const ALL_RELATIONS: &[RelationDef] = &[
         region: BrainRegion::SocialMind, direction: Direction::Directed,
         transitivity: Transitivity::Never, affinity: ModeAffinity::story(),
         hebrew_template: "{A} למד ב{B}" },
+
+    // ── Growth / Capability (0x48-0x4B) ──
+    RelationDef { code: 0x48, name: "has_skill", description: "Person has acquired skill (weight = proficiency 0-100)",
+        region: BrainRegion::GrowthTherapy, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::all(),
+        hebrew_template: "{A} יודע {B}" },
+    RelationDef { code: 0x49, name: "exercises_skill", description: "Using a skill right now",
+        region: BrainRegion::GrowthTherapy, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::all(),
+        hebrew_template: "{A} מפעיל {B}" },
+    RelationDef { code: 0x4A, name: "teaches", description: "Can teach this skill/topic",
+        region: BrainRegion::SocialMind, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::story(),
+        hebrew_template: "{A} מלמד {B}" },
+    RelationDef { code: 0x4B, name: "learning_goal", description: "Aspires to acquire this skill",
+        region: BrainRegion::GrowthTherapy, direction: Direction::Directed,
+        transitivity: Transitivity::Never, affinity: ModeAffinity::all(),
+        hebrew_template: "{A} שואף ללמוד {B}" },
 ];
 
 /// Lookup by code.
@@ -466,8 +484,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sixty_four_relations_defined() {
-        assert_eq!(ALL_RELATIONS.len(), 72, "must have exactly 72 relations (64 core + 8 persona)");
+    fn seventy_six_relations_defined() {
+        assert_eq!(ALL_RELATIONS.len(), 76, "must have exactly 76 relations (72 before + 4 growth/capability)");
     }
 
     #[test]

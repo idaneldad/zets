@@ -325,6 +325,16 @@ impl AtomStore {
     /// Total number of edges (for stats/metrics).
     pub fn edge_count(&self) -> usize { self.edges.len() }
 
+    /// Total number of atoms (for stats/metrics).
+    pub fn atom_count(&self) -> usize { self.atoms.len() }
+
+    /// Snapshot all atoms + edges for serialization. Returns references to
+    /// the raw vectors — caller must not mutate through this. This is the
+    /// persistence interface used by atom_persist.rs.
+    pub fn snapshot(&self) -> (&[Atom], &[AtomEdge]) {
+        (&self.atoms, &self.edges)
+    }
+
     // ── Statistics ──
 
     pub fn stats(&self) -> StoreStats {

@@ -38,3 +38,6 @@ pub mod dreaming;
 pub mod skills;
 pub mod meta_learning;
 pub mod smart_walk;
+pub mod atom_persist;
+pub mod state_persist;
+pub mod bootstrap;
