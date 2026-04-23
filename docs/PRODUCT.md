@@ -641,6 +641,54 @@ For engineers evaluating ZETS:
 
 ---
 
+## 💾 Dense Storage Engine — The Graph as a Reliable Database
+
+Beyond cognition, ZETS is a high-density, provenance-preserving graph database.
+Every capability above — understanding, reasoning, speaking — sits on top of this
+storage layer. Customers who adopt ZETS get a database-grade asset as a side effect
+of the cognitive kernel.
+
+### What makes the storage engine distinctive
+
+| Property | ZETS | Traditional graph DB (Neo4j / TigerGraph) |
+|---|---|---|
+| Bytes per edge | **10 bytes** (BitFlag edges) | 50–150 bytes typical |
+| Read access | **mmap + bloom filters** — cold cache reads in µs | Disk-bound, indexes required |
+| Provenance per write | **Always on** — every atom carries its source + trust score | Optional audit tables |
+| Crash recovery | **WAL + deterministic replay** | Transaction log, RDBMS-style |
+| Encryption at rest | **AES-256-GCM** on data pack | Typically file-system level |
+| Deployment | **Single binary, zero runtime deps** | JVM / cluster / sidecar required |
+| Offline operation | **Default** | Requires cluster setup for isolation |
+
+### Client-data reconstruction
+
+Because every atom carries provenance, any customer's dataset can be reconstructed
+to any prior consistent state:
+
+```
+zets recover <client-id> --at "2026-03-15T14:00Z" --to ./recovery/
+```
+
+This recovers every atom written on behalf of that client up to the given
+timestamp, in original form, with the full chain of where it came from and
+which session wrote it. Graph-native, not bolt-on.
+
+### When to deploy ZETS as "just" a graph DB
+
+Some customers don't need the cognitive layer yet. They want a very dense,
+very fast, very auditable graph store. Deploy ZETS with:
+- The cognitive scopes turned off (just Data + Log).
+- Their own schema loaded as knowledge atoms.
+- The MCP / HTTP API as their interface.
+
+They get:
+- 10-byte edges (5–15× denser than alternatives).
+- µs-range queries (vs ms-range for typical graph DBs).
+- Provenance on every write without schema change.
+- A path to enable cognitive features later with zero data migration.
+
+---
+
 ## 🎓 The Vision in One Paragraph
 
 > Imagine a world where every smart device — from a child's toy to a hospital's clinical system to a developing nation's rural health post — carries a real cognitive brain, not a network dependency. Where these brains talk to each other, coordinate in families, and together form a distributed intelligence that works offline, respects privacy, audits every decision, and refuses to hallucinate. Where intelligence is a commodity, not a subscription. Where your data stays yours. Where the internet going down is not a catastrophe. **That's the world ZETS builds. One binary. Every deployment. A family of minds.**
