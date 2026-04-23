@@ -57,3 +57,4 @@ pub mod explain;
 pub mod verify;
 pub mod corpus_acquisition;
 pub mod gemini_http;
+pub mod fold;

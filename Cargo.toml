@@ -17,6 +17,9 @@ path = "src/lib.rs"
 [dependencies]
 memmap2 = "0.9"    # mmap for lazy loading
 aes-gcm = "0.10"   # authenticated encryption for Stage 3
+sha2 = "0.10"      # SHA-256 for Merkle DAG IDs in fold/
+ahash = "0.8"      # fast non-crypto hash for HashMap in fold/
+rayon = "1"        # parallelism for background fold tasks
 
 [dev-dependencies]
 # None.
@@ -178,3 +181,7 @@ path = "src/bin/training_demo.rs"
 name = "stream-ingest"
 path = "src/bin/stream_ingest.rs"
 
+
+[[bin]]
+name = "fold_benchmark"
+path = "src/bin/fold_benchmark.rs"
