@@ -61,3 +61,4 @@ pub mod fold;
 pub mod search;
 pub mod bitflag_edge;
 pub mod path_mining;
+pub mod mtreemap;
