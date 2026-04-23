@@ -79,3 +79,4 @@ pub mod llm;
 pub mod cognitive;
 pub mod brain_profile;
 pub mod capability_runtime;
+pub mod preferences;
