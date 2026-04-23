@@ -43,7 +43,10 @@
 //!      response is worthy to send back. This is the Birur-style gate
 //!      applied to the other direction.
 
+pub mod emotion;
 pub mod input;
+pub mod intent;
+pub mod style;
 pub mod reading;
 pub mod source;
 
@@ -123,19 +126,16 @@ impl Reader {
 
     // ─── Stage implementations (stubs for now, filled in Phase 2) ───
 
-    fn read_emotion(_input: &ReadInput) -> EmotionRead {
-        // Phase 2: 8 textual emotion signals.
-        EmotionRead::default()
+    fn read_emotion(input: &ReadInput) -> EmotionRead {
+        emotion::EmotionDetector::detect(input)
     }
 
-    fn read_intent(_input: &ReadInput) -> IntentRead {
-        // Phase 2: pragmatic disambiguation.
-        IntentRead::default()
+    fn read_intent(input: &ReadInput) -> IntentRead {
+        intent::IntentDetector::detect(input)
     }
 
-    fn read_style(_input: &ReadInput) -> StyleRead {
-        // Phase 2: Big Five inference, mirroring dims.
-        StyleRead::default()
+    fn read_style(input: &ReadInput) -> StyleRead {
+        style::StyleDetector::detect(input)
     }
 
     fn read_gate(input: &ReadInput, _reading: &Reading) -> GateRead {
