@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="assets/brand/zets-logo-500.jpg" alt="ZETS — Cognitive Kernel" width="320" />
+</p>
+
 # ZETS
 
-**Deterministic knowledge graph engine for edge devices.**
+**Cognitive Kernel — deterministic knowledge graph engine for edge devices.**
 
 Symbolic Q&A system that runs on $80 hardware, answers in <100ms, never hallucinates.
 
