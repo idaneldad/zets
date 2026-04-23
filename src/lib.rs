@@ -71,6 +71,7 @@ pub mod secrets;
 pub mod conversation;
 pub mod guard;
 pub mod procedure_template;
+pub mod benchmark;
 pub mod connectors;
 pub mod error_store;
 pub mod llm;
