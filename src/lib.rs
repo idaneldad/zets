@@ -67,5 +67,7 @@ pub mod procedure_atom;
 pub mod wisdom_engines;
 pub mod reader;
 pub mod personal_graph;
+pub mod secrets;
+pub mod conversation;
 pub mod cognitive;
 pub mod brain_profile;
