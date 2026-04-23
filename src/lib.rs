@@ -25,6 +25,7 @@ pub mod testing_sandbox;
 pub mod metacognition;
 pub mod cognitive_modes;
 pub mod atoms;
+pub mod graph_v4;
 pub mod prototype;
 pub mod relations;
 pub mod appraisal;
