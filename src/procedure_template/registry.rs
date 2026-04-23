@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use super::instance::{Language, ProcedureInstance, SourceLocation};
+use super::instance::{Language, ProcedureInstance};
 use super::template::{ProcedureTemplate, TemplateId};
 
 /// Result of registering a template.
@@ -170,6 +170,7 @@ pub struct RegistryStats {
 #[cfg(test)]
 mod tests {
     use super::super::template::{Parameter, ParamKind, NameRole, SideEffect};
+    use super::super::instance::SourceLocation;
     use super::*;
 
     fn mk_param(role: &str, kind: ParamKind, required: bool) -> Parameter {

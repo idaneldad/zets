@@ -25,6 +25,11 @@
 pub const RULE_SET_VERSION: u32 = 1;
 
 /// A single rule identifier. Embedded in audit logs + patterns.
+///
+/// Variant names follow security-audit convention (TF01, IP01, OP01, ST01 etc.)
+/// which intentionally violates Rust's UpperCamelCase convention for traceability
+/// with external security test frameworks and audit documentation.
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RuleId {
     // Trust floor (immutable)
