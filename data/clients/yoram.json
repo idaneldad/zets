@@ -17,14 +17,7 @@
       "vagueness"
     ]
   },
-  "learned": {
-    "תספר לי על כדורגל": {
-      "answer": "שלום! ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Th",
-      "confidence": 0.57,
-      "source": "peer_3262",
-      "ts": 1776889716.460696
-    }
-  },
+  "learned": {},
   "plan": [
     {
       "topic": "operations",
@@ -72,6 +65,136 @@
       "asker": "user",
       "source": "local",
       "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776963808.5884185,
+      "q": "מה אתה עושה?",
+      "asker": "Eli",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 707.7
+    },
+    {
+      "ts": 1776963810.0814521,
+      "q": "תספר לי על עצמך",
+      "asker": "Idan",
+      "source": "peer_3255",
+      "conf": 0.48,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 699.5
+    },
+    {
+      "ts": 1776963814.7855155,
+      "q": "Who wrote Don Quixote?",
+      "asker": "Or",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776963816.924692,
+      "q": "Is a dog an animal?",
+      "asker": "Arik",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 650.0
+    },
+    {
+      "ts": 1776963818.502795,
+      "q": "מה זה CHOOZ?",
+      "asker": "Michel",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964199.4228592,
+      "q": "מה הבירה של צרפת?",
+      "asker": "Sari",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 671.2
+    },
+    {
+      "ts": 1776964199.5930877,
+      "q": "Is a dog an animal?",
+      "asker": "Tal",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964199.9291186,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "Bentz",
+      "source": "peer_3261",
+      "conf": 0.39,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 2.7
+    },
+    {
+      "ts": 1776964202.477229,
+      "q": "מה הבירה של צרפת?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964202.5320666,
+      "q": "מי כתב את התנך?",
+      "asker": "user",
+      "source": "peer_3258",
+      "conf": 0.69,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964202.58736,
+      "q": "What is gravity?",
+      "asker": "user",
+      "source": "peer_3266",
+      "conf": 0.48,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 2.8
+    },
+    {
+      "ts": 1776964202.6401463,
+      "q": "Is a dog an animal?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964202.6944854,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.39,
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.1

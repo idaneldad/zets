@@ -15,7 +15,10 @@ pub mod tokenize;
 pub mod phrase;
 pub mod build;
 pub mod retrieve;
+pub mod persist;
+pub mod wiki_reader;
 
 pub use types::{Atom, AtomId, AtomKind, Edge, Graph, Relation, Stats};
 pub use build::{build_graph, BuildConfig};
+pub use persist::{save, load, PersistError};
 pub use retrieve::{answer, compute_idf, phrases_from_graph, Answer, IdfTable};

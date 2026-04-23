@@ -55,3 +55,6 @@ data/autonomous/hash_registry_sidecar.json
 # Wikipedia dumps — 17GB, regenerate from scripts/fetch_wikipedia.sh
 data/wikipedia_dumps/
 
+data/baseline/v4_pilot.zv4
+data/baseline/_archive/
+data/clients_backup_*/

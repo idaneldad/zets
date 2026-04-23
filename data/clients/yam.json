@@ -18,14 +18,7 @@
       "complex"
     ]
   },
-  "learned": {
-    "תספר לי על כדורגל": {
-      "answer": "שלום! Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo 🎵",
-      "confidence": 0.96,
-      "source": "peer_3258",
-      "ts": 1776889716.206217
-    }
-  },
+  "learned": {},
   "plan": [
     {
       "topic": "videos",
@@ -89,6 +82,136 @@
       "asker": "user",
       "source": "local",
       "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776963814.7275457,
+      "q": "What is the capital of France?",
+      "asker": "Idan",
+      "source": "local",
+      "conf": 0.75,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776963816.9261703,
+      "q": "Is a dog an animal?",
+      "asker": "Idan",
+      "source": "peer_3254",
+      "conf": 1.0,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 675.8
+    },
+    {
+      "ts": 1776963817.643836,
+      "q": "Is a dog a car?",
+      "asker": "Bentz",
+      "source": "peer_3262",
+      "conf": 0.88,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 662.5
+    },
+    {
+      "ts": 1776964198.5298233,
+      "q": "מי כתב את התנך?",
+      "asker": "Michel",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 663.6
+    },
+    {
+      "ts": 1776964199.9855056,
+      "q": "מה הבירה של צרפת?",
+      "asker": "Michel",
+      "source": "peer_3257",
+      "conf": 0.88,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.2
+    },
+    {
+      "ts": 1776964200.099353,
+      "q": "What is gravity?",
+      "asker": "Arik",
+      "source": "peer_3262",
+      "conf": 0.66,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 2.5
+    },
+    {
+      "ts": 1776964201.3148546,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "Shai",
+      "source": "peer_3257",
+      "conf": 0.91,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.5
+    },
+    {
+      "ts": 1776964202.4225812,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "Eli",
+      "source": "local",
+      "conf": 0.91,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964203.0321991,
+      "q": "מה הבירה של צרפת?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.88,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964203.0869703,
+      "q": "מי כתב את התנך?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964203.1412864,
+      "q": "What is gravity?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.66,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964203.1936553,
+      "q": "Is a dog an animal?",
+      "asker": "user",
+      "source": "local",
+      "conf": 1.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964203.245954,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.91,
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.1

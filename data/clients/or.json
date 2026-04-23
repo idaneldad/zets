@@ -18,14 +18,7 @@
       "pessimism"
     ]
   },
-  "learned": {
-    "תספר לי על כדורגל": {
-      "answer": "שלום! ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%\n  Elapsed:     0.02s\n  Th",
-      "confidence": 0.6649999999999999,
-      "source": "peer_3253",
-      "ts": 1776889716.431202
-    }
-  },
+  "learned": {},
   "plan": [
     {
       "topic": "business",
@@ -82,6 +75,166 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776963812.482018,
+      "q": "מי משה רבנו?",
+      "asker": "Bentz",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776963813.946005,
+      "q": "מה זה קבלה?",
+      "asker": "Ben",
+      "source": "peer_3261",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 712.6
+    },
+    {
+      "ts": 1776963814.671721,
+      "q": "מה הבירה של צרפת?",
+      "asker": "Bentz",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 670.1
+    },
+    {
+      "ts": 1776963815.4497464,
+      "q": "Who wrote Don Quixote?",
+      "asker": "Tal",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 664.7
+    },
+    {
+      "ts": 1776963819.8948205,
+      "q": "מה זה DINIO?",
+      "asker": "Arik",
+      "source": "peer_3252",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 661.3
+    },
+    {
+      "ts": 1776964199.481411,
+      "q": "מי כתב את התנך?",
+      "asker": "Rotem",
+      "source": "peer_3251",
+      "conf": 0.71,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.4
+    },
+    {
+      "ts": 1776964199.9848347,
+      "q": "מה הבירה של צרפת?",
+      "asker": "Yam",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964200.3145914,
+      "q": "מי כתב את התנך?",
+      "asker": "Tal",
+      "source": "local",
+      "conf": 0.71,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964200.8174703,
+      "q": "מה הבירה של צרפת?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964200.8715935,
+      "q": "מי כתב את התנך?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.71,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964200.9252524,
+      "q": "What is gravity?",
+      "asker": "user",
+      "source": "peer_3258",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.2
+    },
+    {
+      "ts": 1776964200.98109,
+      "q": "Is a dog an animal?",
+      "asker": "user",
+      "source": "peer_3261",
+      "conf": 0.71,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 2.4
+    },
+    {
+      "ts": 1776964201.039985,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "user",
+      "source": "peer_3259",
+      "conf": 0.73,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 3.7
+    },
+    {
+      "ts": 1776964201.3139381,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "Yam",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964202.0314395,
+      "q": "What is gravity?",
+      "asker": "Adrian",
+      "source": "local",
+      "conf": 0.7,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964202.9772255,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "Ben",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
     }
   ],
   "conversations": []

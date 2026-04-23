@@ -16,14 +16,7 @@
     ],
     "avoids": []
   },
-  "learned": {
-    "תספר לי על כדורגל": {
-      "answer": "╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Throughp",
-      "confidence": 0.73,
-      "source": "peer_3261",
-      "ts": 1776889716.2565393
-    }
-  },
+  "learned": {},
   "plan": [
     {
       "topic": "history",
@@ -117,6 +110,156 @@
       "asker": "user",
       "source": "local",
       "conf": 0.65,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776963808.6687894,
+      "q": "מה שלומך?",
+      "asker": "Sari",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776963810.8717434,
+      "q": "מי כתב את ספר יצירה?",
+      "asker": "Idan",
+      "source": "peer_3262",
+      "conf": 0.69,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 735.4
+    },
+    {
+      "ts": 1776963816.275203,
+      "q": "Is a dog an animal?",
+      "asker": "Yoram",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776963819.1780841,
+      "q": "מה זה CHOOZ?",
+      "asker": "Shai",
+      "source": "cloud",
+      "conf": 0.7,
+      "peer_hit": true,
+      "cloud_hit": true,
+      "elapsed_ms": 675.9
+    },
+    {
+      "ts": 1776964198.5306637,
+      "q": "מי כתב את התנך?",
+      "asker": "Shai",
+      "source": "peer_3265",
+      "conf": 0.73,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 665.0
+    },
+    {
+      "ts": 1776964199.7629488,
+      "q": "מי כתב את התנך?",
+      "asker": "Bentz",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964199.9861712,
+      "q": "מה הבירה של צרפת?",
+      "asker": "Arik",
+      "source": "peer_3265",
+      "conf": 0.91,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 2.3
+    },
+    {
+      "ts": 1776964200.708131,
+      "q": "Is a dog an animal?",
+      "asker": "Sari",
+      "source": "peer_3255",
+      "conf": 0.64,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964200.9796765,
+      "q": "Is a dog an animal?",
+      "asker": "Adrian",
+      "source": "local",
+      "conf": 0.64,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964201.0380685,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "Or",
+      "source": "peer_3255",
+      "conf": 0.73,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964201.3706677,
+      "q": "מה הבירה של צרפת?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.91,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964201.4262087,
+      "q": "מי כתב את התנך?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.73,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964201.4834197,
+      "q": "What is gravity?",
+      "asker": "user",
+      "source": "peer_3256",
+      "conf": 0.62,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964201.5378945,
+      "q": "Is a dog an animal?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.64,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964201.5918267,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.73,
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.0

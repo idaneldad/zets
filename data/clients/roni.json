@@ -18,20 +18,7 @@
       "abstract_theory"
     ]
   },
-  "learned": {
-    "תספר לי על כדורגל": {
-      "answer": "שלום! ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions loaded from /tmp/zets_q_13241.jsonl\n\n  Adapter: local rule-based parser (offline, no API calls)\n\n━━━ Running 1 questions ━━━\n\n━━━ Results ━━━\n  Overall:     100.0%  (1/1)\n  Elapsed:     0.02s\n  Th",
-      "confidence": 0.745,
-      "source": "peer_3259",
-      "ts": 1776889716.5114384
-    },
-    "ספר לי על world_facts": {
-      "answer": "Cloud says: ╔════════════════════════════════════════════════════════════╗\n║  ZETS Benchmark Runner                                    ║\n╚════════════════════════════════════════════════════════════╝\n\n  Loading snapshot: data/baseline/wiki_all_domains_v1.atoms\n  ✓ 211650 atoms, 13185170 edges\n  ✓ 1 questions lo",
-      "confidence": 0.855,
-      "source": "peer_3254",
-      "ts": 1776892181.2355585
-    }
-  },
+  "learned": {},
   "plan": [
     {
       "topic": "family",
@@ -98,6 +85,146 @@
       "peer_hit": false,
       "cloud_hit": false,
       "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776963811.629366,
+      "q": "מה הגימטריה של אלוהים?",
+      "asker": "Idan",
+      "source": "peer_3256",
+      "conf": 0.59,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 700.0
+    },
+    {
+      "ts": 1776963814.002194,
+      "q": "מה הבירה של צרפת?",
+      "asker": "Or",
+      "source": "unknown",
+      "conf": 0.0,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964200.597402,
+      "q": "מי כתב את התנך?",
+      "asker": "Sari",
+      "source": "peer_3252",
+      "conf": 0.82,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964201.9755821,
+      "q": "מי כתב את התנך?",
+      "asker": "Adrian",
+      "source": "local",
+      "conf": 0.82,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.1
+    },
+    {
+      "ts": 1776964202.2577524,
+      "q": "מי כתב את התנך?",
+      "asker": "Eli",
+      "source": "local",
+      "conf": 0.82,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964202.3672588,
+      "q": "Is a dog an animal?",
+      "asker": "Eli",
+      "source": "peer_3255",
+      "conf": 0.62,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964202.586499,
+      "q": "What is gravity?",
+      "asker": "Yoram",
+      "source": "peer_3256",
+      "conf": 0.6,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.4
+    },
+    {
+      "ts": 1776964202.8663056,
+      "q": "What is gravity?",
+      "asker": "Ben",
+      "source": "local",
+      "conf": 0.6,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964202.9208634,
+      "q": "Is a dog an animal?",
+      "asker": "Ben",
+      "source": "local",
+      "conf": 0.62,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964203.3020093,
+      "q": "מה הבירה של צרפת?",
+      "asker": "user",
+      "source": "peer_3258",
+      "conf": 0.68,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
+    },
+    {
+      "ts": 1776964203.3537881,
+      "q": "מי כתב את התנך?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.82,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964203.4054897,
+      "q": "What is gravity?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.6,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964203.4581928,
+      "q": "Is a dog an animal?",
+      "asker": "user",
+      "source": "local",
+      "conf": 0.62,
+      "peer_hit": false,
+      "cloud_hit": false,
+      "elapsed_ms": 0.0
+    },
+    {
+      "ts": 1776964203.5127397,
+      "q": "כמה אותיות יש בעברית?",
+      "asker": "user",
+      "source": "peer_3262",
+      "conf": 0.89,
+      "peer_hit": true,
+      "cloud_hit": false,
+      "elapsed_ms": 1.3
     }
   ],
   "conversations": []
