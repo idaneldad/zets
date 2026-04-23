@@ -43,3 +43,4 @@ data/baseline/wiki_*.manifest.json
 
 # stream-ingest logs (regenerated per run)
 data/log/
+py_testers/__pycache__/
