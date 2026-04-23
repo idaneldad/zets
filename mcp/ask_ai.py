@@ -43,6 +43,7 @@ from pathlib import Path
 #   export GROQ_API_KEY='gsk_...'
 GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '').strip() or os.environ.get('GEMINI_KEY', '').strip()
 GROQ_KEY = os.environ.get('GROQ_API_KEY', '').strip() or os.environ.get('GROQ_KEY', '').strip()
+OPENAI_KEY = os.environ.get('OPENAI_API_KEY', '').strip() or os.environ.get('OPENAI_KEY', '').strip()
 
 def _check_keys():
     missing = []
@@ -117,7 +118,7 @@ def ask_gemini(prompt: str, model: str = 'gemini-2.5-flash', timeout: int = 180)
     url = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_KEY}'
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 8192, "temperature": 0.2},
+        "generationConfig": {"maxOutputTokens": 32000, "temperature": 0.2},
     }
     req = urllib.request.Request(url, data=json.dumps(body).encode('utf-8'), method='POST')
     req.add_header('Content-Type', 'application/json')
@@ -144,7 +145,7 @@ def ask_groq(prompt: str, model: str = 'meta-llama/llama-4-scout-17b-16e-instruc
     body = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 4000,
+        "max_tokens": 16000,
         "temperature": 0.2,
     }
     req = urllib.request.Request('https://api.groq.com/openai/v1/chat/completions',
@@ -152,6 +153,42 @@ def ask_groq(prompt: str, model: str = 'meta-llama/llama-4-scout-17b-16e-instruc
     req.add_header('Content-Type', 'application/json')
     req.add_header('Authorization', f'Bearer {GROQ_KEY}')
     req.add_header('User-Agent', 'Mozilla/5.0 ZETS-arch-discussion')
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            d = json.loads(r.read())
+            return {
+                'model': model,
+                'text': d['choices'][0]['message']['content'],
+                'elapsed': time.time() - t0,
+                'ok': True,
+            }
+    except urllib.error.HTTPError as e:
+        return {'model': model, 'text': f'[HTTP {e.code}: {e.read().decode()[:500]}]',
+                'elapsed': time.time() - t0, 'ok': False}
+    except Exception as e:
+        return {'model': model, 'text': f'[err: {str(e)[:500]}]',
+                'elapsed': time.time() - t0, 'ok': False}
+
+
+
+def ask_chatgpt(prompt: str, model: str = 'gpt-4o',
+                timeout: int = 180) -> dict:
+    """Consult OpenAI ChatGPT. Uses /v1/chat/completions API."""
+    if not OPENAI_KEY or OPENAI_KEY.startswith('YOUR'):
+        return {'model': model, 'text': '[err: no OPENAI_API_KEY]',
+                'elapsed': 0, 'ok': False}
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 16000,
+        "temperature": 0.2,
+    }
+    req = urllib.request.Request('https://api.openai.com/v1/chat/completions',
+                                 data=json.dumps(body).encode('utf-8'), method='POST')
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('Authorization', f'Bearer {OPENAI_KEY}')
+    req.add_header('User-Agent', 'ZETS-arch-discussion/1.0')
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
