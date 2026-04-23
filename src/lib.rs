@@ -58,3 +58,6 @@ pub mod verify;
 pub mod corpus_acquisition;
 pub mod gemini_http;
 pub mod fold;
+pub mod search;
+pub mod bitflag_edge;
+pub mod path_mining;
