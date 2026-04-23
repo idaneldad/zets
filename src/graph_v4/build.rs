@@ -11,6 +11,8 @@
 //!        - sentence contained_in → article; article has_sentence → sentence
 //!   5. co_occurs edges בין מילים שכנות (window 5)
 
+use super::cleaner::{is_junk_sentence, strip_inline_markup};
+use super::morphology::resolve_lemma;
 use super::phrase::{extract_phrases, match_phrases_in_sentence};
 use super::tokenize::{split_sentences, tokenize};
 use super::types::{AtomKind, Graph, Relation};
@@ -18,6 +20,8 @@ use super::types::{AtomKind, Graph, Relation};
 pub struct BuildConfig {
     pub phrase_min_count: u32,
     pub co_occurs_window: usize,
+    pub enable_cleaner: bool,
+    pub enable_lemmas: bool,
 }
 
 impl Default for BuildConfig {
@@ -25,6 +29,8 @@ impl Default for BuildConfig {
         BuildConfig {
             phrase_min_count: 3,
             co_occurs_window: 5,
+            enable_cleaner: true,
+            enable_lemmas: false,
         }
     }
 }
@@ -38,10 +44,15 @@ pub fn build_graph(articles: &[(String, String)], config: &BuildConfig) -> Graph
     let mut sent_meta: Vec<(String, usize, Vec<String>, String)> = Vec::new();
     for (title, text) in articles {
         let sents = split_sentences(text);
-        for (sidx, stext) in sents.iter().enumerate() {
-            let tokens = tokenize(stext);
+        let mut kept_sidx = 0;
+        for stext in sents.iter() {
+            // CLEANUP: skip junk sentences (infobox, markup, bullets, etc.)
+            if config.enable_cleaner && is_junk_sentence(stext) { continue; }
+            let cleaned = if config.enable_cleaner { strip_inline_markup(stext) } else { stext.clone() };
+            let tokens = tokenize(&cleaned);
             if tokens.len() < 2 { continue; }
-            sent_meta.push((title.clone(), sidx, tokens, stext.clone()));
+            sent_meta.push((title.clone(), kept_sidx, tokens, cleaned));
+            kept_sidx += 1;
         }
     }
 
@@ -87,7 +98,6 @@ pub fn build_graph(articles: &[(String, String)], config: &BuildConfig) -> Graph
 
         let aid = g.atom(AtomKind::Article, title);
         g.edge(sid, aid, Relation::ContainedIn, 1, *sidx as u16);
-        g.edge(aid, sid, Relation::HasSentence, 1, *sidx as u16);
 
         // greedy phrase matching
         let matched = match_phrases_in_sentence(tokens, &phrases);
@@ -111,31 +121,37 @@ pub fn build_graph(articles: &[(String, String)], config: &BuildConfig) -> Graph
         for (pos, (_, _, kind, key)) in units.iter().enumerate() {
             let uid = g.atom(*kind, key);
             g.edge(uid, sid, Relation::FillsSlot, 1, pos as u16);
-            g.edge(sid, uid, Relation::PartOfBackref, 1, pos as u16);
-            if let Some(prev) = prev_uid {
-                g.edge(prev, uid, Relation::Next, 1, pos as u16 - 1);
-            }
-            prev_uid = Some(uid);
+            let _ = prev_uid; prev_uid = Some(uid);
 
             // phrase: has_part → words, word part_of → phrase
             if *kind == AtomKind::Phrase {
                 for w in key.split(' ') {
                     let wid = g.atom(AtomKind::Word, w);
-                    g.edge(uid, wid, Relation::HasPart, 1, 0);
                     g.edge(wid, uid, Relation::PartOf, 1, 0);
                 }
             }
         }
 
-        // co_occurs: בחלון של N מילים בתוך המשפט
-        let word_ids: Vec<u32> = tokens.iter()
-            .map(|t| g.atom(AtomKind::Word, t))
+// co_occurs/next/reverse edges — אינם נחוצים, מושגים דרך fills_slot + sort by pos
+    }
+    // ─── Lemma edges — rule-based morphology (surface → lemma) ───
+    if config.enable_lemmas {
+        // Build vocab: set of all word atoms' keys
+        let mut vocab: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for a in &g.atoms {
+            if a.kind == AtomKind::Word {
+                vocab.insert(a.key.clone());
+            }
+        }
+        // For each word atom, try to resolve lemma; if found, add lemma_of edge
+        let word_atoms: Vec<(u32, String)> = g.atoms.iter().enumerate()
+            .filter(|(_, a)| a.kind == AtomKind::Word)
+            .map(|(i, a)| (i as u32, a.key.clone()))
             .collect();
-        for a in 0..word_ids.len() {
-            let end = (a + config.co_occurs_window + 1).min(word_ids.len());
-            for b in (a + 1)..end {
-                if word_ids[a] != word_ids[b] {
-                    g.edge(word_ids[a], word_ids[b], Relation::CoOccurs, 1, 0);
+        for (aid, key) in word_atoms {
+            if let Some(lemma) = resolve_lemma(&key, &vocab) {
+                if let Some(&lemma_id) = g.by_key.get(&(AtomKind::Word, lemma)) {
+                    g.edge(aid, lemma_id, Relation::LemmaOf, 1, 0);
                 }
             }
         }

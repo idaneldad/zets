@@ -59,6 +59,7 @@ pub enum Relation {
     HasSentence = 5,
     CoOccurs = 6,
     PartOfBackref = 7,
+    LemmaOf = 8,
 }
 
 impl Relation {
@@ -72,6 +73,7 @@ impl Relation {
             5 => Some(Relation::HasSentence),
             6 => Some(Relation::CoOccurs),
             7 => Some(Relation::PartOfBackref),
+            8 => Some(Relation::LemmaOf),
             _ => None,
         }
     }
@@ -85,6 +87,7 @@ impl Relation {
             Relation::HasSentence => "has_sentence",
             Relation::CoOccurs => "co_occurs",
             Relation::PartOfBackref => "part_of_backref",
+            Relation::LemmaOf => "lemma_of",
         }
     }
 }
@@ -167,7 +170,7 @@ impl Graph {
     /// מחשב adjacency indexes — חובה לקרוא לפני retrieval.
     pub fn build_indexes(&mut self) {
         let n = self.atoms.len();
-        let num_rels = 8_usize;
+        let num_rels = 9_usize;
         let mut out: Vec<Vec<Vec<(AtomId, u8, u16)>>> =
             (0..n).map(|_| (0..num_rels).map(|_| Vec::new()).collect()).collect();
         let mut inn: Vec<Vec<Vec<(AtomId, u8, u16)>>> =
@@ -185,7 +188,7 @@ impl Graph {
         for a in &self.atoms {
             by_kind[a.kind as usize] += 1;
         }
-        let mut by_rel = [0usize; 8];
+        let mut by_rel = [0usize; 9];
         for e in &self.edges {
             by_rel[e.relation as usize] += 1;
         }
@@ -203,7 +206,7 @@ pub struct Stats {
     pub atoms_total: usize,
     pub by_kind: [usize; 4],
     pub edges_total: usize,
-    pub by_rel: [usize; 8],
+    pub by_rel: [usize; 9],
 }
 
 impl Stats {
@@ -214,7 +217,7 @@ impl Stats {
             println!("    {:12}: {:>10}", name, self.by_kind[k]);
         }
         println!("  edges: {:>10}", self.edges_total);
-        for r in 0..8 {
+        for r in 0..9 {
             let name = Relation::from_byte(r as u8).unwrap().name();
             println!("    {:16}: {:>10}", name, self.by_rel[r]);
         }

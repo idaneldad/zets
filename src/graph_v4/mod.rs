@@ -17,6 +17,8 @@ pub mod build;
 pub mod retrieve;
 pub mod persist;
 pub mod wiki_reader;
+pub mod cleaner;
+pub mod morphology;
 
 pub use types::{Atom, AtomId, AtomKind, Edge, Graph, Relation, Stats};
 pub use build::{build_graph, BuildConfig};

@@ -114,15 +114,15 @@ pub fn answer(
             *sent_scores.entry(*sid).or_insert(0.0) += w;
             sent_positions.entry(*sid).or_insert_with(Vec::new).push(*pos);
         }
-        // 2-hop: seed (word) → part_of → phrase → fills_slot → sentence
-        // (מטפל במקרה ש-word נבלע ב-phrase — לא יש לה fills_slot ישיר)
+        // 2-hop via phrase: seed (word) → part_of → phrase → fills_slot → sentence
         for (phrase_id, _w1, _p1) in &out[*aid as usize][Relation::PartOf as usize] {
-            let w2 = w * 0.8; // discount: indirect
+            let w2 = w * 0.8;
             for (sid, _w2, pos) in &out[*phrase_id as usize][Relation::FillsSlot as usize] {
                 *sent_scores.entry(*sid).or_insert(0.0) += w2;
                 sent_positions.entry(*sid).or_insert_with(Vec::new).push(*pos);
             }
         }
+        // (lemma_of walk disabled — didn't improve on 10K corpus; re-evaluate on 50K+)
     }
 
     // proximity boost

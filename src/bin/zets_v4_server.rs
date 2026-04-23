@@ -132,7 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if k < 3 { body.push(','); }
         }
         body.push_str("},\"by_rel\":{");
-        for r in 0..8 {
+        for r in 0..9 {
             let name = zets::graph_v4::Relation::from_byte(r as u8).unwrap().name();
             body.push_str(&format!(r#""{}":{}"#, name, s.by_rel[r]));
             if r < 7 { body.push(','); }
