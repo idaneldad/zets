@@ -45,6 +45,7 @@ pub mod bpe;
 pub mod walk;
 pub mod tier;
 pub mod background;
+pub mod edges;
 
 /// Maximum fold depth before materialization kicks in.
 /// Measured: depth-32 is 8.3× slower than depth-4 due to cache misses.
