@@ -70,6 +70,7 @@ pub mod personal_graph;
 pub mod secrets;
 pub mod conversation;
 pub mod guard;
+pub mod connectors;
 pub mod error_store;
 pub mod llm;
 pub mod cognitive;
