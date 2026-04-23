@@ -62,5 +62,6 @@ pub mod search;
 pub mod bitflag_edge;
 pub mod path_mining;
 pub mod mtreemap;
+pub mod sense_graph;
 pub mod cognitive;
 pub mod brain_profile;

@@ -29,6 +29,7 @@ impl PersonaGraph {
         m.insert("creative_scientist".to_string(), StrategyLabel::Exploratory);
         m.insert("brainstormer".to_string(), StrategyLabel::RapidIteration);
         m.insert("deep_researcher".to_string(), StrategyLabel::DeepDive);
+        m.insert("cross_domain_thinker".to_string(), StrategyLabel::PolymathWeaving);
         m.insert("anonymous".to_string(), StrategyLabel::Standard7x7);
 
         Self {

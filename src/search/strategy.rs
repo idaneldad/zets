@@ -23,6 +23,11 @@ pub enum StrategyLabel {
     DeepDive,
     /// Default balanced. Miller's 7±2 × 7 depth.
     Standard7x7,
+    /// Multiple simultaneous deep dives + cross-domain pattern matching.
+    /// Inspired by polymath cognition (Leonardo, Feynman style): 3-5 parallel
+    /// DeepDive searches from distinct domain anchors, then link their paths
+    /// via shared intermediates. Expensive but finds non-obvious connections.
+    PolymathWeaving,
     /// Custom, user-defined.
     Custom,
 }
@@ -36,6 +41,7 @@ impl StrategyLabel {
             StrategyLabel::RapidIteration => "rapid_iteration",
             StrategyLabel::DeepDive => "deep_dive",
             StrategyLabel::Standard7x7 => "standard_7x7",
+            StrategyLabel::PolymathWeaving => "polymath_weaving",
             StrategyLabel::Custom => "custom",
         }
     }
@@ -105,6 +111,14 @@ pub fn default_strategies() -> HashMap<StrategyLabel, SearchStrategy> {
         beam_width: 7, max_depth: 7, retry_waves: 3,
         confidence_threshold: 0.7,
         description: "Default balanced. Miller's 7±2 × 7 depth.",
+    });
+    m.insert(StrategyLabel::PolymathWeaving, SearchStrategy {
+        label: StrategyLabel::PolymathWeaving,
+        // 5 parallel deep dives (beam=5 at top; each one goes deep narrow)
+        beam_width: 5, max_depth: 12, retry_waves: 2,
+        // Lower threshold: collect intermediate evidence, weave at end
+        confidence_threshold: 0.6,
+        description: "Multiple simultaneous deep dives + cross-domain weaving.",
     });
     m
 }
@@ -181,5 +195,30 @@ mod tests {
         let s = &m[&StrategyLabel::Standard7x7];
         assert_eq!(s.beam_width, 7);
         assert_eq!(s.max_depth, 7);
+    }
+
+    #[test]
+    fn polymath_weaving_is_deep_and_narrow() {
+        let m = default_strategies();
+        let pw = &m[&StrategyLabel::PolymathWeaving];
+        // Narrow beam (few but deep)
+        assert!(pw.beam_width <= 7, "polymath weaves few threads deeply");
+        // Very deep to reach expert-level
+        assert!(pw.max_depth >= 10, "polymath goes very deep per thread");
+        // Label is behavioral, not diagnostic
+        assert!(!pw.description.to_lowercase().contains("savant"),
+            "description must not use diagnostic label 'savant'");
+        assert!(!pw.description.to_lowercase().contains("asperger"));
+        assert!(!pw.description.to_lowercase().contains("autistic"));
+    }
+
+    #[test]
+    fn all_strategies_have_descriptions() {
+        let m = default_strategies();
+        for s in m.values() {
+            assert!(!s.description.is_empty(),
+                "strategy {:?} must have description", s.label);
+            assert!(s.description.len() >= 10);
+        }
     }
 }
