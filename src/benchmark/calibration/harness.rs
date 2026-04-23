@@ -5,7 +5,7 @@ use std::fs;
 use std::path::Path;
 
 use super::json;
-use super::question::{CalibrationQuestion, Difficulty, ExpectedAnswer};
+use super::question::{CalibrationQuestion, Difficulty};
 use super::result::{CalibrationResult, KnowInferGuess};
 use super::metrics::{build_bucket_stats, compute_brier_score, compute_ece};
 use super::report::{CalibrationReport, CategoryStats};

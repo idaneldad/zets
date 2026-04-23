@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use super::entry::{ErrorEntry, ErrorId, ErrorKind, Resolution, Severity};
+use super::entry::{ErrorEntry, ErrorId, ErrorKind, Severity};
 
 /// Dedup window — errors of the same kind+context within this window
 /// bump an existing entry's count instead of creating a new one.

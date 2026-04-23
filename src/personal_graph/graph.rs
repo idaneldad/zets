@@ -23,7 +23,7 @@
 
 use std::collections::HashMap;
 
-use super::identity::{Identity, IdentityId, IdentityKind, Lifecycle, Visibility};
+use super::identity::{Identity, IdentityId, IdentityKind, Lifecycle};
 use super::relationship::{RelKind, RelStatus, Relationship};
 
 /// A scoped personal graph.

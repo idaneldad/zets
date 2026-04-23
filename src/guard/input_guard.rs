@@ -19,7 +19,6 @@ use super::rules::{
 };
 use super::violation::{GuardDecision, Violation, ViolationKind};
 
-use crate::personal_graph::IdentityId;
 use crate::reader::{ReadInput, Reading};
 
 pub struct InputGuard;

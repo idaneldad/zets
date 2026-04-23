@@ -126,7 +126,7 @@ pub fn plan_cluster_tree_layout(
     for cid in cluster_ids {
         let header_offset = offset;
         offset += cluster_header_bytes;
-        let atoms_start = offset;
+        let _atoms_start = offset;
 
         let members = &by_cluster[&cid];
         let mut atom_count: u32 = 0;
