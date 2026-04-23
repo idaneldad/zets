@@ -1,0 +1,30 @@
+{"id":"trick_001","text":"How tall is the average unicorn?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"mythology_trap","language":"en"}
+{"id":"trick_002","text":"When did Napoleon land on the Moon?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"history_trap","language":"en"}
+{"id":"trick_003","text":"What is the exact weight of a dream?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_004","text":"How many bones does a person have in their tail?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"anatomy_trap","language":"en"}
+{"id":"trick_005","text":"What is the color of jealousy?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_006","text":"מה הצבע של השקפת העולם?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"he"}
+{"id":"trick_007","text":"How fast does the number five travel?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_008","text":"What does water taste like without any impurities?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"sensory_trap","language":"en"}
+{"id":"trick_009","text":"Who was the first king of the Internet?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"history_trap","language":"en"}
+{"id":"trick_010","text":"What is the square root of a human thought?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_011","text":"כמה שנים גר דרקון ממוצע?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"mythology_trap","language":"he"}
+{"id":"trick_012","text":"What is the chemical formula of love?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_013","text":"How many minutes did Julius Caesar spend on Mars?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"history_trap","language":"en"}
+{"id":"trick_014","text":"What year did Abraham Lincoln invent the smartphone?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"history_trap","language":"en"}
+{"id":"trick_015","text":"What is the mass of Friday?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_016","text":"מהי הנוסחה הכימית של אהבה?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"he"}
+{"id":"trick_017","text":"How many times has the Sun orbited the Milky Way in the last hour?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"astronomy_trap","language":"en"}
+{"id":"trick_018","text":"What did Shakespeare write that proves he was an alien?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"literature_trap","language":"en"}
+{"id":"trick_019","text":"What is the exact speed of darkness?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"physics_trap","language":"en"}
+{"id":"trick_020","text":"Name all the countries that have visited the center of the Earth?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"geography_trap","language":"en"}
+{"id":"trick_021","text":"מתי הציפורים ישנו לראשונה על הירח?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"biology_trap","language":"he"}
+{"id":"trick_022","text":"What is the sound of one hand clapping in decibels?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_023","text":"How many stars are in the number 7?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_024","text":"Who won the war between the United States and Canada in 1952?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"history_trap","language":"en"}
+{"id":"trick_025","text":"What does the color red smell like?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"sensory_trap","language":"en"}
+{"id":"trick_026","text":"כמה עולה חשיבה ביורו?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"he"}
+{"id":"trick_027","text":"What is the address of infinity?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"en"}
+{"id":"trick_028","text":"How many toes does a perfect mathematical point have?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"math_trap","language":"en"}
+{"id":"trick_029","text":"What is the GDP of the number pi?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"economics_trap","language":"en"}
+{"id":"trick_030","text":"מה הגובה של המספר אחד?","expected":{"type":"Refuse"},"difficulty":"Trick","category":"concept_trap","language":"he"}

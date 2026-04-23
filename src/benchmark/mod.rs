@@ -20,6 +20,7 @@
 //! Implementation of actual tests happens incrementally — each
 //! capability gets implemented + benchmark entry + passes threshold.
 
+pub mod calibration;
 pub mod score;
 pub mod spec;
 

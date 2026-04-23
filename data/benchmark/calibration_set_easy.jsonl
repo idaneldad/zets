@@ -1,0 +1,50 @@
+{"id":"easy_001","text":"What is the capital of France?","expected":{"type":"Exact","value":"Paris"},"difficulty":"Easy","category":"factual_geography","language":"en"}
+{"id":"easy_002","text":"How many sides does a hexagon have?","expected":{"type":"Exact","value":"6"},"difficulty":"Easy","category":"math_geometry","language":"en"}
+{"id":"easy_003","text":"What year did World War II end?","expected":{"type":"OneOf","values":["1945","nineteen forty-five"]},"difficulty":"Easy","category":"history","language":"en"}
+{"id":"easy_004","text":"What is the chemical symbol for water?","expected":{"type":"Exact","value":"H2O"},"difficulty":"Easy","category":"chemistry","language":"en"}
+{"id":"easy_005","text":"How many days are in a week?","expected":{"type":"Exact","value":"7"},"difficulty":"Easy","category":"math_basic","language":"en"}
+{"id":"easy_006","text":"Who wrote Romeo and Juliet?","expected":{"type":"Exact","value":"William Shakespeare"},"difficulty":"Easy","category":"literature","language":"en"}
+{"id":"easy_007","text":"What is the largest planet in our solar system?","expected":{"type":"Exact","value":"Jupiter"},"difficulty":"Easy","category":"astronomy","language":"en"}
+{"id":"easy_008","text":"How many continents are there on Earth?","expected":{"type":"OneOf","values":["7","seven"]},"difficulty":"Easy","category":"factual_geography","language":"en"}
+{"id":"easy_009","text":"What is 7 times 8?","expected":{"type":"Exact","value":"56"},"difficulty":"Easy","category":"math_basic","language":"en"}
+{"id":"easy_010","text":"What color is the sky on a clear day?","expected":{"type":"Exact","value":"blue"},"difficulty":"Easy","category":"science_basic","language":"en"}
+{"id":"easy_011","text":"מה הבירה של ישראל?","expected":{"type":"Exact","value":"\u05d9\u05e8\u05d5\u05e9\u05dc\u05d9\u05dd"},"difficulty":"Easy","category":"factual_geography","language":"he"}
+{"id":"easy_012","text":"כמה ימים יש בשבוע?","expected":{"type":"OneOf","values":["7","\u05e9\u05d1\u05e2\u05d4"]},"difficulty":"Easy","category":"math_basic","language":"he"}
+{"id":"easy_013","text":"מהו המספר הראשוני הראשון?","expected":{"type":"Exact","value":"2"},"difficulty":"Easy","category":"math_number_theory","language":"he"}
+{"id":"easy_014","text":"מי כתב את התנ\"\u05da?","expected":{"type":"OneOf","values":["\u05d4\u05d9\u05d9\u05ea\u05d4 \u05e2\u05e8\u05d9\u05db\u05d4 \u05e2\u05dc \u05d9\u05d3\u05d9 \u05d3\u05d5\u05e8\u05d5\u05ea","\u05db\u05e1\u05e4\u05d5\u05e8\u05d9\u05dd \u05e9\u05d5\u05e0\u05d9\u05dd"]},"difficulty":"Easy","category":"religion_history","language":"he"}
+{"id":"easy_015","text":"What is the boiling point of water in Celsius?","expected":{"type":"Exact","value":"100"},"difficulty":"Easy","category":"chemistry","language":"en"}
+{"id":"easy_016","text":"How many letters are in the English alphabet?","expected":{"type":"Exact","value":"26"},"difficulty":"Easy","category":"language","language":"en"}
+{"id":"easy_017","text":"What is the square root of 144?","expected":{"type":"Exact","value":"12"},"difficulty":"Easy","category":"math_basic","language":"en"}
+{"id":"easy_018","text":"Which planet is closest to the Sun?","expected":{"type":"Exact","value":"Mercury"},"difficulty":"Easy","category":"astronomy","language":"en"}
+{"id":"easy_019","text":"What gas do plants absorb during photosynthesis?","expected":{"type":"OneOf","values":["carbon dioxide","CO2"]},"difficulty":"Easy","category":"biology","language":"en"}
+{"id":"easy_020","text":"How many hours are in a day?","expected":{"type":"Exact","value":"24"},"difficulty":"Easy","category":"math_basic","language":"en"}
+{"id":"easy_021","text":"מה הצבע של השמיים ביום בהיר?","expected":{"type":"Exact","value":"\u05db\u05d7\u05d5\u05dc"},"difficulty":"Easy","category":"science_basic","language":"he"}
+{"id":"easy_022","text":"כמה חודשים יש בשנה?","expected":{"type":"Exact","value":"12"},"difficulty":"Easy","category":"math_basic","language":"he"}
+{"id":"easy_023","text":"מה הפלנטה הגדולה ביותר במערכת השמש?","expected":{"type":"Exact","value":"\u05e6\u05d3\u05e7"},"difficulty":"Easy","category":"astronomy","language":"he"}
+{"id":"easy_024","text":"What is the capital of Germany?","expected":{"type":"Exact","value":"Berlin"},"difficulty":"Easy","category":"factual_geography","language":"en"}
+{"id":"easy_025","text":"In what year did the Berlin Wall fall?","expected":{"type":"Exact","value":"1989"},"difficulty":"Easy","category":"history","language":"en"}
+{"id":"easy_026","text":"How many meters are in a kilometer?","expected":{"type":"Exact","value":"1000"},"difficulty":"Easy","category":"math_units","language":"en"}
+{"id":"easy_027","text":"What is the symbol for the element gold?","expected":{"type":"Exact","value":"Au"},"difficulty":"Easy","category":"chemistry","language":"en"}
+{"id":"easy_028","text":"How many strings does a standard guitar have?","expected":{"type":"Exact","value":"6"},"difficulty":"Easy","category":"music","language":"en"}
+{"id":"easy_029","text":"What is the capital of Japan?","expected":{"type":"Exact","value":"Tokyo"},"difficulty":"Easy","category":"factual_geography","language":"en"}
+{"id":"easy_030","text":"Who painted the Mona Lisa?","expected":{"type":"Exact","value":"Leonardo da Vinci"},"difficulty":"Easy","category":"art","language":"en"}
+{"id":"easy_031","text":"מה הסמל הכימי של מים?","expected":{"type":"Exact","value":"H2O"},"difficulty":"Easy","category":"chemistry","language":"he"}
+{"id":"easy_032","text":"מי צייר את המונה ליזה?","expected":{"type":"Exact","value":"\u05dc\u05d9\u05d0\u05d5\u05e0\u05e8\u05d3\u05d5 \u05d3\u05d0 \u05d5\u05d9\u05e0\u05e6'\u05d9"},"difficulty":"Easy","category":"art","language":"he"}
+{"id":"easy_033","text":"כמה ממדים יש למשולש?","expected":{"type":"Exact","value":"3"},"difficulty":"Easy","category":"math_geometry","language":"he"}
+{"id":"easy_034","text":"מה הכוכב הקרוב ביותר לכדור הארץ?","expected":{"type":"Exact","value":"\u05d4\u05e9\u05de\u05e9"},"difficulty":"Easy","category":"astronomy","language":"he"}
+{"id":"easy_035","text":"How many planets are in our solar system?","expected":{"type":"Exact","value":"8"},"difficulty":"Easy","category":"astronomy","language":"en"}
+{"id":"easy_036","text":"What is the tallest mountain in the world?","expected":{"type":"Exact","value":"Mount Everest"},"difficulty":"Easy","category":"factual_geography","language":"en"}
+{"id":"easy_037","text":"In what year did humans first land on the Moon?","expected":{"type":"Exact","value":"1969"},"difficulty":"Easy","category":"history_science","language":"en"}
+{"id":"easy_038","text":"What language do people primarily speak in Brazil?","expected":{"type":"Exact","value":"Portuguese"},"difficulty":"Easy","category":"factual_geography","language":"en"}
+{"id":"easy_039","text":"How many legs does a spider have?","expected":{"type":"Exact","value":"8"},"difficulty":"Easy","category":"biology","language":"en"}
+{"id":"easy_040","text":"What is the atomic number of hydrogen?","expected":{"type":"Exact","value":"1"},"difficulty":"Easy","category":"chemistry","language":"en"}
+{"id":"easy_041","text":"מה גובה הר האוורסט?","expected":{"type":"OneOf","values":["8848 \u05de\u05d8\u05e8","\u05e9\u05de\u05d5\u05e0\u05d4 \u05d0\u05dc\u05e4\u05d9\u05dd \u05e9\u05de\u05d5\u05e0\u05d4 \u05de\u05d0\u05d5\u05ea \u05d0\u05e8\u05d1\u05e2\u05d9\u05dd \u05d5\u05e9\u05de\u05d5\u05e0\u05d4 \u05de\u05d8\u05e8"]},"difficulty":"Easy","category":"factual_geography","language":"he"}
+{"id":"easy_042","text":"באיזו שנה הוקמה מדינת ישראל?","expected":{"type":"Exact","value":"1948"},"difficulty":"Easy","category":"history","language":"he"}
+{"id":"easy_043","text":"מה הכוכב הנגיש ביותר אחרי השמש?","expected":{"type":"Exact","value":"\u05e4\u05e8\u05d5\u05e7\u05e1\u05d9\u05de\u05d4 \u05e6\u05e0\u05d8\u05d0\u05d5\u05e8\u05d9"},"difficulty":"Easy","category":"astronomy","language":"he"}
+{"id":"easy_044","text":"What is the speed of light in vacuum (approximate)?","expected":{"type":"OneOf","values":["300000 km/s","3x10^8 m/s","299792458 m/s"]},"difficulty":"Easy","category":"physics","language":"en"}
+{"id":"easy_045","text":"How many bones are in the adult human body?","expected":{"type":"Exact","value":"206"},"difficulty":"Easy","category":"biology","language":"en"}
+{"id":"easy_046","text":"What is the currency of the United States?","expected":{"type":"OneOf","values":["dollar","US dollar","USD"]},"difficulty":"Easy","category":"economics","language":"en"}
+{"id":"easy_047","text":"כמה עצמות יש בגוף אדם מבוגר?","expected":{"type":"Exact","value":"206"},"difficulty":"Easy","category":"biology","language":"he"}
+{"id":"easy_048","text":"מה המטבע של ישראל?","expected":{"type":"OneOf","values":["\u05e9\u05e7\u05dc","\u05e9\u05e7\u05dc \u05d7\u05d3\u05e9","\u05e9\u05e7\u05dc\u05d9\u05dd"]},"difficulty":"Easy","category":"economics","language":"he"}
+{"id":"easy_049","text":"What is the formula for the area of a circle?","expected":{"type":"OneOf","values":["pi*r^2","πr²","pi r squared"]},"difficulty":"Easy","category":"math_geometry","language":"en"}
+{"id":"easy_050","text":"What element makes up most of the Earth's atmosphere?","expected":{"type":"OneOf","values":["nitrogen","N2"]},"difficulty":"Easy","category":"chemistry","language":"en"}
