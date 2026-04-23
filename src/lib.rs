@@ -65,5 +65,6 @@ pub mod mtreemap;
 pub mod sense_graph;
 pub mod procedure_atom;
 pub mod wisdom_engines;
+pub mod reader;
 pub mod cognitive;
 pub mod brain_profile;
