@@ -329,3 +329,111 @@ NOT neural. NOT LLM.
 Uses Article Path Graph that's already in design.
 Closes gap #7 with the cheaper, simpler implementation.
 
+
+---
+
+## Refinement 8 — Predictive Processing 7-Layer Architecture
+
+### Idan's question
+"What should ZETS predict and why?"
+He suggested 6 prediction levels, asked if there are more,
+and how to balance them.
+
+### The 7 layers (extended from his 6)
+
+**Layer 1 — Token-level (autocomplete)**
+- Source: Article Path Graph n-gram statistics
+- Personal boost: user_personal_paths
+- Use: in-typing autocomplete
+
+**Layer 2 — Phrase-level**
+- Source: common phrase patterns from articles
+- Use: longer continuations
+
+**Layer 3 — Question prediction (Idan's level E)**
+- Source: question patterns from corpus
+- Use: complete question stems user is starting
+
+**Layer 4 — Intent prediction (NEW)**
+- Pattern matching on first 3-5 words
+- Patterns: "תוכל..."→request, "זוכר..."→memory, "כמה..."→quantity
+- Stored as Rule atoms (kind=0xB)
+- Use: pipeline routing BEFORE input completes
+
+**Layer 5 — Answer shape prediction**
+- Based on intent: NUMERIC, PROCEDURE_LIST, PERSON, TEMPORAL...
+- Use: prepare structured answer template before content found
+
+**Layer 6 — Follow-up generation (Perplexity-style, EIG-based)**
+- After answering, generate 3-5 most informative follow-ups
+- Maximize binary entropy (cut candidate space in half)
+- NOT neural — uses graph stats + EIG calculation
+
+**Layer 7 — User pattern (personal + temporal, Idan's level F)**
+- Time-of-day, recency, frequency patterns
+- Output: personalized weights α₁..α₅ for layers 1-6
+
+### The balancing formula
+
+```
+score(candidate) = 
+    α₁ × P(c | recent_context)           ← Layer 1, 2 (local)
+  + α₂ × P(c | session_history)
+  + α₃ × P(c | personal_vault)           ← Layer 7 (personal)
+  + α₄ × P(c | global_articles)          ← Layer 1, 2 (global)
+  + α₅ × P(c | aggregate_users) × pf     ← cross-user (privacy-filtered!)
+  - β  × novelty_penalty(c)              ← suppress over-common
+  + γ  × recency_boost(c)
+  + δ  × EIG(c | current_state)          ← Layer 6 (information gain)
+```
+
+α-coefficients are dynamic, learned from clicks/ignores feedback.
+
+### EIG (Expected Information Gain)
+For follow-up questions, optimal question splits candidate space at p≈0.5.
+Computed via binary entropy: -p·log(p) - (1-p)·log(1-p).
+Source: research on FollowupQG, Bertolazzi 2024 EIG-DPO paper.
+
+### Privacy concern (Idan's level C)
+"Questions from other users" — has privacy risk.
+Architecture decision: aggregate ANONYMOUSLY only.
+- k-anonymity: k≥50 users with similar query before suggesting
+- Differential privacy: noise added to aggregate counts
+- Per-user vaults remain private to that user
+
+### Intent Detection — Pattern-Based (NOT neural)
+
+Patterns stored as Rule atoms:
+```
+"תוכל ל..."     → request_action
+"מה דעתך על..."  → solicit_opinion
+"זוכר ש..."      → invoke_memory
+"מי [name]"      → identify_person
+"מתי [event]"    → temporal_query
+"איך [verb]"     → procedure_request
+"למה [event]"    → explanation_request
+```
+
+Recognition in 3-5 tokens. Routes pipeline BEFORE input completes.
+Deterministic, fast, no ML required.
+
+### What Predictive Processing actually achieves
+- Speed: walks start before user finishes typing
+- Anticipation: structure ready before content
+- Gap detection: surprise → learning signal
+- Follow-up: 3-button Perplexity-style suggestions
+- Personalization: learns user's typical patterns
+
+### Why graph stats + EIG > neural for ZETS
+| Aspect | LLM-based | Graph + EIG |
+|---|---|---|
+| Memory | 14GB+ | <100MB |
+| Latency | 50-100ms | 1-5ms |
+| Determinism | partial | full |
+| Updates | retraining | append edge |
+| Privacy | data leakage risk | per-user vaults |
+
+### Status
+This closes Predictive Processing (Gap #7) with a richer 7-layer
+design than originally proposed. Adds Intent Detection as separate
+sub-module. Confirms EIG as proper formal basis for follow-up generation.
