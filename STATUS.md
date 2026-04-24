@@ -137,3 +137,24 @@ See `docs/DECISIONS_LOG.md` for per-decision history before 23.04.2026.
 ---
 
 *Last edit: 23.04.2026 · Next mandatory update: end of current session.*
+
+### Session 2026-04-24 — Shvirat Kelim + Three Binding ADRs
+- **Agent:** Claude 4.7 (Anthropic chat via Cortex MCP shell_run on ddev)
+- **Duration:** Full day
+- **Scope:**
+  - Morning: Wrote 1,559-line theoretical Master Blueprint (later acknowledged as fantasy)
+  - Midday: Forensic audit on 67K lines of Rust → identified 4 parallel atom systems, 637 unwrap() calls, abandoned plans
+  - Afternoon: Comprehensive learning of existing code (fold, composition, hopfield, dreaming, procedure_atom)
+  - Evening: Three architectural decisions crystallized via dialogue with Idan
+  - Late evening: Empirical POC on Hebrew + Arabic Wikipedia validates Semitic root compression
+- **Deliverables:**
+  - ADR-1: Atom as Sigil, Executor as Doer (392 lines)
+  - ADR-2: Linguistic Representation Word/Sense/Concept (647 lines)
+  - ADR-3: Compressed Semitic-Based Atom Layout (387 lines)
+  - POC: Hebrew root compression (171 lines + 4 reproducible scripts)
+  - Shvirat kelim audit (254 lines)
+  - Learning comprehensive doc (402 lines)
+  - Synthesis doc for tomorrow (this commit)
+- **Status:** **Design sprint complete. Ready for archiving + Phase 0.**
+- **Next session starts with:** Read docs/00_SYNTHESIS_STATE_20260424.md first.
+
