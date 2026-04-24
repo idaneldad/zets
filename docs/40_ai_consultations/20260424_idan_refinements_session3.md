@@ -216,3 +216,116 @@ Every predicate must be tagged with its cardinality at design time:
 ### Status
 Cardinality must be SCHEMA-DRIVEN, not runtime-inferred.
 This refines the TMS deep design with actionable categories.
+
+---
+
+## Refinement 6 — TMS Conflict Disclosure Pattern (Idan's standard)
+
+### The standard
+When TMS detects conflict + cannot resolve + no source override:
+ZETS displays the conflict explicitly and asks for user decision.
+
+### Standard format
+```
+🟡 קיימת [התנגשות / מידע כפול / אי-בהירות]:
+
+[Conflicting facts with sources]
+
+אני לא יודע לקבוע:
+  ⓐ [interpretation 1]
+  ⓑ [interpretation 2]
+  ⓒ [interpretation 3]
+  ⓓ One of the facts is wrong
+  ⓔ None of them are correct
+
+How would you like me to classify this?
+```
+
+### Why this works
+1. Transparency — user sees what ZETS knows
+2. No hallucination — ZETS doesn't invent resolution
+3. Self-learning — user choice updates schema
+
+### Side effect: pattern learning
+Over time, ZETS notices patterns:
+- "Every time 2 addresses → user picks ContextMulti"
+- Future suggestion: "🟡 2 addresses. You previously chose 
+  ContextMulti — apply this?"
+
+Accumulative learning without autonomous guessing.
+
+---
+
+## Refinement 7 — Predictive Processing = Graph Statistics
+
+### Idan's question
+"What should ZETS predict — next word? answer? intent?"
+
+### Answer: ALL THREE, in three layers
+
+**Layer A — Next word (autocomplete)**
+- Based on Article Path Graph (existing)
+- Compute: P(next_atom | previous_path)
+- Pure n-gram statistics from stored articles
+- No LLM needed
+- ~1-2ms latency
+
+**Layer B — Answer shape (anticipation)**
+- "How long..." → predict NUMERIC + TIME_UNIT
+- "How to..." → predict PROCEDURE_LIST
+- "Who..." → predict PERSON_ATOM
+- Helps ZETS prepare structured answer before content found
+- Detects "answer missing" via shape mismatch
+
+**Layer C — Intent (pipeline routing)**
+- "Could you..." → request_help
+- "What do you think..." → solicit_opinion
+- "I heard..." → report_fact + verify
+- "Remember..." → invoke_memory + reference
+- Routes to correct processing pipeline early
+
+### Why this is real Predictive Processing
+
+The brain mechanism (neuroscience):
+1. PREDICT before sensory data arrives
+2. PREPARE response based on prediction
+3. MEASURE mismatch (surprise)
+4. UPDATE expectations from surprise
+5. LEARN patterns over time
+
+ZETS implementation:
+```rust
+fn process_query(q: &str) {
+    let predicted_intent = predict_intent(q);
+    let pipeline = select_pipeline(predicted_intent);
+    let actual = parse_query(q);
+    let surprise = measure_mismatch(predicted_intent, actual.intent);
+    
+    if surprise > THRESHOLD {
+        update_intent_patterns(q, actual.intent);  // Learn!
+        select_correct_pipeline(actual.intent).run(actual)
+    } else {
+        pipeline.run(actual)  // Fast path
+    }
+}
+```
+
+### Why graph-based, not neural
+
+| Aspect | LLM (7B) | Graph stats |
+|---|---|---|
+| Memory | 14GB | 50MB |
+| Hardware | GPU | CPU |
+| Latency | 50-100ms | 1-2ms |
+| Determinism | partial | full |
+| Updates | retraining | append edge |
+| Quality | excellent | good enough |
+
+Graph statistics on Article Path Graph: 80% capability, 1% cost.
+
+### Status
+**Predictive Processing = graph n-gram prediction.**
+NOT neural. NOT LLM.
+Uses Article Path Graph that's already in design.
+Closes gap #7 with the cheaper, simpler implementation.
+
