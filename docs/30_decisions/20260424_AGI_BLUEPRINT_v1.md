@@ -704,3 +704,211 @@ This is fundamentally different from "Kabbalistic architecture" — ZETS is:
 > **"AGI architecture informed by compiled kabbalistic pseudocode that passed engineering tests."**
 
 The pseudocode was good because it captured real observations about thinking, learning, breaking, and repairing over centuries. Where observations were accurate — it compiles. Where interpretations drifted — it doesn't.
+
+---
+
+## 📎 Addendum 4: Integration of Sefer Yetzirah (Book of Formation) primitives
+
+**Date:** 2026-04-24 (evening)  
+**Method:** Clean-read the text of Sefer Yetzirah (Gra recension) without interpretations. Identified two primitives that add real engineering value to the Blueprint.
+
+### What Sefer Yetzirah actually describes
+
+After clean reading (separating the text itself from 1500 years of commentary):
+
+- **22 letter-nodes + 231 gates** (C(22,2)) — a complete bidirectional graph
+- **5 operations on nodes** — חקק/חצב/שקל/המיר/צרף
+- **3 categorizations of letters** — 3 mothers, 7 doubles, 12 simples
+- **3 context axes** — עולם/שנה/נפש (space/time/identity)
+- **"End rooted in beginning"** — circular structure with feedback
+
+Not described: traversal algorithms, depth-of-search, weighted edges, learning mechanisms, semantic graph layers.
+
+**Conclusion:** Sefer Yetzirah is **complementary** to our Blueprint, not **reinforcement**. It adds two primitives that we lacked.
+
+---
+
+### Principle 11 (NEW): 5-Phase Concept Ingestion Pipeline
+
+**Source:** "חקקן חצבן שקלן והמירן צרפן" (Sefer Yetzirah Ch. 2)
+
+**Problem solved:** Currently, when a new concept enters ZETS, the ingestion is monolithic — hard to debug, test, or extend. When ingestion produces wrong atoms, we can't tell which step failed.
+
+**Solution:** Split ingestion into 5 named, independently testable phases.
+
+```rust
+pub fn ingest_concept(raw: RawInput) -> Result<AtomId, IngestError> {
+    // Phase 1: CARVE (חקק) — define boundaries
+    // What IS this concept? What is it NOT?
+    let carved = carve_boundaries(raw)?;
+    
+    // Phase 2: HEW (חצב) — extract features from raw
+    // Break down into constituent properties
+    let hewn = hew_features(carved)?;
+    
+    // Phase 3: WEIGH (שקל) — assign importance
+    // Which features are primary vs secondary?
+    let weighted = weigh_features(hewn)?;
+    
+    // Phase 4: PERMUTE (המיר) — generate morphological variants
+    // Plural/singular, tense, gender, form variations
+    let permuted = generate_variants(weighted)?;
+    
+    // Phase 5: COMBINE (צרף) — integrate into graph
+    // Link to existing atoms via appropriate edges
+    let atom_id = integrate_into_graph(permuted)?;
+    
+    Ok(atom_id)
+}
+```
+
+**Practical benefits:**
+1. **Debuggability** — if ingestion fails, we know which of 5 phases failed
+2. **Testability** — each phase has its own unit tests
+3. **Extensibility** — adding a "translate" or "validate" phase is natural
+4. **Observability** — logs per-phase show where time/errors concentrate
+5. **Parallel processing** — phases 2-4 can parallelize per-concept
+
+**Example: "tangelo" (unfamiliar citrus) enters ZETS**
+```
+Phase 1 (carve):   "tangelo" is a fruit, not a color/person/place
+Phase 2 (hew):     {category: fruit, subcategory: citrus, hybrid: yes}
+Phase 3 (weigh):   category=0.9, hybrid=0.8, origin=0.5
+Phase 4 (permute): "tangelo", "tangelos", "tangelo juice"  
+Phase 5 (combine): edge[KIND_OF] → citrus, edge[HYBRID_OF] → tangerine+grapefruit
+```
+
+Each phase produces an artifact that the next consumes — clear pipeline.
+
+---
+
+### Principle 12 (NEW): 3-Axis Context — Space, Time, Identity
+
+**Source:** "עדות נאמנה: עולם שנה נפש" (Sefer Yetzirah Ch. 6)
+
+**Problem solved:** Current context_tree is a single hierarchy, forcing every memory to fit one path. But humans naturally recall by **independent dimensions**: who, where, when.
+
+**Scientific backing:** Tulving (1983) "Elements of Episodic Memory" identifies exactly these three dimensions as the core of episodic memory retrieval. Sefer Yetzirah formulated this 1500 years earlier.
+
+**Solution:** Three independent context axes, each with its own tree. Context of a memory = **intersection** of the three.
+
+```rust
+pub struct ContextAxes {
+    // עולם (World/Space) — where did it happen?
+    spatial: Option<SpatialContextId>,
+    
+    // שנה (Year/Time) — when did it happen?  
+    temporal: Option<TemporalContextId>,
+    
+    // נפש (Soul/Identity) — who was involved?
+    identity: Option<IdentityContextId>,
+}
+
+// Each axis has its own independent tree
+pub struct SpatialContextTree {
+    // root → home → home.kitchen, home.living_room
+    // root → work → work.office, work.lobby
+    // root → external → external.paris.cafe, external.tel_aviv.beach
+}
+
+pub struct TemporalContextTree {
+    // root → 2024 → 2024.summer → 2024.summer.august
+    // root → 2019 → ...
+    // Also supports: "childhood", "highschool", "recent"
+}
+
+pub struct IdentityContextTree {
+    // root → self
+    // root → family → family.father, family.mother, family.sibling
+    // root → work → work.team, work.client.acme
+}
+
+pub struct Atom {
+    // ... existing fields ...
+    context_axes: ContextAxes,
+}
+```
+
+**Query benefits:**
+
+```rust
+// Natural queries become trivial
+fn what_did_I_say_to_dad() -> Vec<Atom> {
+    query().with_identity("family.father").execute()
+}
+
+fn what_happened_in_paris() -> Vec<Atom> {
+    query().with_spatial("external.paris.*").execute()
+}
+
+fn what_happened_in_2019() -> Vec<Atom> {
+    query().with_temporal("2019.*").execute()
+}
+
+// Compound queries — intersections
+fn dad_in_paris_2019() -> Vec<Atom> {
+    query()
+        .with_identity("family.father")
+        .with_spatial("external.paris.*")
+        .with_temporal("2019.*")
+        .execute()
+}
+```
+
+**Practical benefits:**
+1. **Natural language queries** — "who/where/when" map directly to axes
+2. **Orthogonal filtering** — any combination of axes possible without restructuring
+3. **Partial recall** — if user forgets one dimension, query with the other two still works
+4. **Memory research alignment** — matches Tulving's episodic memory model
+5. **Simple implementation** — 3 optional fields per atom + 3 filters per query
+
+**Example: "The conversation I had with dad at the cafe in Paris in 2019"**
+
+With single context_tree: forced path `personal.family.father.locations.paris.cafes.2019.conversations` — fragile, requires exact memory of hierarchy.
+
+With 3 axes: 
+- `spatial: external.paris.cafe`
+- `temporal: 2019`
+- `identity: family.father`
+
+Any two out of three is enough to retrieve. Much more robust.
+
+---
+
+### What we did NOT adopt from Sefer Yetzirah
+
+**Rejected (with reasoning):**
+
+- ❌ **22 letters as complete graph with 231 gates** — Too primitive. ZETS has millions of atoms, not 22. K₂₂ is a toy graph.
+
+- ❌ **7 doubles = 7 planets = 7 days** — Astrological associations don't compile to useful engineering. Rejected as symbolic drift.
+
+- ❌ **12 simples = 12 zodiac = 12 body parts** — Same issue. Symbolic matching without predictive power.
+
+- ❌ **"Tali (dragon) in world, galgal (wheel) in year, lev (heart) in soul"** — Poetic but not mappable to concrete engineering. No test, no code.
+
+- ❌ **Gematria relations between letters** — Previously tested and rejected (see `20260424_mathematical_operators_REJECTED.md`).
+
+### Summary
+
+Sefer Yetzirah contributed **2 of many possible** primitives — specifically those with clear engineering value:
+- 5-phase ingestion pipeline (better structure for a mundane problem)
+- 3-axis context (matches human memory research)
+
+The rest was symbolic elaboration without engineering cash-out.
+
+**Principle:** Every ancient structure is judged on merit. Two passed. The rest didn't.
+
+---
+
+## 🔄 Revision History (updated)
+
+| Date | Change | Reason |
+|------|--------|--------|
+| 2026-04-24 | Initial v1 | Post breaking-the-tools + AI consultations |
+| 2026-04-24 | Added Principle 8 (Edge States) + directionality clarification | Idan's questions on lemon-color paradox |
+| 2026-04-24 | Added Principle 9 (3-Mother taxonomy) | Empirical test of 3-part decomposition |
+| 2026-04-24 | Added Principle 10 (21 parallel dives, 3×7×7) | Idan's insight on async parallel dive architecture |
+| 2026-04-24 | Added Meta-Principle (Kabbalah as pseudocode) | Idan's framing — compilation approach |
+| 2026-04-24 | Added Principle 11 (5-phase ingestion) + Principle 12 (3-axis context) | Clean-read Sefer Yetzirah — 2 practical primitives extracted |
+
