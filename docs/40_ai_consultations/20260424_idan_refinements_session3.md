@@ -180,3 +180,39 @@ keep user in control, reuse existing infrastructure.
 
 **This is engineering wisdom that AI Council members might miss
 because they lean toward "more sophisticated = better."**
+
+---
+
+## Refinement 5b — Cardinality Schema (Idan's continuation)
+
+### Idan's insight
+TMS isn't just about "latest wins or I-don't-know."
+There are LEGITIMATE multi-value cases:
+- Shai has 2 home addresses (parents are divorced)
+- Shai works multiple jobs → multiple work addresses
+- These are NOT conflicts. They're list values.
+
+### The 6-category model
+
+| # | Type | Example | Multi? | Handling |
+|---|---|---|---|---|
+| 1 | Single-cardinality | age, gender | No | TMS for conflicts |
+| 2 | Multi-cardinality | languages, jobs | **Yes** | Append to list |
+| 3 | Time-bound | current_employer | No (1 at a time) | New replaces, old archived |
+| 4 | Conflicting unclear | conflicting sources | No | "Don't know" |
+| 5 | Subjective/temporal | mood, opinion | No (1 at a time) | Both can be true at different times |
+| 6 | Context-dependent multi | home[weekends_w_mom] | **Yes + context** | Multi with tags |
+
+### Schema-driven approach
+Every predicate must be tagged with its cardinality at design time:
+- Default = Single (strict)
+- User explicitly enables multi cases
+- ZETS can suggest patterns but never auto-applies
+
+### Display behavior
+- Never collapse multi to single — that loses information
+- "Where does Shai live?" → "He has 2: X (mom), Y (dad)"
+
+### Status
+Cardinality must be SCHEMA-DRIVEN, not runtime-inferred.
+This refines the TMS deep design with actionable categories.
