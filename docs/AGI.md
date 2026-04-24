@@ -1,0 +1,3346 @@
+# ZETS — The AGI Master Specification
+
+**Status:** Source of truth. Everything in `src/` must honor this document.
+**Version:** v1.0 (2026-04-24, end of design day)
+**Authority:** Idan Eldad (עידן אלדד)
+**Scribe:** Claude 4.7
+**Supersedes:** ALL previous ZETS documentation (archived in `docs/90_archive/`)
+
+---
+
+## מה זה המסמך הזה
+
+זה המסמך היחיד שמסביר את **כל** פרויקט ZETS — מה הוא, למה, ואיך. כל רכיב במערכת — אטום, edge, executor, learning loop, media pipeline, personal graph — מתועד כאן עם:
+
+- **תיאור בעברית** (מה זה עושה ולמה)
+- **Rust struct / trait / function** (איך זה כתוב)
+- **דוגמאות שימוש** (context)
+- **חיבורים** (מה משתמש בזה ומה זה משתמש בו)
+
+אם תבנה את ZETS מאפס לפי המסמך הזה בלבד — זה מה שתקבל. אין משהו נוסף בארכיון שנחוץ.
+
+---
+
+## תוכן העניינים
+
+1. [החזון ומה ZETS אינו](#1-החזון)
+2. [עקרונות הליבה](#2-עקרונות-הליבה)
+3. [ארכיטקטורת שלוש השכבות](#3-שלוש-השכבות)
+4. [שבירת כלים: בחירת ייצוג האטום](#4-שבירת-כלים-ייצוג-אטום)
+5. [מבנה האטום — 8 בייט בשלושה variants](#5-מבנה-האטום)
+6. [Pool שורשים שמי משותף](#6-semitic-root-pool)
+7. [ארבע שכבות לשוניות](#7-שכבות-לשוניות)
+8. [מורפולוגיה והסכמה](#8-morphology)
+9. [Executor Registry — השכבה השנייה](#9-executor-registry)
+10. [מעגלי למידה L1-L5](#10-learning-loops)
+11. [Reasoning — walks, spreading, interference](#11-reasoning)
+12. [זרימת יצירה (קוד, שירים, מאמרים)](#12-creation-flow)
+13. [טיפול במדיה (תמונה, סאונד, וידאו)](#13-media)
+14. [למידה אוטונומית ממקורות חיצוניים](#14-autonomous-learning)
+15. [ידע ברירת-מחדל vs לוגי vs נצפה](#15-default-typical-observed)
+16. [העשרה חיצונית batch (Gemini)](#16-batch-enrichment)
+17. [גרפים אישיים מוצפנים](#17-personal-graphs)
+18. [מיפוי קבלי — ספירות, פרצופים, מלאכים](#18-kabbalistic)
+19. [הבנת בקשת המשתמש](#19-intent-understanding)
+20. [תקציב ביצועים](#20-performance)
+21. [Verification Checklist](#21-verification)
+22. [Appendix](#22-appendix)
+
+---
+
+# 1. החזון
+
+## מה ZETS הוא
+
+**ZETS הוא מנוע קוגניטיבי גרפי שרץ על laptop, לומד בעצמו, וזוכר בין sessions.**
+
+- **לא LLM wrapper.** הLLM הוא I/O בלבד (parse ו-realize). החשיבה בגרף.
+- **לא black box.** כל מסלול walk ניתן להדפיס ולהסביר.
+- **לא frozen.** לומד continuously מהשיחה, קריאה, תצפית.
+- **לא stateless.** זוכר בין sessions כמו אדם שמכיר אותך.
+- **לא תלוי בענן.** רץ offline על 8GB RAM.
+
+## Non-Goals (מה ZETS לא מנסה להיות)
+
+| אנחנו לא מנסים להיות | למה | מי כן עושה |
+|---|---|---|
+| LLM תחרותי | fluency ארוך-טווח דורשת transformer scale | Claude, GPT, Gemini |
+| Image generator | pixel-level synthesis דורשת diffusion | Midjourney, SD |
+| מוסיקה סטודיו | audio synthesis דורש neural models גדולים | Suno, Udio |
+| Translator universal | לא תחרותי עם Google Translate | דואר |
+| Wrapper לCLIP/Whisper | אבל משתמשים בהם כ-Executors | - |
+
+## מה ZETS כן עושה יותר טוב מכולם
+
+1. **Continuous personalization** — גדל עם המשתמש שלו, לא reset.
+2. **Traceable reasoning** — כל תשובה עם מסלול walk מוכח.
+3. **Edge-device AGI** — 8GB RAM, לא farm של GPU.
+4. **Deterministic** — אותו קלט = אותה תשובה. אפס hallucination.
+5. **Surgical edit** — למדנו משהו שגוי? מוחקים edge. לא retrain.
+6. **Federation** — מספר ZETS instances משתפים ידע דרך root pool משותף.
+
+---
+
+# 2. עקרונות הליבה
+
+## 2.1 Learning in Code, What/How in Graph
+
+**זה העיקרון המחייב ביותר בפרויקט.**
+
+| שכבה | מה חי כאן | דוגמאות |
+|---|---|---|
+| **Rust** | 7 primitives + executors | `fetch`, `parse`, `tokenize`, `store`, `retrieve`, `reason`, `communicate` |
+| **Graph** | atoms + edges | knowledge facts, procedures, motivations |
+| **Seed** | YAML boot file | identity, initial goals |
+
+**אם תפסת את עצמך כותב Rust function למה שיכול להיות procedure atom — עצור.** זה graph content, לא Rust code.
+
+**Corollary:** קוד שמכפיל את עצמו (אותו לוגיקה בשני מקומות) = graph-gap. הפתרון: להרים את המושג ל-atom ולעשות שני call-sites לאותו walk. לא להוציא helper function.
+
+## 2.2 Determinism
+
+- אותו graph state + אותו input = אותו output, תמיד
+- אין `rand::random()` (יש `deterministic_hash(seed)`)
+- אין `HashMap` פתוח — רק `BTreeMap` או `IndexMap` עם seed קבוע
+- Walks עם תאריך/time-seed אם נדרש randomness
+
+## 2.3 Static Over Dynamic
+
+**עידן אמר: "כמה שיותר סטטי".**
+
+```rust
+// ❌ רע — dynamic dispatch, heap allocation
+let executors: Vec<Box<dyn Executor>> = vec![...];
+
+// ✅ טוב — compile-time dispatch, stack allocation
+enum ExecutorKind {
+    Text(TextExecutor),
+    Image(ImageExecutor),
+    Code(CodeExecutor),
+    // ...
+}
+```
+
+- `const` ו-`static` — מועדפים
+- `#[inline(always)]` על hot paths
+- Arena allocators (bumpalo) לephemeral data
+- `ArrayVec` / `SmallVec` לnon-heap collections
+- `&'static str` לkeys קבועים
+
+## 2.4 Quantum-First Operations
+
+**עידן אמר: "כמה שיותר פונקציות קוונטיות שעובדות".**
+
+מה זה "קוונטי" בהקשר גרף?
+
+| עיקרון קוונטי | ביישום ZETS |
+|---|---|
+| Superposition | Multiple senses/interpretations alive simultaneously |
+| Parallel walks | N walkers concurrent (typically 21) |
+| Interference | Intersections in walks amplify; contradictions cancel |
+| Measurement | Collapse to single answer at output |
+| Entanglement | Edges as strong correlations (memory_strength) |
+
+**לא quantum computer literal. Inspired-by, not implemented-as.**
+
+## 2.5 Performance Budget (ננו-שניות מטרה)
+
+| פעולה | תקציב | שיטה |
+|---|---|---|
+| Atom lookup by ID | < 50 ns | mmap direct index |
+| Edge traversal (one hop) | < 100 ns | CSR row access |
+| Walk of depth 7 | < 10 μs | inline, no alloc |
+| Spreading activation (1000 nodes) | < 1 ms | SIMD + precomputed bins |
+| Full query cycle (parse→answer) | < 100 ms | include LLM I/O |
+
+## 2.6 RAM + Disk Frugality
+
+**Goal:** Laptop 8 GB — ZETS fits in 2-4 GB peak.
+
+| רכיב | תקציב |
+|---|---|
+| Atom core (10M atoms × 8B) | 80 MB |
+| Edges (1B × 6B) | 6 GB (mmap, page in on demand) |
+| Root pool (4K entries × 32B) | 128 KB |
+| String pool (lemmas + glosses) | 50 MB |
+| Hopfield banks (Vector atoms) | 500 MB (resident top 50K) |
+| Working memory (ephemeral per query) | 1 MB arena |
+| **סך RAM פעיל (typical)** | **~500 MB** |
+| **סך Disk** | **~6-7 GB** |
+
+---
+
+# 3. שלוש השכבות
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  LAYER 1 — GRAPH (thin, fast, semantic, μs-scale)            │
+│                                                                │
+│  • Atoms (8 bytes)                                             │
+│  • Edges (6 bytes hot path, VarInt extension)                  │
+│  • Indexes (mmap-backed BTree + FST for string lookup)         │
+│  • Working Memory (ephemeral arena per query)                  │
+└───────────────────┬──────────────────────────────────────────┘
+                    │ invokes by name
+                    ▼
+┌──────────────────────────────────────────────────────────────┐
+│  LAYER 2 — EXECUTOR REGISTRY (ms-scale, sandboxed)             │
+│                                                                │
+│  • TextExecutor   — tokenize, morphology, realize              │
+│  • ImageExecutor  — CLIP embedding + Hopfield                  │
+│  • AudioExecutor  — Whisper + prosody                          │
+│  • VideoExecutor  — keyframes + audio chain                    │
+│  • CodeExecutor   — multi-lang sandboxed runner                │
+│  • DocExecutor    — read, index, search, summarize             │
+│  • WebExecutor    — HTTP fetch + HTML parse                    │
+│  • DBExecutor     — SQL bridge                                 │
+│  • ComputeExecutor — math, simulations                         │
+│  • EnrichmentExecutor — batch AI (Gemini flash)                │
+└───────────────────┬──────────────────────────────────────────┘
+                    │ results
+                    ▼
+┌──────────────────────────────────────────────────────────────┐
+│  LAYER 3 — LEARNING (async, graph updates)                     │
+│                                                                │
+│  • Success → strengthen edges, cache motifs                    │
+│  • Failure → weaken edges, trigger dreaming                    │
+│  • Novel → insert atoms, propose edges                         │
+│  • Consolidation (NightMode) → clustering, pruning             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## 3.1 שכבות = ספירות (Kabbalistic Mapping)
+
+**לא מטאפורה — זה המבנה.**
+
+| ספירה | תפקיד בZETS | מודול |
+|---|---|---|
+| **כתר** (Keter) | Goal formation, intent root | `src/intent.rs` |
+| **חכמה** (Chokhmah) | Flash insight, pattern recognition | `src/prototype.rs` |
+| **בינה** (Binah) | Decomposition, analysis | `src/decompose.rs` |
+| **חסד** (Chesed) | Expansive spreading activation | `src/spreading_activation.rs` |
+| **גבורה** (Gevurah) | Pruning, constraint enforcement | `src/gate.rs` |
+| **תפארת** (Tiferet) | Integration, harmonization | `src/compose.rs` |
+| **נצח** (Netzach) | Persistent goals, repetition | `src/goals.rs` |
+| **הוד** (Hod) | Acknowledgment, validation | `src/verify.rs` |
+| **יסוד** (Yesod) | Foundation, memory consolidation | `src/consolidation.rs` |
+| **מלכות** (Malkhut) | Realization, output | `src/realize.rs` |
+
+כל query עובר דרך **10 השלבים** האלה. לא חייב in order — יש feedback loops.
+
+---
+
+# 4. שבירת כלים: ייצוג אטום
+
+**עידן ביקש:** תעשה השוואה בין שיטות, תבחר הכי טובה, תתעד למה.
+
+## 4.1 שלוש אופציות שנשקלו
+
+### Option A — Numeric Root ID (12-bit)
+```rust
+struct AtomCore {
+    root_id: u16,      // 12 bits, index into SemiticRootPool
+    binyan: u8,        // 3 bits
+    tense: u8,         // 3 bits
+    pgn: u8,           // 4 bits
+    // ... total 64 bits
+}
+```
+
+### Option B — Direct Letter Encoding (15-bit)
+```rust
+// 3 letters × 5 bits each = 15 bits
+// Letter: 22 consonants → 5 bits (27 possible values)
+fn encode_root(l1: char, l2: char, l3: char) -> u16 {
+    (letter_code(l1) << 10) | (letter_code(l2) << 5) | letter_code(l3)
+}
+```
+
+### Option C — Lemma String with Metadata Separator
+```
+"כלב#animal.mammal.domesticated"
+"מכונית#vehicle.wheeled.motorized"
+```
+Variable-length UTF-8 stored in blob; atom holds u32 pointer.
+
+## 4.2 השוואה אמפירית
+
+| קריטריון | Option A | Option B | Option C |
+|---|---|---|---|
+| Bits for root | 12 | 15 | 32 (pointer) |
+| Atom size (total) | 8 B | 8 B (אחר layout) | 8 B (pointer) + blob |
+| Lookup speed | O(1) table | O(1) direct | O(1) ptr + dereference |
+| Utilization | 2,931/4,096 = 71% | 2,931/32,768 = 9% | N/A |
+| Debuggability | Need reverse lookup | Decode bits | Direct read ✓ |
+| Federation | Canonical IDs across instances | Letters always match | Pointer-dependent |
+| Future loanwords | foreign-flag + string_ref | Same | Already string |
+| Cache friendliness | Excellent (small) | Excellent | Poor (indirection) |
+| **ניקוד סופי** | **9/10** ⭐ | 6/10 | 5/10 |
+
+## 4.3 ההחלטה: Option A — 12-bit Root ID
+
+**למה:**
+
+1. **Utilization הכי גבוה** (71% vs 9%) — פחות bits מבוזבזים
+2. **Root pool מאפשר federation** — מספר ZETS instances משתפים pool canonical
+3. **Cache friendliness** — 8 bytes נכנסים בcache line, pointer לא
+4. **Rendering ל-debug קל** — `root_pool[id].to_string()` → "כלב"
+
+**אבל Option C חזר כ-Lemma layer:**
+- ForeignWord variant משתמש ב-string_ref (ADR-3)
+- לlooanwords, names, CJK — אין שורש שמי, אז pointer הכרחי
+- ברוב המקרים (שמיות) — Option A מנצח
+
+**Hybrid בפועל:**
+- **HebrewWord/ArabicWord:** Option A (root_id)
+- **ForeignWord:** Option C (string_ref) — אבל רק 24 bits = 16M strings max
+- **Logographic:** codepoint direct (variant of A)
+
+## 4.4 Debug rendering
+
+```rust
+impl AtomCore {
+    /// Human-readable rendering for logs and debugging.
+    /// Format: "LEMMA#KIND.BINYAN.FEATURES"
+    /// Examples:
+    ///   "כלב#hebrew.nominal.masc.sing"
+    ///   "car#foreign.en"
+    ///   "犬#logographic"
+    pub fn to_debug_string(&self, pool: &RootPool) -> String {
+        match self.kind() {
+            AtomKind::HebrewWord => {
+                let root = pool.lookup_root(self.root_id());
+                let binyan = self.binyan().name();
+                format!("{}#hebrew.{}.{}", 
+                    root, binyan, self.features_summary())
+            }
+            AtomKind::ForeignWord => {
+                let s = pool.lookup_string(self.string_ref());
+                format!("{}#foreign.{}", s, self.language().code())
+            }
+            AtomKind::Logographic => {
+                let c = char::from_u32(self.codepoint()).unwrap_or('?');
+                format!("{}#logographic", c)
+            }
+            _ => format!("#atom.{:?}.{:x}", self.kind(), self.semantic_id()),
+        }
+    }
+}
+```
+
+**זה הפורמט שעידן הציע ("#") — כ-debug rendering, לא כ-storage.**
+
+
+---
+
+# 5. מבנה האטום — Rust Implementation
+
+## 5.1 Core struct (מאוחד, 3 variants)
+
+```rust
+/// The atom core — exactly 8 bytes, bit-packed into a u64.
+/// ADR-3 defines three variants dispatched on the top 4 bits (kind).
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct Atom(pub u64);
+
+/// Atom kinds — top 4 bits of the atom.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum AtomKind {
+    HebrewWord    = 0x0,  // Semitic root-based
+    ArabicWord    = 0x1,  // Shares pool with HebrewWord
+    AramaicWord   = 0x2,  // Shares pool with HebrewWord
+    ForeignWord   = 0x3,  // Non-Semitic + loanwords
+    Logographic   = 0x4,  // CJK characters
+    Concept       = 0x5,  // Pure language-agnostic concept
+    PhraseLemma   = 0x6,  // Idioms, compounds
+    Procedure     = 0x7,  // Callable DAG
+    Action        = 0x8,  // Executor invocation
+    Media         = 0x9,  // Image/audio/video ref
+    Numeral       = 0xA,  // Numbers
+    Rule          = 0xB,  // Agreement / grammar rule
+    Personal      = 0xC,  // Personal graph sentinel
+    Meta          = 0xD,  // Meta-level (about atoms)
+    Reserved_E    = 0xE,
+    Reserved_F    = 0xF,
+}
+
+impl AtomKind {
+    #[inline(always)]
+    pub const fn from_bits(b: u8) -> Self {
+        // SAFETY: we mask to 4 bits, so always valid enum
+        unsafe { std::mem::transmute(b & 0x0F) }
+    }
+}
+
+/// Bit layout constants (see ADR-3)
+impl Atom {
+    pub const KIND_SHIFT: u32 = 60;
+    pub const KIND_MASK:  u64 = 0xF << 60;
+
+    #[inline(always)]
+    pub const fn kind(self) -> AtomKind {
+        AtomKind::from_bits((self.0 >> Self::KIND_SHIFT) as u8)
+    }
+
+    #[inline(always)]
+    pub const fn with_kind(self, k: AtomKind) -> Self {
+        Atom((self.0 & !Self::KIND_MASK) | ((k as u64) << Self::KIND_SHIFT))
+    }
+}
+```
+
+## 5.2 Semitic Variant (Hebrew/Arabic/Aramaic)
+
+```rust
+/// Layout for HebrewWord/ArabicWord/AramaicWord.
+/// All three share the same bit layout and the same SemiticRootPool.
+///
+/// Bit layout (64 bits total):
+///   [63..60]  kind         (4 bits)  = 0x0/0x1/0x2
+///   [59..56]  flags        (4 bits)  = see FLAG_* constants
+///   [55..44]  root_id      (12 bits) = index into SemiticRootPool
+///   [43..41]  binyan       (3 bits)  = see Binyan enum
+///   [40..38]  tense        (3 bits)  = see Tense enum
+///   [37..34]  pgn          (4 bits)  = Person × Gender × Number combo
+///   [33..33]  def          (1 bit)   = definiteness
+///   [32..32]  foreign      (1 bit)   = loanword flag (0 for Semitic)
+///   [31..8]   semantic_id  (24 bits) = homograph/variant discriminator
+///   [7..0]    reserved     (8 bits)  = future use
+pub mod semitic {
+    use super::*;
+
+    pub const ROOT_SHIFT: u32 = 44;
+    pub const ROOT_MASK:  u64 = 0xFFF << 44;
+
+    pub const BINYAN_SHIFT: u32 = 41;
+    pub const BINYAN_MASK:  u64 = 0x7 << 41;
+
+    pub const TENSE_SHIFT: u32 = 38;
+    pub const TENSE_MASK:  u64 = 0x7 << 38;
+
+    pub const PGN_SHIFT: u32 = 34;
+    pub const PGN_MASK:  u64 = 0xF << 34;
+
+    pub const DEF_BIT:   u64 = 1 << 33;
+    pub const FOREIGN_BIT: u64 = 1 << 32;
+
+    pub const SEM_SHIFT: u32 = 8;
+    pub const SEM_MASK:  u64 = 0xFFFFFF << 8;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Binyan {
+        Paal       = 0,  // פעל / فعل — basic active
+        Nifal      = 1,  // נפעל — passive
+        Piel       = 2,  // פיעל — intensive active
+        Pual       = 3,  // פועל — intensive passive
+        Hifil      = 4,  // הפעיל — causative active
+        Hufal      = 5,  // הופעל — causative passive
+        Hitpael    = 6,  // התפעל — reflexive
+        Nominal    = 7,  // שם (noun/adj/adv derived from root)
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Tense {
+        Past      = 0,
+        Present   = 1,
+        Future    = 2,
+        Imperative= 3,
+        Infinitive= 4,
+        ActiveParticiple = 5,
+        PassiveParticiple = 6,
+        Gerund    = 7,
+    }
+
+    /// Person × Gender × Number — 10 used slots (of 16 possible)
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Pgn {
+        P1Common_Sg  = 0,   // אני — I
+        P2Masc_Sg    = 1,   // אתה — you (m)
+        P2Fem_Sg     = 2,   // את — you (f)
+        P3Masc_Sg    = 3,   // הוא — he
+        P3Fem_Sg     = 4,   // היא — she
+        P1Common_Pl  = 5,   // אנחנו — we
+        P2Masc_Pl    = 6,   // אתם — you (m.pl)
+        P2Fem_Pl     = 7,   // אתן — you (f.pl)
+        P3Masc_Pl    = 8,   // הם — they (m)
+        P3Fem_Pl     = 9,   // הן — they (f)
+        // 10-13: Dual, archaic forms
+        // 14-15: reserved
+    }
+
+    /// Builder pattern for Semitic atoms.
+    pub struct SemiticAtomBuilder {
+        kind: AtomKind,
+        root_id: u16,
+        binyan: Binyan,
+        tense: Tense,
+        pgn: Pgn,
+        definite: bool,
+        semantic_id: u32,
+    }
+
+    impl SemiticAtomBuilder {
+        pub const fn new(lang: AtomKind, root_id: u16) -> Self {
+            assert!(matches!(lang, AtomKind::HebrewWord | AtomKind::ArabicWord | AtomKind::AramaicWord));
+            assert!(root_id < 4096, "root_id must fit in 12 bits");
+            Self {
+                kind: lang,
+                root_id,
+                binyan: Binyan::Paal,
+                tense: Tense::Past,
+                pgn: Pgn::P3Masc_Sg,
+                definite: false,
+                semantic_id: 0,
+            }
+        }
+
+        pub const fn binyan(mut self, b: Binyan) -> Self { self.binyan = b; self }
+        pub const fn tense(mut self, t: Tense)  -> Self { self.tense = t; self }
+        pub const fn pgn(mut self, p: Pgn)      -> Self { self.pgn = p; self }
+        pub const fn definite(mut self)         -> Self { self.definite = true; self }
+        pub const fn semantic_id(mut self, id: u32) -> Self {
+            assert!(id < (1 << 24), "semantic_id must fit in 24 bits");
+            self.semantic_id = id;
+            self
+        }
+
+        pub const fn build(self) -> Atom {
+            let mut bits: u64 = 0;
+            bits |= (self.kind as u64) << Atom::KIND_SHIFT;
+            bits |= (self.root_id as u64) << ROOT_SHIFT;
+            bits |= (self.binyan as u64) << BINYAN_SHIFT;
+            bits |= (self.tense as u64) << TENSE_SHIFT;
+            bits |= (self.pgn as u64) << PGN_SHIFT;
+            if self.definite { bits |= DEF_BIT; }
+            bits |= (self.semantic_id as u64) << SEM_SHIFT;
+            Atom(bits)
+        }
+    }
+
+    impl Atom {
+        #[inline(always)]
+        pub const fn root_id(self) -> u16 {
+            ((self.0 & ROOT_MASK) >> ROOT_SHIFT) as u16
+        }
+
+        #[inline(always)]
+        pub const fn binyan(self) -> Binyan {
+            let b = ((self.0 & BINYAN_MASK) >> BINYAN_SHIFT) as u8;
+            // SAFETY: 3 bits, 8 variants all valid
+            unsafe { std::mem::transmute(b) }
+        }
+
+        #[inline(always)]
+        pub const fn tense(self) -> Tense {
+            let t = ((self.0 & TENSE_MASK) >> TENSE_SHIFT) as u8;
+            unsafe { std::mem::transmute(t) }
+        }
+
+        #[inline(always)]
+        pub const fn pgn(self) -> Pgn {
+            let p = ((self.0 & PGN_MASK) >> PGN_SHIFT) as u8;
+            unsafe { std::mem::transmute(p) }
+        }
+
+        #[inline(always)]
+        pub const fn is_definite(self) -> bool {
+            (self.0 & DEF_BIT) != 0
+        }
+    }
+}
+```
+
+## 5.3 Foreign Word Variant
+
+```rust
+/// Layout for ForeignWord atoms (non-Semitic + loanwords).
+///
+/// Bit layout:
+///   [63..60]  kind = 0x3       (4 bits)
+///   [59..56]  flags            (4 bits)
+///   [55..48]  language_id      (8 bits)  = 256 languages
+///   [47..24]  string_ref       (24 bits) = offset into string pool
+///   [23..0]   semantic_id      (24 bits)
+pub mod foreign {
+    use super::*;
+
+    pub const LANG_SHIFT: u32 = 48;
+    pub const LANG_MASK:  u64 = 0xFF << 48;
+
+    pub const STRING_SHIFT: u32 = 24;
+    pub const STRING_MASK:  u64 = 0xFFFFFF << 24;
+
+    pub const SEM_SHIFT: u32 = 0;
+    pub const SEM_MASK:  u64 = 0xFFFFFF;
+
+    /// Language codes. 8-bit integers map to 2-letter ISO codes.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Language {
+        En = 1, De = 2, Es = 3, Fr = 4, It = 5, Pt = 6, Ru = 7,
+        Nl = 8, Pl = 9, Cs = 10, Sv = 11, Tr = 12, Id = 13,
+        Vi = 14, Th = 15, Ja = 16, Ko = 17, Hi = 18,
+        // 19-255 reserved
+    }
+
+    impl Language {
+        pub const fn code(self) -> &'static str {
+            match self {
+                Self::En => "en", Self::De => "de", Self::Es => "es",
+                Self::Fr => "fr", Self::It => "it", Self::Pt => "pt",
+                Self::Ru => "ru", Self::Nl => "nl", Self::Pl => "pl",
+                Self::Cs => "cs", Self::Sv => "sv", Self::Tr => "tr",
+                Self::Id => "id", Self::Vi => "vi", Self::Th => "th",
+                Self::Ja => "ja", Self::Ko => "ko", Self::Hi => "hi",
+            }
+        }
+    }
+}
+```
+
+## 5.4 Logographic Variant (CJK)
+
+```rust
+/// Layout for Logographic atoms (Chinese, Japanese kanji, Korean hanja).
+///
+/// Bit layout:
+///   [63..60]  kind = 0x4   (4 bits)
+///   [59..56]  flags        (4 bits) — traditional/simplified/kanji
+///   [55..32]  codepoint    (24 bits) = Unicode codepoint
+///   [31..0]   semantic_id  (32 bits) = large discriminator
+pub mod logographic {
+    use super::*;
+
+    pub const CODEPOINT_SHIFT: u32 = 32;
+    pub const CODEPOINT_MASK:  u64 = 0xFFFFFF << 32;
+
+    pub const SEM_SHIFT: u32 = 0;
+    pub const SEM_MASK:  u64 = 0xFFFFFFFF;
+
+    pub const FLAG_TRADITIONAL: u64 = 1 << 56;
+    pub const FLAG_KANJI:       u64 = 1 << 57;
+    pub const FLAG_HANJA:       u64 = 1 << 58;
+}
+```
+
+## 5.5 Edge — 6 Bytes Hot Path
+
+```rust
+/// Edge hot-path entry — 6 bytes per edge in CSR row.
+/// For large graphs (1B edges) this is the bulk of storage.
+///
+/// Bit layout:
+///   [47..40]  edge_kind        (8 bits)  = 256 edge types
+///   [39..36]  strength         (4 bits)  = 16 levels (0=dead, 15=max)
+///   [35..32]  freshness        (4 bits)  = Ebbinghaus decay bucket
+///   [31..0]   target_atom_id   (32 bits) = target atom index
+///
+/// Future: VarInt target for 50% savings on typical graphs.
+#[derive(Clone, Copy)]
+#[repr(C, packed)]
+pub struct EdgeHot {
+    pub packed: [u8; 6],
+}
+
+impl EdgeHot {
+    #[inline(always)]
+    pub fn target(&self) -> u32 {
+        u32::from_le_bytes([self.packed[0], self.packed[1], self.packed[2], self.packed[3]])
+    }
+
+    #[inline(always)]
+    pub fn freshness(&self) -> u8 {
+        self.packed[4] & 0x0F
+    }
+
+    #[inline(always)]
+    pub fn strength(&self) -> u8 {
+        (self.packed[4] >> 4) & 0x0F
+    }
+
+    #[inline(always)]
+    pub fn edge_kind(&self) -> u8 {
+        self.packed[5]
+    }
+}
+```
+
+## 5.6 CSR Storage
+
+```rust
+/// Compressed Sparse Row storage for edges.
+/// Enables O(1) neighbor iteration and mmap-friendly layout.
+pub struct GraphCsr {
+    /// For atom N, edges are at offsets[N]..offsets[N+1]
+    pub offsets: Vec<u64>,
+    /// Edge rows — sequential, mmap'd
+    pub edges: Vec<EdgeHot>,
+    /// Reverse index for incoming edges (optional, built lazily)
+    pub reverse: Option<Box<GraphCsr>>,
+}
+
+impl GraphCsr {
+    #[inline(always)]
+    pub fn neighbors(&self, atom_id: u32) -> &[EdgeHot] {
+        let start = self.offsets[atom_id as usize] as usize;
+        let end = self.offsets[atom_id as usize + 1] as usize;
+        &self.edges[start..end]
+    }
+}
+```
+
+---
+
+# 6. Semitic Root Pool
+
+## 6.1 Design
+
+**Pool יחיד לעברית + ערבית + ארמית + אמהרית.** 4096 slots max (12-bit addressing).
+
+```rust
+/// Canonical pool of Semitic 3-letter roots, shared across HE/AR/AM.
+/// Assignment is first-come-in-ingestion-order, persisted to disk.
+pub struct SemiticRootPool {
+    /// Fixed-capacity array: root_id → canonical representation
+    roots: [RootEntry; 4096],
+    /// Reverse lookup: (letter1, letter2, letter3) → root_id
+    index: FxHashMap<(u8, u8, u8), u16>,
+    /// Count of assigned roots
+    count: u16,
+    /// Persistence path
+    pool_path: PathBuf,
+}
+
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub struct RootEntry {
+    /// 3 letters encoded as normalized Semitic consonants (Hebrew alphabet as canonical)
+    pub letters: [u8; 3],
+    /// Strong (3 consonants) | Weak-middle-yud | Weak-middle-vav | 4-letter extended
+    pub kind: RootKind,
+    /// How many atoms reference this root (for hot/cold classification)
+    pub refcount: u32,
+    /// First observed in language (for provenance)
+    pub first_seen_lang: u8,
+    /// Gematria value (cached for fast access)
+    pub gematria: u16,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum RootKind {
+    Strong = 0,      // 3 full consonants: כתב, דבר, שמע
+    MiddleYud = 1,   // II-yud: שים, דין, נים
+    MiddleVav = 2,   // II-vav: קום, מות, רוב
+    FirstYud = 3,    // I-yud: ילד, יצא, ידע
+    Quadriliteral = 4, // 4 letters: תרגם, חשמל
+    Weak = 5,        // Other weak: ראה (III-he), נתן (double-n)
+}
+```
+
+## 6.2 Pool Operations
+
+```rust
+impl SemiticRootPool {
+    /// Lookup root_id for a given (l1, l2, l3) triplet.
+    /// Creates new entry if not exists and pool not full.
+    pub fn intern(&mut self, l1: u8, l2: u8, l3: u8, lang: u8) -> Option<u16> {
+        if let Some(&id) = self.index.get(&(l1, l2, l3)) {
+            self.roots[id as usize].refcount += 1;
+            return Some(id);
+        }
+        if self.count >= 4096 {
+            return None;  // Pool full — escalate to foreign-flag
+        }
+        let id = self.count;
+        self.roots[id as usize] = RootEntry {
+            letters: [l1, l2, l3],
+            kind: RootKind::Strong,  // classification refined later
+            refcount: 1,
+            first_seen_lang: lang,
+            gematria: compute_gematria(l1, l2, l3),
+        };
+        self.index.insert((l1, l2, l3), id);
+        self.count += 1;
+        Some(id)
+    }
+
+    /// Fast reverse lookup: id → canonical string.
+    #[inline(always)]
+    pub fn lookup(&self, id: u16) -> [u8; 3] {
+        self.roots[id as usize].letters
+    }
+
+    /// Compute gematria value.
+    pub const fn gematria_of(id: u16, pool: &Self) -> u16 {
+        pool.roots[id as usize].gematria
+    }
+}
+
+fn compute_gematria(l1: u8, l2: u8, l3: u8) -> u16 {
+    letter_value(l1) + letter_value(l2) + letter_value(l3)
+}
+
+const fn letter_value(letter: u8) -> u16 {
+    // Hebrew canonical values
+    match letter {
+        b'\x01' /* א */ => 1,
+        b'\x02' /* ב */ => 2,
+        // ... כ=20, ל=30, מ=40, ... ת=400
+        _ => 0,
+    }
+}
+```
+
+## 6.3 Gematria as First-Class Operation
+
+**Idan's request: ספר יצירה מיפוי קבלי.** גימטריה מותחת על כל שורש, זמינה in O(1).
+
+```rust
+/// Gematria-based semantic neighbors: find roots with same numerical value.
+pub fn gematria_neighbors(pool: &SemiticRootPool, target_value: u16) -> Vec<u16> {
+    (0..pool.count)
+        .filter(|&id| pool.roots[id as usize].gematria == target_value)
+        .collect()
+}
+
+// Example: #LOVE = אהבה (gematria 13)
+//          #ONE  = אחד (gematria 13)
+// → "אהבה אחת" — semantic connection via shared gematria
+```
+
+---
+
+# 7. ארבע שכבות לשוניות
+
+```
+CONCEPT  (language-agnostic, kind = 0x5)
+   ↑ expressed_by
+SENSE    (polysemy-aware, language-agnostic)
+   ↑ expressed_by
+LEMMA    (dictionary form, per-language)
+   ↑ inflects_to
+WORDFORM (surface form — usually computed, not stored)
+```
+
+**שימו לב:** WordForm **לא נשמר כ-atom** אלא אם תדירות > 10 בקורפוס מקומי. רובם מחושבים מ-Lemma+features ב-morphology executor.
+
+## 7.1 Concept Atom
+
+```rust
+/// A Concept atom — pure language-agnostic meaning.
+/// kind = 0x5. No root, no grammar, just semantic identity.
+///
+/// Bit layout:
+///   [63..60]  kind = 0x5
+///   [59..56]  flags (is_entity, is_abstract, is_relation, ...)
+///   [55..32]  concept_id (24 bits = 16M concepts)
+///   [31..8]   ontology_parent (24 bits = parent in is-a hierarchy)
+///   [7..0]    reserved
+pub fn concept(id: u32, parent: u32) -> Atom {
+    assert!(id < (1 << 24));
+    assert!(parent < (1 << 24));
+    Atom(((AtomKind::Concept as u64) << 60) | ((id as u64) << 32) | ((parent as u64) << 8))
+}
+
+// Canonical concept IDs — static, published.
+pub mod concept_ids {
+    pub const ENTITY:           u32 = 0x000001;
+    pub const LIVING:           u32 = 0x000002;
+    pub const ANIMAL:           u32 = 0x000003;
+    pub const MAMMAL:           u32 = 0x000004;
+    pub const DOG:              u32 = 0x000005;
+    pub const VEHICLE:          u32 = 0x000010;
+    pub const MOTOR_VEHICLE:    u32 = 0x000011;
+    pub const PASSENGER_CAR:    u32 = 0x000012;
+    pub const COLOR:            u32 = 0x000020;
+    pub const RED:              u32 = 0x000021;
+    pub const GREEN:            u32 = 0x000022;
+    pub const BLUE:             u32 = 0x000023;
+    // ... grown over time, first 4096 reserved for core
+}
+```
+
+## 7.2 Sense Atom
+
+```rust
+/// A Sense atom — an abstract meaning capturing polysemy.
+/// Example: "שלום" has 3 senses: greeting.open / greeting.close / peace.state
+///
+/// Not its own variant — uses Concept kind (0x5) with flag bit indicating sense-level.
+pub fn sense(sense_id: u32, parent_concept: u32) -> Atom {
+    let mut a = concept(sense_id, parent_concept).0;
+    a |= 1 << 56;  // IS_SENSE flag
+    Atom(a)
+}
+```
+
+## 7.3 Lemma + Wordform
+
+Lemmas are **Semitic/Foreign/Logographic atoms** as defined in §5. WordForms are typically **not stored** — regenerated at query time by morphology.
+
+```rust
+/// Materialization policy for wordforms.
+pub fn should_materialize_wordform(
+    lemma: Atom,
+    features: &MorphFeatures,
+    observed_frequency: u32,
+) -> bool {
+    observed_frequency > 10  // hot forms persist
+        || features.is_irregular()  // irregular forms always persist
+        || features.is_tagged_permanent()
+}
+```
+
+## 7.4 Lemma Registry
+
+```rust
+/// Registry mapping string surface → atom. Used for parsing.
+pub struct LemmaRegistry {
+    /// FST (Finite State Transducer) — compact, lookup ~50ns per word
+    fst: fst::Map<Vec<u8>>,
+    /// For dynamic insertions, maintain BTreeMap overlay until rebuild
+    overlay: BTreeMap<String, Atom>,
+}
+
+impl LemmaRegistry {
+    /// Parse surface form, returning candidate atoms (polysemy handled upstream).
+    pub fn lookup(&self, surface: &str) -> Vec<Atom> {
+        let mut results = Vec::new();
+        if let Some(bytes) = self.fst.get(surface) {
+            results.push(Atom(u64::from_le_bytes(bytes.try_into().unwrap())));
+        }
+        if let Some(&atom) = self.overlay.get(surface) {
+            results.push(atom);
+        }
+        results
+    }
+}
+```
+
+
+---
+
+# 8. Morphology & Agreement
+
+## 8.1 Morphology Rules as Graph Atoms
+
+**Rules don't live in Rust.** They live in the graph as Rule atoms (kind=0xB). The Rust TextExecutor reads them and applies them.
+
+```rust
+/// A grammar rule stored as a graph atom. Applied at realization/parsing time.
+#[derive(Clone, Debug)]
+pub struct RuleAtom {
+    pub rule_kind: RuleKind,
+    pub language: u8,  // Language ID
+    pub pattern: RulePattern,
+    pub outcome: RuleOutcome,
+    pub confidence: u8,  // 0-255, learned over corpus
+    pub exceptions: Vec<Atom>,  // exception atoms
+}
+
+#[derive(Clone, Debug)]
+pub enum RuleKind {
+    PrefixStripping,     // ה/ו/ב/ל/מ/כ/ש in Hebrew
+    SuffixStripping,     // ים/ות/ה/ת in Hebrew
+    BinyanPrefix,        // נ/ת/מ/י/א in verb forms
+    Agreement,           // adj agrees with noun (gender/number/definiteness)
+    WordOrder,           // noun-adj in HE/ES, adj-noun in EN/DE
+    DefiniteSpread,      // Hebrew: definite marker on adj too
+    NumeralGender,       // 11-19 gender agreement
+    ConstructState,      // סמיכות — "בית ספר"
+}
+
+#[derive(Clone, Debug)]
+pub struct RulePattern {
+    /// What must be true for the rule to fire
+    pub conditions: Vec<Condition>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Condition {
+    HeadGender(Gender),
+    HeadNumber(Number),
+    HeadDefinite(bool),
+    ModifierType(PosTag),
+    Adjacent(Direction),
+}
+```
+
+## 8.2 Morphology Analysis (parsing)
+
+```rust
+/// Analyze a Hebrew wordform into (lemma, features).
+/// Implementation: layered stripping with confidence scoring.
+///
+/// Example: "ומהבית" →
+///   prefix "ו"  → Conjunction
+///   prefix "מ"  → From
+///   prefix "ה"  → Definite
+///   stem "בית"  → root ב.י.ת → lemma:בית
+///   features: {Conj, From, Def, Masc, Sg}
+pub fn analyze_hebrew(surface: &str, rules: &RuleSet) -> Vec<Analysis> {
+    let normalized = normalize_finals(surface);
+    let mut candidates = vec![Analysis::new(&normalized)];
+
+    // Layer 1: Prefix stripping (greedy, then backtrack)
+    candidates = apply_prefix_rules(candidates, rules);
+
+    // Layer 2: Suffix stripping
+    candidates = apply_suffix_rules(candidates, rules);
+
+    // Layer 3: Binyan prefix detection (נ, ת, מ, י, א)
+    candidates = apply_binyan_rules(candidates, rules);
+
+    // Layer 4: Weak-root collapse (yud/vav middle)
+    candidates = apply_weak_root_rules(candidates, rules);
+
+    // Layer 5: Score by lemma existence in registry
+    candidates.iter_mut().for_each(|c| {
+        c.confidence = if rules.registry.contains_lemma(&c.stem) { 90 } else { 30 };
+    });
+
+    candidates.sort_by_key(|c| -(c.confidence as i32));
+    candidates
+}
+
+#[derive(Clone, Debug)]
+pub struct Analysis {
+    pub stem: String,
+    pub prefixes: Vec<Feature>,
+    pub suffixes: Vec<Feature>,
+    pub binyan: Option<Binyan>,
+    pub features: SmallVec<[Feature; 8]>,
+    pub confidence: u8,
+}
+```
+
+## 8.3 Realization (generation)
+
+```rust
+/// Given a (lemma_atom, desired_features), produce the surface wordform.
+///
+/// Example:
+///   lemma: אדום (root: א.ד.ם, binyan: Nominal)
+///   features: {Feminine, Singular, Definite}
+///   → surface: "האדומה"
+pub fn realize_hebrew(lemma: Atom, features: &MorphFeatures, pool: &SemiticRootPool) -> String {
+    let mut out = String::new();
+
+    // Step 1: Start from root
+    let root = pool.lookup(lemma.root_id());
+    let base = apply_binyan(root, lemma.binyan());  // "אדם" -> ?
+
+    // Step 2: Apply binyan pattern to produce stem
+    let stem = apply_binyan_pattern(&base, lemma.binyan(), lemma.tense());
+
+    // Step 3: Add gender/number suffix
+    let with_suffix = apply_pgn_suffix(&stem, features);
+
+    // Step 4: Add prefixes (ה definite, ב locative, etc.)
+    if features.definite {
+        out.push('ה');
+    }
+    out.push_str(&with_suffix);
+
+    out
+}
+```
+
+## 8.4 Agreement Application
+
+```rust
+/// Apply agreement between a noun (head) and its modifiers.
+/// The head's features (gender, number, definiteness) propagate to modifiers.
+pub fn apply_agreement(head: Atom, modifiers: &mut [Atom], language: Language) {
+    let head_features = features_of(head);
+    for mod_atom in modifiers.iter_mut() {
+        match language {
+            Language::Hebrew | Language::Arabic => {
+                // Semitic: agree in gender + number + definiteness
+                *mod_atom = mod_atom.with_gender(head_features.gender);
+                *mod_atom = mod_atom.with_number(head_features.number);
+                if head_features.definite {
+                    *mod_atom = mod_atom.definite();
+                }
+            }
+            Language::English => {
+                // English: agree in number only (rare, some adjectives)
+                *mod_atom = mod_atom.with_number(head_features.number);
+            }
+            Language::Spanish | Language::Italian | Language::Portuguese => {
+                // Romance: gender + number
+                *mod_atom = mod_atom.with_gender(head_features.gender);
+                *mod_atom = mod_atom.with_number(head_features.number);
+            }
+            // ... other language families
+        }
+    }
+}
+```
+
+---
+
+# 9. Executor Registry
+
+## 9.1 The Executor Trait
+
+```rust
+/// All executors implement this trait. Static dispatch via enum (no dyn).
+pub trait Executor: Sized {
+    type Input;
+    type Output;
+    type Error;
+
+    /// Unique name for this executor (stable across versions).
+    const NAME: &'static str;
+
+    /// Cost class: expected latency.
+    const COST: CostClass;
+
+    /// Trust level required to invoke.
+    const MIN_TRUST: TrustLevel;
+
+    /// Invoke the executor.
+    fn invoke(&self, input: Self::Input) -> Result<Self::Output, Self::Error>;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CostClass {
+    Microseconds,
+    Milliseconds,
+    Seconds,
+    Minutes,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TrustLevel {
+    System      = 0,  // Hardcoded, unchangeable
+    OwnerVerified = 1,  // Idan approved
+    Learned     = 2,  // Derived from corpus
+    Experimental = 3,  // Sandbox only
+}
+```
+
+## 9.2 Registry as Static Dispatch
+
+```rust
+/// Central registry — all built-in executors as a static enum.
+/// Keeps everything on the stack, no Box<dyn>.
+pub enum ExecutorHandle {
+    Text(TextExecutor),
+    Image(ImageExecutor),
+    Audio(AudioExecutor),
+    Video(VideoExecutor),
+    Code(CodeExecutor),
+    Doc(DocExecutor),
+    Web(WebExecutor),
+    Db(DbExecutor),
+    Compute(ComputeExecutor),
+    Enrichment(EnrichmentExecutor),
+    Personal(PersonalExecutor),  // For personal graph operations
+    Gematria(GematriaExecutor),  // Kabbalistic computation
+}
+
+impl ExecutorHandle {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Text(_) => TextExecutor::NAME,
+            Self::Image(_) => ImageExecutor::NAME,
+            Self::Audio(_) => AudioExecutor::NAME,
+            Self::Video(_) => VideoExecutor::NAME,
+            Self::Code(_) => CodeExecutor::NAME,
+            Self::Doc(_) => DocExecutor::NAME,
+            Self::Web(_) => WebExecutor::NAME,
+            Self::Db(_) => DbExecutor::NAME,
+            Self::Compute(_) => ComputeExecutor::NAME,
+            Self::Enrichment(_) => EnrichmentExecutor::NAME,
+            Self::Personal(_) => PersonalExecutor::NAME,
+            Self::Gematria(_) => GematriaExecutor::NAME,
+        }
+    }
+}
+
+/// Static registry — all executors available at compile time.
+pub struct Registry {
+    pub handles: [ExecutorHandle; 12],
+}
+
+impl Registry {
+    pub fn find(&self, name: &str) -> Option<&ExecutorHandle> {
+        self.handles.iter().find(|h| h.name() == name)
+    }
+}
+```
+
+## 9.3 TextExecutor (morphology + tokenize + realize)
+
+```rust
+pub struct TextExecutor {
+    pub rules: RuleSet,
+    pub lemma_registry: LemmaRegistry,
+    pub root_pool: Arc<SemiticRootPool>,
+}
+
+pub enum TextInput {
+    Tokenize(String, Language),
+    Analyze(String, Language),
+    Realize(Atom, MorphFeatures, Language),
+    BuildPhrase(Vec<Atom>, Language),
+}
+
+pub enum TextOutput {
+    Tokens(Vec<Token>),
+    Analysis(Vec<Analysis>),
+    Surface(String),
+    Phrase(PhraseAtom),
+}
+
+impl Executor for TextExecutor {
+    type Input = TextInput;
+    type Output = TextOutput;
+    type Error = TextError;
+
+    const NAME: &'static str = "text";
+    const COST: CostClass = CostClass::Microseconds;
+    const MIN_TRUST: TrustLevel = TrustLevel::System;
+
+    fn invoke(&self, input: TextInput) -> Result<TextOutput, TextError> {
+        match input {
+            TextInput::Tokenize(text, lang) => {
+                let tokens = tokenize(&text, lang);
+                Ok(TextOutput::Tokens(tokens))
+            }
+            TextInput::Analyze(word, lang) => {
+                let analyses = match lang {
+                    Language::Hebrew => analyze_hebrew(&word, &self.rules),
+                    Language::Arabic => analyze_arabic(&word, &self.rules),
+                    _ => analyze_generic(&word, lang, &self.rules),
+                };
+                Ok(TextOutput::Analysis(analyses))
+            }
+            TextInput::Realize(lemma, features, lang) => {
+                let surface = match lang {
+                    Language::Hebrew => realize_hebrew(lemma, &features, &self.root_pool),
+                    Language::Arabic => realize_arabic(lemma, &features, &self.root_pool),
+                    _ => realize_generic(lemma, &features, lang),
+                };
+                Ok(TextOutput::Surface(surface))
+            }
+            TextInput::BuildPhrase(atoms, lang) => {
+                let phrase = build_phrase_with_agreement(&atoms, lang, &self.rules);
+                Ok(TextOutput::Phrase(phrase))
+            }
+        }
+    }
+}
+```
+
+## 9.4 ImageExecutor (CLIP + Hopfield)
+
+```rust
+pub struct ImageExecutor {
+    /// External CLIP client — subprocess or FFI
+    pub clip: ClipClient,
+    /// Hopfield bank for stored image-atom vectors
+    pub bank: HopfieldBank,
+}
+
+pub enum ImageInput {
+    Embed(Vec<u8>),              // raw image bytes → vector
+    Recall(Vec<f32>),            // vector → nearest atoms
+    StoreAtom(Atom, Vec<f32>),   // tag an atom with vector
+    Decompose(Vec<u8>),          // image → list of atom matches
+}
+
+pub enum ImageOutput {
+    Vector(Vec<f32>),
+    Matches(Vec<(Atom, f32)>),   // atom + similarity score
+    Stored(Atom),
+    Decomposition(Vec<(Atom, f32)>),
+}
+
+impl Executor for ImageExecutor {
+    type Input = ImageInput;
+    type Output = ImageOutput;
+    type Error = ImageError;
+
+    const NAME: &'static str = "image";
+    const COST: CostClass = CostClass::Milliseconds;
+    const MIN_TRUST: TrustLevel = TrustLevel::System;
+
+    fn invoke(&self, input: ImageInput) -> Result<ImageOutput, ImageError> {
+        match input {
+            ImageInput::Embed(bytes) => {
+                let vec = self.clip.embed_image(&bytes)?;
+                Ok(ImageOutput::Vector(vec))
+            }
+            ImageInput::Recall(vec) => {
+                let matches = self.bank.query_top_k(&vec, 10);
+                Ok(ImageOutput::Matches(matches))
+            }
+            ImageInput::StoreAtom(atom, vec) => {
+                self.bank.store(atom_to_u32(atom), vec)?;
+                Ok(ImageOutput::Stored(atom))
+            }
+            ImageInput::Decompose(bytes) => {
+                let vec = self.clip.embed_image(&bytes)?;
+                let matches = self.bank.query_top_k(&vec, 20);
+                Ok(ImageOutput::Decomposition(matches))
+            }
+        }
+    }
+}
+```
+
+## 9.5 WebExecutor (scraping + fetching)
+
+```rust
+pub struct WebExecutor {
+    pub http_client: ureq::Agent,
+    pub rate_limiter: HostRateLimiter,
+    pub robots_cache: RobotsCache,
+    pub user_agent: &'static str,
+    pub allowed_domains: Arc<Vec<Pattern>>,
+}
+
+pub enum WebInput {
+    Fetch(Url, FetchOptions),
+    FetchAndParse(Url, ParseTarget),
+    Scrape(Url, ScrapeRules),
+}
+
+pub enum WebOutput {
+    RawBytes(Vec<u8>, ContentType),
+    ParsedHtml(Document),
+    ScrapedData(Vec<Record>),
+}
+
+impl WebExecutor {
+    pub fn fetch_with_policy(&self, url: &Url) -> Result<Vec<u8>, WebError> {
+        // Step 1: Check robots.txt
+        if !self.robots_cache.is_allowed(url, self.user_agent)? {
+            return Err(WebError::RobotsForbidden);
+        }
+        // Step 2: Check allowed_domains
+        if !self.is_domain_allowed(url) {
+            return Err(WebError::DomainNotAllowed);
+        }
+        // Step 3: Rate limit per host
+        self.rate_limiter.wait_for_host(url.host_str().unwrap())?;
+        // Step 4: Fetch with retries
+        let resp = self.http_client.get(url.as_str())
+            .set("User-Agent", self.user_agent)
+            .timeout(Duration::from_secs(30))
+            .call()?;
+        let bytes = resp.into_reader().bytes().collect::<Result<Vec<_>, _>>()?;
+        Ok(bytes)
+    }
+}
+```
+
+## 9.6 CodeExecutor (sandboxed multi-language)
+
+```rust
+pub struct CodeExecutor {
+    pub sandbox: SandboxClient,  // wasmtime / Firecracker / subprocess
+    pub supported_languages: Vec<ProgLang>,
+}
+
+pub enum CodeInput {
+    /// Execute code string, return output.
+    Run { code: String, lang: ProgLang, stdin: Option<String>, timeout_s: u32 },
+    /// Compile only (check for errors).
+    Check { code: String, lang: ProgLang },
+    /// Generate code from plan (delegated, typically via motif bank).
+    Generate { plan: CompositionPlan, lang: ProgLang },
+}
+
+pub enum CodeOutput {
+    ExecutionResult { stdout: String, stderr: String, exit: i32, duration_ms: u32 },
+    CheckResult { errors: Vec<String>, warnings: Vec<String> },
+    GeneratedCode { source: String, test_code: Option<String> },
+}
+```
+
+## 9.7 EnrichmentExecutor (batch Gemini)
+
+**זה הExecutor שלומד "איך נראה אדום" בלי CLIP — בbatch, עם Gemini flash 2.5.**
+
+```rust
+pub struct EnrichmentExecutor {
+    pub api_key: SecretString,
+    pub model: &'static str,  // "gemini-2.5-flash"
+    pub batch_size: usize,    // 200 default
+    pub cost_tracker: Arc<Mutex<CostTracker>>,
+}
+
+pub enum EnrichmentInput {
+    /// Request properties for atoms that are missing them.
+    EnrichColors(Vec<Atom>),          // atom_ids for color concepts missing RGB/HSL
+    EnrichTextures(Vec<Atom>),
+    EnrichShapes(Vec<Atom>),
+    EnrichDefinitions(Vec<Atom>),     // atoms missing gloss
+    EnrichAssociations(Vec<Atom>),    // atoms missing typical-associations
+    GapScan,                          // scan graph for missing properties
+}
+
+pub enum EnrichmentOutput {
+    PropertiesAdded { atoms: Vec<Atom>, properties: Vec<PropertyEdge> },
+    GapsFound(Vec<EnrichmentGap>),
+    Cost { tokens_in: u32, tokens_out: u32, usd_cost: f32 },
+}
+
+impl EnrichmentExecutor {
+    pub fn enrich_colors(&self, atoms: &[Atom]) -> Result<Vec<PropertyEdge>, EnrichError> {
+        // Build prompt: "For each of these color names, return RGB + HSL + textures.
+        //                Output JSON. Color names: red, green, azure, ..."
+        let prompt = build_color_enrichment_prompt(atoms);
+        let response = self.call_gemini_flash(&prompt)?;
+        let parsed = parse_color_response(&response)?;
+        let edges = parsed.into_iter().map(|(atom, props)| {
+            PropertyEdge::new(atom, props)
+        }).collect();
+        Ok(edges)
+    }
+
+    fn call_gemini_flash(&self, prompt: &str) -> Result<String, EnrichError> {
+        // Actual HTTP POST to Gemini API
+        // Uses gemini-2.5-flash (cheap: ~$0.075 per 1M input tokens)
+        // Typical batch: 200 atoms, ~4K tokens in, ~2K tokens out
+        // Cost per batch: ~$0.0004 (less than a tenth of a cent)
+        // ...
+    }
+}
+```
+
+## 9.8 PersonalExecutor (encrypted personal graph operations)
+
+```rust
+pub struct PersonalExecutor {
+    pub vaults: BTreeMap<UserId, PersonalVault>,
+    pub master_key: SecretKey,
+}
+
+pub enum PersonalInput {
+    /// Store a fact about a person.
+    Remember { subject: UserId, fact: Atom, source: ProvenanceRecord },
+    /// Retrieve facts about a person.
+    Recall { subject: UserId, query: Option<Atom> },
+    /// Update last-seen, last-location, etc.
+    UpdateContext { subject: UserId, context: PersonalContext },
+    /// Export personal data (GDPR-style).
+    Export { subject: UserId, format: ExportFormat },
+    /// Forget (hard delete).
+    Forget { subject: UserId, atoms: Vec<Atom> },
+}
+
+pub enum PersonalOutput {
+    Stored,
+    Facts(Vec<Atom>),
+    Exported(Vec<u8>),
+    Forgotten { count: u32 },
+}
+```
+
+---
+
+# 10. Learning Loops (L1-L5)
+
+## 10.1 L1 — Per-Query Reinforcement (online)
+
+```rust
+/// After every query, adjust edge strengths based on what was walked.
+pub fn l1_per_query(
+    graph: &mut Graph,
+    walked_path: &[(Atom, EdgeHot)],
+    success: bool,
+) {
+    for (from, edge) in walked_path {
+        let new_strength = if success {
+            edge.strength().saturating_add(1).min(15)
+        } else {
+            edge.strength().saturating_sub(1).max(0)
+        };
+        graph.update_edge_strength(*from, edge.target(), new_strength);
+    }
+}
+```
+
+## 10.2 L2 — Statement Ingestion (new edges)
+
+```rust
+/// When user asserts a new fact, create atoms + edges as needed.
+pub fn l2_ingest_statement(
+    graph: &mut Graph,
+    subject: Atom,
+    predicate: EdgeKind,
+    object: Atom,
+    provenance: ProvenanceRecord,
+) {
+    graph.insert_edge(subject, predicate, object, EdgeHot {
+        packed: EdgeHot::pack(object.as_u32(), 8, 15, predicate as u8),
+    });
+    graph.provenance_log.append(ProvenanceRecord {
+        timestamp: now(),
+        source: provenance.source,
+        confidence: provenance.confidence,
+        edge: (subject, predicate, object),
+    });
+}
+```
+
+## 10.3 L3 — Distillation (episodic → semantic)
+
+```rust
+/// Periodically scan the Observed edges and promote patterns to Learned atoms.
+/// Runs in NightMode.
+pub fn l3_distill(graph: &mut Graph, config: &DistillConfig) -> Vec<Atom> {
+    let mut new_prototypes = Vec::new();
+    let co_occurrence = count_co_occurrences(&graph.observed_edges);
+
+    for ((atom_a, atom_b), count) in co_occurrence {
+        if count >= config.min_cluster_size {
+            let proto = create_prototype(atom_a, atom_b, count);
+            graph.insert_atom(proto);
+            // Link exemplars (2-3 representative observations)
+            for obs in find_exemplars(graph, atom_a, atom_b, config.exemplars_per_proto) {
+                graph.insert_edge(proto, EdgeKind::HasExemplar, obs, default_edge());
+            }
+            new_prototypes.push(proto);
+        }
+    }
+    new_prototypes
+}
+```
+
+## 10.4 L4 — Abstraction via Clustering (NightMode)
+
+```rust
+/// Cluster similar atoms and hoist common properties to a new parent.
+/// Example: if "Rex", "Buddy", "Max" all have HAS_PART=legs(4), HAS_PROPERTY=fur,
+///          create parent "Dog" with these properties, link children via IS_A.
+pub fn l4_abstract(graph: &mut Graph, cluster: &[Atom]) -> Option<Atom> {
+    let shared_props = find_shared_properties(graph, cluster);
+    if shared_props.len() < 3 {
+        return None;  // Not enough commonality
+    }
+    let parent = Atom::new_concept(next_concept_id(), 0);
+    graph.insert_atom(parent);
+    for child in cluster {
+        graph.insert_edge(*child, EdgeKind::IsA, parent, default_edge());
+    }
+    for prop in shared_props {
+        graph.insert_edge(parent, prop.kind, prop.value, default_edge());
+        // Remove from children (inheritance kicks in)
+        for child in cluster {
+            graph.remove_edge(*child, prop.kind, prop.value);
+        }
+    }
+    Some(parent)
+}
+```
+
+## 10.5 L5 — Surprise-Driven Correction
+
+```rust
+/// When prediction disagrees with reality, correct the responsible edge.
+pub fn l5_surprise_correct(
+    graph: &mut Graph,
+    predicted: Atom,
+    actual: Atom,
+    prediction_path: &[(Atom, EdgeHot)],
+) {
+    if predicted == actual {
+        return;  // No surprise
+    }
+    // Weaken all edges on the prediction path
+    for (from, edge) in prediction_path {
+        let weakened = edge.strength().saturating_sub(3);
+        graph.update_edge_strength(*from, edge.target(), weakened);
+    }
+    // Propose a new edge from the divergence point to the actual outcome
+    let divergence_atom = find_divergence_point(graph, prediction_path, actual);
+    graph.propose_edge_for_dreaming(divergence_atom, actual);
+}
+```
+
+
+---
+
+# 11. Reasoning — Quantum Walks + Spreading Activation + Interference
+
+## 11.1 Superposition over Senses
+
+**עיקרון:** כל query מתחיל במצב של **כל פרשנויות אפשריות alive במקביל**. context מכווץ אותם.
+
+```rust
+/// A superposition of candidate interpretations, each with an amplitude.
+/// Amplitude² = probability of this interpretation being chosen.
+pub struct Superposition<T> {
+    pub states: SmallVec<[(T, f32); 8]>,  // typically 2-5 candidates
+}
+
+impl<T: Clone> Superposition<T> {
+    /// Activate new evidence — strengthens states that match, weakens others.
+    pub fn observe<F>(&mut self, evidence_fn: F)
+    where F: Fn(&T) -> f32 {  // returns 0..1 match score
+        for (state, amp) in self.states.iter_mut() {
+            let match_score = evidence_fn(state);
+            *amp *= (1.0 + match_score).sqrt();  // amplify matches
+        }
+        self.normalize();
+    }
+
+    /// Collapse to single winner (when confidence > threshold).
+    pub fn collapse(&self, threshold: f32) -> Option<T> {
+        let (best, amp) = self.states.iter().max_by(|a, b| {
+            a.1.partial_cmp(&b.1).unwrap()
+        })?;
+        if *amp >= threshold {
+            Some(best.clone())
+        } else {
+            None  // still ambiguous
+        }
+    }
+
+    fn normalize(&mut self) {
+        let sum: f32 = self.states.iter().map(|(_, a)| a * a).sum();
+        let norm = sum.sqrt();
+        for (_, amp) in self.states.iter_mut() {
+            *amp /= norm;
+        }
+    }
+}
+```
+
+## 11.2 Parallel Walks with Interference
+
+```rust
+/// Launch N parallel walkers from seed atoms, collect their activation maps,
+/// combine via constructive/destructive interference at intersections.
+pub struct QuantumWalker {
+    pub n_walkers: usize,      // typically 21
+    pub max_depth: u8,          // typically 7
+    pub decay: f32,             // 0.85 — activation drops per hop
+}
+
+impl QuantumWalker {
+    pub fn walk(
+        &self,
+        graph: &Graph,
+        seeds: &[(Atom, f32)],  // starting atoms with initial amplitudes
+    ) -> ActivationField {
+        // Each walker tracks its own path
+        let walkers: Vec<WalkerState> = seeds.iter()
+            .enumerate()
+            .map(|(i, (seed, amp))| WalkerState::new(*seed, *amp, i))
+            .take(self.n_walkers)
+            .collect();
+
+        // BFS in parallel
+        let mut field = ActivationField::new();
+        for depth in 0..self.max_depth {
+            let mut next_frontier = Vec::new();
+            for walker in walkers.iter() {
+                for edge in graph.neighbors(walker.current) {
+                    let target = edge.target();
+                    let amp = walker.amplitude * self.decay * edge_weight(edge);
+                    // Constructive interference at intersections
+                    field.accumulate(target, amp);
+                    next_frontier.push((target, amp));
+                }
+            }
+            // Prune the frontier to top-K to bound exploration
+            next_frontier.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            next_frontier.truncate(self.n_walkers * 4);
+        }
+
+        field
+    }
+}
+
+/// Result of walking — each atom's activation level.
+pub struct ActivationField {
+    pub activations: IndexMap<Atom, f32>,
+}
+
+impl ActivationField {
+    pub fn accumulate(&mut self, atom: Atom, amplitude: f32) {
+        let entry = self.activations.entry(atom).or_insert(0.0);
+        *entry += amplitude;  // constructive interference
+    }
+
+    pub fn top_k(&self, k: usize) -> Vec<(Atom, f32)> {
+        let mut v: Vec<_> = self.activations.iter().map(|(a, s)| (*a, *s)).collect();
+        v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        v.truncate(k);
+        v
+    }
+}
+```
+
+## 11.3 Spreading Activation with Context
+
+```rust
+/// Context-anchored walk — starts from SessionContext atoms, not cold.
+pub fn contextual_activation(
+    graph: &Graph,
+    session: &SessionContext,
+    query_atoms: &[Atom],
+    config: &WalkConfig,
+) -> ActivationField {
+    let mut seeds = Vec::new();
+    // Query atoms — high weight
+    for atom in query_atoms {
+        seeds.push((*atom, 1.0));
+    }
+    // Session-active atoms — medium weight
+    for (atom, strength) in session.active_atoms() {
+        seeds.push((*atom, 0.5 * strength));
+    }
+    // User-profile atoms — low weight
+    for atom in session.user_profile.top_atoms(20) {
+        seeds.push((*atom, 0.2));
+    }
+
+    let walker = QuantumWalker {
+        n_walkers: 21,
+        max_depth: 7,
+        decay: 0.85,
+    };
+    walker.walk(graph, &seeds)
+}
+```
+
+## 11.4 Interference Score (constructive + destructive)
+
+```rust
+/// Walks that converge on the same atom amplify it; walks that disagree cancel.
+pub fn interference_score(
+    positive_walks: &[Vec<Atom>],
+    negative_walks: &[Vec<Atom>],
+) -> IndexMap<Atom, f32> {
+    let mut scores = IndexMap::new();
+    // Constructive: positive walks add
+    for walk in positive_walks {
+        for atom in walk {
+            *scores.entry(*atom).or_insert(0.0) += 1.0 / walk.len() as f32;
+        }
+    }
+    // Destructive: negative walks subtract
+    for walk in negative_walks {
+        for atom in walk {
+            *scores.entry(*atom).or_insert(0.0) -= 0.5 / walk.len() as f32;
+        }
+    }
+    scores.retain(|_, v| *v > 0.0);
+    scores
+}
+```
+
+---
+
+# 12. זרימת יצירה (קוד/שירים/מאמרים)
+
+**עקרון מאוחד:** הכל נוצר באותה זרימה. הבדל רק בExecutor הסופי + motif bank.
+
+```rust
+/// Universal creation flow — applies to code, songs, articles, workflows.
+pub fn creation_flow(
+    graph: &mut Graph,
+    registry: &Registry,
+    request: CreationRequest,
+) -> Result<CreationOutcome, CreationError> {
+    // Phase 1 — ASSOCIATE (spreading activation)
+    let field = contextual_activation(graph, &request.session, &request.topic_atoms, &walk_config());
+
+    // Phase 2 — RECALL (find relevant procedures/motifs)
+    let procedures = find_procedure_atoms(graph, &field);
+    let motifs = find_motifs_for_domain(graph, request.domain, &field);
+
+    // Phase 3 — COMPOSE (build a plan DAG)
+    let plan = compose_plan(&procedures, &motifs, &request);
+
+    // Phase 4 — EXECUTE (hand off to appropriate executor)
+    let executor = match request.domain {
+        Domain::Code(lang) => registry.find("code").unwrap(),
+        Domain::Article => registry.find("text").unwrap(),
+        Domain::Music => registry.find("audio").unwrap(),
+        Domain::Workflow => registry.find("compute").unwrap(),
+        _ => registry.find("text").unwrap(),
+    };
+    let output = executor.execute_plan(plan)?;
+
+    // Phase 5 — OBSERVE (capture outcome)
+    let success = verify_outcome(&output, &request.success_criteria);
+
+    // Phase 6 — LEARN (cache successful plan as new motif)
+    if success {
+        let new_motif = cache_plan_as_motif(graph, &plan, &output);
+        promote_plan_to_procedure(graph, &plan, new_motif);
+    } else {
+        weaken_used_edges(graph, &plan);
+        trigger_dreaming(graph, &request);
+    }
+
+    Ok(CreationOutcome { output, plan, success })
+}
+
+/// Cache a successful composition as a reusable motif.
+pub fn cache_plan_as_motif(graph: &mut Graph, plan: &CompositionPlan, output: &Output) -> Atom {
+    let motif_atom = Atom::new_procedure(next_procedure_id());
+    graph.insert_atom(motif_atom);
+    for step in &plan.steps {
+        graph.insert_edge(motif_atom, EdgeKind::HasStep, step.atom, default_edge());
+    }
+    graph.insert_edge(motif_atom, EdgeKind::ExampleOutput, output.atom, default_edge());
+    motif_atom
+}
+```
+
+**דוגמה — יצירת פייתון שסוכם CSV:**
+
+```
+User: "כתוב פייתון שסוכם עמודה ב-CSV"
+
+Phase 1: ASSOCIATE
+  Activates: #python, #csv, #sum, #column, #file_io
+  Session bias: user is developer
+
+Phase 2: RECALL
+  Procedures found:
+    procedure:python_file_open
+    procedure:python_csv_read
+    procedure:iterate_and_sum
+  Motifs found (CodePattern):
+    motif:python_function_skeleton
+    motif:try_except_wrapper
+    motif:main_guard
+
+Phase 3: COMPOSE
+  plan = [
+    fill(function_skeleton, name="sum_column", args=["filename", "col"]),
+    step(open_file, mode="r"),
+    step(csv_reader),
+    step(accumulator, init=0, op="+="),
+    step(return_value),
+    wrap(try_except),
+    add(main_guard),
+  ]
+
+Phase 4: EXECUTE
+  CodeExecutor.generate(plan, lang=Python)
+  → "def sum_column(filename, col):\n    ..."
+  → sandbox run: ✓ works
+
+Phase 5: OBSERVE
+  Test passed, output reasonable
+
+Phase 6: LEARN
+  Create atom: procedure:sum_csv_column_python
+  Edges: uses_motif(function_skeleton), uses_motif(try_except), ...
+  Next time this request appears → instant recall, no re-composition
+```
+
+---
+
+# 13. טיפול במדיה
+
+## 13.1 Unified Media Pipeline
+
+```rust
+/// Universal media ingestion — same mechanism for image/audio/video.
+/// Media never stored raw in the graph — atoms are IDs pointing to external blobs.
+pub struct MediaPipeline {
+    pub image: ImageExecutor,
+    pub audio: AudioExecutor,
+    pub video: VideoExecutor,
+    pub blob_store: BlobStore,
+}
+
+pub enum MediaInput {
+    Image(Vec<u8>),
+    Audio(Vec<u8>),
+    Video(Vec<u8>),
+    File(PathBuf),
+}
+
+impl MediaPipeline {
+    pub fn ingest(&self, input: MediaInput) -> Result<Vec<Atom>, MediaError> {
+        match input {
+            MediaInput::Image(bytes) => self.ingest_image(&bytes),
+            MediaInput::Audio(bytes) => self.ingest_audio(&bytes),
+            MediaInput::Video(bytes) => self.ingest_video(&bytes),
+            MediaInput::File(p) => self.ingest_file(&p),
+        }
+    }
+
+    fn ingest_image(&self, bytes: &[u8]) -> Result<Vec<Atom>, MediaError> {
+        // Step 1: Store blob (for possible later re-processing)
+        let blob_id = self.blob_store.store(bytes)?;
+
+        // Step 2: CLIP embedding via ImageExecutor
+        let vector = match self.image.invoke(ImageInput::Embed(bytes.to_vec()))? {
+            ImageOutput::Vector(v) => v,
+            _ => return Err(MediaError::UnexpectedOutput),
+        };
+
+        // Step 3: Hopfield recall — find matching concept atoms
+        let matches = match self.image.invoke(ImageInput::Recall(vector.clone()))? {
+            ImageOutput::Matches(m) => m,
+            _ => return Err(MediaError::UnexpectedOutput),
+        };
+
+        // Step 4: Create Media atom pointing to blob + vector + associations
+        let media_atom = Atom::new_media(blob_id, MediaKind::Image);
+        let mut associated = vec![media_atom];
+
+        // Step 5: Link to recognized concepts above threshold
+        for (concept_atom, score) in matches {
+            if score > 0.3 {
+                // Create edge: media_atom --depicts--> concept_atom
+                associated.push(concept_atom);
+            }
+        }
+
+        Ok(associated)
+    }
+
+    fn ingest_audio(&self, bytes: &[u8]) -> Result<Vec<Atom>, MediaError> {
+        // Step 1: Blob store
+        let blob_id = self.blob_store.store(bytes)?;
+
+        // Step 2: Whisper transcription + prosody
+        let (transcription, prosody) = self.audio.invoke_transcribe(bytes)?;
+
+        // Step 3: Text goes through TextExecutor, prosody stays as features
+        // ...
+
+        Ok(vec![])
+    }
+
+    fn ingest_video(&self, bytes: &[u8]) -> Result<Vec<Atom>, MediaError> {
+        // Step 1: Keyframe extraction (1 per second)
+        let keyframes = self.video.extract_keyframes(bytes)?;
+
+        // Step 2: Each keyframe → image ingest
+        let mut all_atoms = Vec::new();
+        for kf in keyframes {
+            all_atoms.extend(self.ingest_image(&kf.data)?);
+        }
+
+        // Step 3: Audio track → audio ingest
+        let audio_track = self.video.extract_audio(bytes)?;
+        all_atoms.extend(self.ingest_audio(&audio_track)?);
+
+        // Step 4: Temporal motif mining — what recurs across keyframes?
+        let temporal_motifs = mine_temporal_motifs(&all_atoms);
+
+        // Step 5: Compose video-scene atom linking everything
+        let scene = Atom::new_media(self.blob_store.store(bytes)?, MediaKind::Video);
+        for m in temporal_motifs {
+            // link scene to each motif
+        }
+
+        all_atoms.push(scene);
+        Ok(all_atoms)
+    }
+}
+```
+
+## 13.2 Media Atom Structure
+
+```rust
+/// Media atom — kind = 0x9. Points to external blob + vector + associations.
+///
+/// Bit layout:
+///   [63..60]  kind = 0x9
+///   [59..56]  media_kind (image/audio/video/other)
+///   [55..32]  blob_id (24 bits = 16M blobs)
+///   [31..0]   vector_ref_or_semantic_id (32 bits)
+#[derive(Clone, Copy, Debug)]
+pub enum MediaKind {
+    Image     = 0,
+    Audio     = 1,
+    Video     = 2,
+    Document  = 3,
+    Other     = 15,
+}
+
+impl Atom {
+    pub fn new_media(blob_id: u32, kind: MediaKind) -> Self {
+        assert!(blob_id < (1 << 24));
+        let mut bits: u64 = 0;
+        bits |= (AtomKind::Media as u64) << 60;
+        bits |= (kind as u64) << 56;
+        bits |= (blob_id as u64) << 32;
+        Atom(bits)
+    }
+}
+```
+
+## 13.3 Hopfield Bank (associative memory for media)
+
+```rust
+/// Bank of stored (atom_id, vector) pairs enabling associative recall.
+pub struct HopfieldBank {
+    pub dim: usize,                     // typically 512 (CLIP) or 768 (Whisper)
+    pub beta: f32,                      // softmax sharpness
+    pub threshold: f32,                 // minimum similarity to report match
+    pub patterns: Vec<(u32, Vec<f32>)>, // (atom_id, normalized vector)
+    pub index: Option<HNSWIndex>,        // optional — for >100K entries
+}
+
+impl HopfieldBank {
+    /// Find top-K nearest atoms to a query vector.
+    pub fn query_top_k(&self, query: &[f32], k: usize) -> Vec<(Atom, f32)> {
+        let mut results: Vec<_> = self.patterns.iter()
+            .map(|(id, v)| (*id, cosine_similarity(query, v)))
+            .filter(|(_, s)| *s >= self.threshold)
+            .collect();
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        results.truncate(k);
+        results.into_iter().map(|(id, s)| (Atom::from_u32(id), s)).collect()
+    }
+
+    pub fn store(&mut self, atom_id: u32, vector: Vec<f32>) -> Result<(), HopfieldError> {
+        let normalized = normalize(vector);
+        self.patterns.push((atom_id, normalized));
+        if self.patterns.len() > 100_000 && self.index.is_none() {
+            self.index = Some(self.rebuild_hnsw());
+        }
+        Ok(())
+    }
+}
+```
+
+---
+
+# 14. למידה אוטונומית ממקורות חיצוניים
+
+## 14.1 Curiosity Engine
+
+```rust
+/// The engine that drives autonomous learning. Runs in background (NightMode or idle time).
+pub struct CuriosityEngine {
+    pub goals: Vec<LearningGoal>,
+    pub source_registry: SourceRegistry,
+    pub web_executor: WebExecutor,
+    pub rate_limits: RateLimits,
+}
+
+pub struct LearningGoal {
+    pub description: String,
+    pub target_atoms: Vec<Atom>,
+    pub criteria: SuccessCriteria,
+    pub priority: u8,
+    pub deadline: Option<Timestamp>,
+}
+
+impl CuriosityEngine {
+    /// Main loop: detect gaps, plan, fetch, ingest, verify.
+    pub fn tick(&mut self, graph: &mut Graph) -> Result<TickReport, CuriosityError> {
+        // Step 1: Gap detection
+        let gaps = self.detect_gaps(graph);
+
+        // Step 2: Prioritize (by goal relevance + cost estimate)
+        let tasks = self.plan_tasks(&gaps);
+
+        // Step 3: Execute next N tasks within rate limit
+        let mut report = TickReport::default();
+        for task in tasks.iter().take(self.rate_limits.tasks_per_tick) {
+            match self.execute_task(graph, task)? {
+                TaskResult::Success(atoms_added) => {
+                    report.successes += 1;
+                    report.atoms_added += atoms_added;
+                }
+                TaskResult::Deferred => report.deferred += 1,
+                TaskResult::Failed(e) => report.failures.push(e),
+            }
+        }
+
+        // Step 4: Consolidate new knowledge
+        self.consolidate(graph, &report)?;
+
+        Ok(report)
+    }
+
+    fn detect_gaps(&self, graph: &Graph) -> Vec<Gap> {
+        let mut gaps = Vec::new();
+
+        // Type 1: Concept exists, no sensory representation
+        for concept in graph.iter_atoms_of_kind(AtomKind::Concept) {
+            if !graph.has_edge(concept, EdgeKind::HasVector) {
+                gaps.push(Gap::MissingSensoryAnchor(concept));
+            }
+        }
+
+        // Type 2: Concept exists, no gloss
+        for concept in graph.iter_atoms_of_kind(AtomKind::Concept) {
+            if !graph.has_edge(concept, EdgeKind::HasGloss) {
+                gaps.push(Gap::MissingDefinition(concept));
+            }
+        }
+
+        // Type 3: Known unknowns (explicit curiosity atoms)
+        for q in graph.iter_atoms_of_kind(AtomKind::Meta) {
+            if graph.has_edge(q, EdgeKind::MarksGap) {
+                gaps.push(Gap::Explicit(q));
+            }
+        }
+
+        gaps
+    }
+}
+```
+
+## 14.2 Scraping with Policy
+
+```rust
+/// Source registry — curated list of trustworthy sources per topic.
+pub struct SourceRegistry {
+    pub entries: Vec<SourceEntry>,
+}
+
+pub struct SourceEntry {
+    pub url_pattern: String,         // "https://*.wikipedia.org/wiki/*"
+    pub topic_match: Vec<Atom>,      // which topic atoms this source covers
+    pub trust_score: u8,             // 0-100
+    pub rate_limit_per_min: u32,
+    pub parser: ParserKind,          // Wikipedia / generic / RSS / etc.
+}
+
+/// Learning procedure: fetch a Wikipedia article and convert to atoms.
+pub fn learn_from_wikipedia_article(
+    url: &Url,
+    graph: &mut Graph,
+    web: &WebExecutor,
+    text: &TextExecutor,
+) -> Result<Vec<Atom>, LearningError> {
+    // 1. Fetch with robots + rate limit
+    let html = web.fetch_with_policy(url)?;
+
+    // 2. Parse HTML, extract main content + metadata
+    let doc = parse_wikipedia_html(&html)?;
+
+    // 3. Detect language (HE/EN/AR/etc.)
+    let lang = detect_language(&doc.text)?;
+
+    // 4. Tokenize per language
+    let tokens = text.invoke(TextInput::Tokenize(doc.text, lang))?;
+
+    // 5. For each token — check if lemma exists, if not create atom
+    let mut new_atoms = Vec::new();
+    for token in tokens {
+        let analyses = text.invoke(TextInput::Analyze(token.surface.clone(), lang))?;
+        if let Some(best) = best_analysis(&analyses) {
+            let atom = ensure_lemma_atom(graph, &best, lang);
+            new_atoms.push(atom);
+        }
+    }
+
+    // 6. Extract entity mentions (people, places, organizations)
+    let entities = extract_entities(&doc)?;
+    for entity in entities {
+        ensure_entity_atom(graph, entity);
+    }
+
+    // 7. Co-occurrence → propose edges
+    for window in tokens.windows(5) {
+        propose_cooccurrence_edges(graph, window, &doc.source_provenance);
+    }
+
+    // 8. Log provenance on every new atom/edge
+    graph.provenance_log.append_bulk(url, &new_atoms);
+
+    Ok(new_atoms)
+}
+```
+
+## 14.3 File Ingestion
+
+```rust
+/// Ingest a local file — PDF, DOCX, TXT, CSV, JSON, etc.
+pub struct FileIngester {
+    pub doc_executor: DocExecutor,
+    pub text_executor: TextExecutor,
+    pub image_executor: ImageExecutor,
+}
+
+impl FileIngester {
+    pub fn ingest(&self, graph: &mut Graph, path: &Path) -> Result<Vec<Atom>, IngestError> {
+        let kind = detect_file_kind(path)?;
+        match kind {
+            FileKind::PlainText => self.ingest_text_file(graph, path),
+            FileKind::Pdf => self.ingest_pdf(graph, path),
+            FileKind::Docx => self.ingest_docx(graph, path),
+            FileKind::Csv => self.ingest_csv(graph, path),
+            FileKind::Json => self.ingest_json(graph, path),
+            FileKind::Image => self.ingest_image_file(graph, path),
+            FileKind::Audio => self.ingest_audio_file(graph, path),
+            FileKind::Video => self.ingest_video_file(graph, path),
+            _ => Err(IngestError::UnsupportedFormat),
+        }
+    }
+}
+```
+
+---
+
+# 15. Default vs Typical vs Observed Knowledge
+
+**הדוגמה של עידן: "מכונית אדומה" vs "מכונית לבנה דמיונית".**
+
+ZETS מבחין בין שלושה סוגי ידע:
+
+| סוג | משמעות | Edge kind | Weight source |
+|---|---|---|---|
+| **Logical** | מה אפשרי לוגית | `CAN_HAVE_PROPERTY` | Static, 1.0 |
+| **Typical** | מה שכיח (prior) | `TYPICALLY_HAS` | Learned frequency |
+| **Observed** | מה ראינו ספציפית | `OBSERVED_HAS` | Per-instance count |
+
+## 15.1 Rust Encoding
+
+```rust
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum KnowledgeKind {
+    // Logical — necessarily true given definitions
+    CanHave         = 0x40,  // #VEHICLE can have #COLOR
+    MustHave        = 0x41,  // #CAR must have #WHEELS
+    CannotHave      = 0x42,  // #ROCK cannot have #EMOTIONS
+
+    // Typical — statistical priors from observation
+    TypicallyHas    = 0x50,  // #CAR typically has #COLOR_WHITE (0.32)
+    TypicallyAbsent = 0x51,  // #HOUSE typically no #WHEELS
+    PriorWeight     = 0x52,  // the numerical prior
+
+    // Observed — specific instance facts
+    ObservedHas     = 0x60,  // #TOYOTA_CAMRY_2024_X has #COLOR_BLUE (instance)
+    ObservedInstance = 0x61,  // a specific entity
+    OccurredAt      = 0x62,  // timestamp of observation
+}
+```
+
+## 15.2 The Car-Color Example Resolved
+
+```
+Logical level:
+  #VEHICLE --CanHave--> #COLOR
+  (any vehicle CAN have any color — nothing prevents it)
+
+Typical level (learned from corpus):
+  #VEHICLE --TypicallyHas--> #COLOR_WHITE    weight=0.32
+  #VEHICLE --TypicallyHas--> #COLOR_BLACK    weight=0.25
+  #VEHICLE --TypicallyHas--> #COLOR_GRAY     weight=0.18
+  #VEHICLE --TypicallyHas--> #COLOR_SILVER   weight=0.12
+  #VEHICLE --TypicallyHas--> #COLOR_RED      weight=0.06
+  (and so on — sums approx 1.0)
+
+Observed level (from importer catalog):
+  #IMPORTER_X_CATALOG --contains--> #MODEL_CAMRY_2024
+  #MODEL_CAMRY_2024 --ObservedHas--> #COLOR_WHITE    count=150
+  #MODEL_CAMRY_2024 --ObservedHas--> #COLOR_BLACK    count=80
+  #MODEL_CAMRY_2024 --ObservedHas--> #COLOR_BLUE     count=20
+  (10 specific colors observed)
+```
+
+## 15.3 Imagination: What Does ZETS "See" When Asked About a Car?
+
+```rust
+/// When asked to imagine a car (no specific color given), ZETS samples from typical.
+pub fn imagine_with_defaults(
+    graph: &Graph,
+    concept: Atom,
+    property_kind: EdgeKind,
+) -> Option<Atom> {
+    // First: check if there are observed instances
+    let observed = graph.outgoing_edges(concept, EdgeKind::ObservedHas);
+    if !observed.is_empty() {
+        return Some(sample_weighted(&observed));
+    }
+
+    // Fallback: use typical priors
+    let typical = graph.outgoing_edges(concept, EdgeKind::TypicallyHas);
+    if !typical.is_empty() {
+        return Some(sample_weighted(&typical));
+    }
+
+    None  // No default — truly novel concept
+}
+
+fn sample_weighted(edges: &[EdgeHot]) -> Atom {
+    // Deterministic sampling based on session seed
+    let total: f32 = edges.iter().map(|e| edge_weight_as_prior(e)).sum();
+    let mut r = deterministic_hash_to_unit_interval() * total;
+    for edge in edges {
+        r -= edge_weight_as_prior(edge);
+        if r <= 0.0 {
+            return Atom::from_u32(edge.target());
+        }
+    }
+    Atom::from_u32(edges[0].target())
+}
+```
+
+**תוצאה:** "דמיין מכונית" → 32% סיכוי לבן, 25% שחור, 18% אפור. כמו אדם רגיל.
+
+
+---
+
+# 16. העשרה חיצונית דרך Batch AI
+
+## 16.1 The Economic Principle
+
+**חסכוני:** בלי לקרוא ל-AI לכל atom בנפרד. לאגור גאפים, לשלוח batch אחד של 200, לחסוך 100x.
+
+## 16.2 Target Model: Gemini 2.5 Flash
+
+| פרמטר | ערך | למה |
+|---|---|---|
+| Model | `gemini-2.5-flash` | זול (~$0.075 / 1M input tokens) |
+| Batch size | 200 atoms | איזון בין throughput ל-context window |
+| Temperature | 0.1 | דטרמיניסטי ככל האפשר |
+| Max output | 8K tokens | מספיק ל-200 items structured |
+| Retry on fail | 3x, exponential backoff | |
+| Cost tracker | Per-session budget cap | מנעול הוצאות |
+
+## 16.3 Gap Detection → Batch Job
+
+```rust
+/// Periodically scan graph for "sensory gaps" — concepts without grounding.
+pub fn scan_enrichment_gaps(graph: &Graph) -> Vec<EnrichmentBatch> {
+    let mut batches: FxHashMap<EnrichmentKind, Vec<Atom>> = FxHashMap::default();
+
+    // Scan for color concepts missing RGB
+    for atom in graph.iter_concept_descendants_of(concept_ids::COLOR) {
+        if !graph.has_edge(atom, EdgeKind::HasRgbValue) {
+            batches.entry(EnrichmentKind::Color).or_default().push(atom);
+        }
+    }
+
+    // Scan for taste concepts missing descriptors
+    for atom in graph.iter_concept_descendants_of(concept_ids::TASTE) {
+        if !graph.has_edge(atom, EdgeKind::HasTasteProfile) {
+            batches.entry(EnrichmentKind::Taste).or_default().push(atom);
+        }
+    }
+
+    // Scan for texture, shape, sound, etc.
+    // ...
+
+    // Group into batches of 200
+    batches.into_iter().flat_map(|(kind, atoms)| {
+        atoms.chunks(200).map(|chunk| EnrichmentBatch {
+            kind,
+            atoms: chunk.to_vec(),
+        }).collect::<Vec<_>>()
+    }).collect()
+}
+```
+
+## 16.4 Example: Color Enrichment
+
+```rust
+pub fn enrich_colors(
+    executor: &EnrichmentExecutor,
+    graph: &mut Graph,
+    atoms: &[Atom],
+) -> Result<u32, EnrichError> {
+    // Build the batch prompt
+    let names: Vec<String> = atoms.iter()
+        .map(|a| graph.lemma_string(*a, Language::English))
+        .collect();
+
+    let prompt = format!(r#"
+For each color name, return a JSON object with fields:
+  "name": the color name (lowercase)
+  "rgb": [r, g, b] where each is 0-255
+  "hsl": [h, s, l] where h is 0-360, s and l are 0-1
+  "texture_descriptors": array of 3-5 English adjectives
+  "emotional_associations": array of 3-5 emotion words
+  "common_objects": array of 3-5 things typically this color
+
+Respond ONLY with a JSON array, no prose.
+
+Colors: {}
+"#, names.join(", "));
+
+    let response = executor.call_gemini_flash(&prompt)?;
+    let parsed: Vec<ColorData> = serde_json::from_str(&response)?;
+
+    let mut count = 0u32;
+    for (atom, data) in atoms.iter().zip(parsed.iter()) {
+        // Insert RGB atom + edge
+        let rgb_atom = Atom::new_rgb(data.rgb[0], data.rgb[1], data.rgb[2]);
+        graph.insert_atom(rgb_atom);
+        graph.insert_edge(*atom, EdgeKind::HasRgbValue, rgb_atom, default_edge());
+
+        // Insert HSL edge
+        let hsl_atom = Atom::new_hsl(data.hsl[0], data.hsl[1], data.hsl[2]);
+        graph.insert_edge(*atom, EdgeKind::HasHslValue, hsl_atom, default_edge());
+
+        // Link texture descriptors
+        for desc in &data.texture_descriptors {
+            let desc_atom = ensure_concept_atom(graph, desc);
+            graph.insert_edge(*atom, EdgeKind::HasTexture, desc_atom, default_edge());
+        }
+
+        // Link emotional associations
+        for emo in &data.emotional_associations {
+            let emo_atom = ensure_concept_atom(graph, emo);
+            graph.insert_edge(*atom, EdgeKind::EvokesEmotion, emo_atom, default_edge());
+        }
+
+        count += 1;
+    }
+
+    // Update cost tracker
+    executor.cost_tracker.lock().unwrap().record(
+        prompt.len() as u32,
+        response.len() as u32,
+        Model::GeminiFlash25,
+    );
+
+    Ok(count)
+}
+```
+
+## 16.5 Cost Model
+
+```
+Typical enrichment cycle:
+  - 200 color atoms in one batch
+  - Prompt: ~500 tokens (instructions) + 200 × 3 tokens (names) = ~1,100 tokens in
+  - Response: ~200 × 40 tokens (JSON per item) = ~8,000 tokens out
+
+Cost per batch (Gemini 2.5 Flash):
+  Input: 1,100 × $0.075 / 1M = $0.00008
+  Output: 8,000 × $0.30 / 1M = $0.0024
+  Total: ~$0.0025 per batch of 200 atoms
+
+Full color taxonomy (~1,000 colors) = 5 batches = $0.013
+Full gap scan (~50K concepts to enrich) = 250 batches = $0.63
+
+A full ZETS enrichment from zero = under $1 USD.
+```
+
+## 16.6 Cross-verification (when budget allows)
+
+```rust
+/// Higher-confidence: use two independent models, take consensus.
+pub fn enrich_with_cross_verification(
+    atoms: &[Atom],
+    primary: &EnrichmentExecutor,   // gemini-2.5-flash
+    secondary: &EnrichmentExecutor, // gpt-5-mini or similar
+) -> Result<Vec<(Atom, Properties)>, EnrichError> {
+    let primary_results = primary.enrich(atoms)?;
+    let secondary_results = secondary.enrich(atoms)?;
+
+    primary_results.into_iter().zip(secondary_results.into_iter())
+        .map(|(p, s)| {
+            let confidence = agreement_score(&p.1, &s.1);
+            if confidence > 0.7 {
+                Ok((p.0, merge_properties(&p.1, &s.1)))
+            } else {
+                // Disagreement — flag for human review, use higher-confidence source
+                Err(EnrichError::LowAgreement(p.0))
+            }
+        })
+        .collect()
+}
+```
+
+---
+
+# 17. גרפים אישיים מוצפנים
+
+**עקרון:** לכל אדם במערכת יש sub-graph משלו שמוצפן עם key שלא עוזב את המכשיר של עידן. המידע **אסור לנתק** (Idan's words).
+
+## 17.1 Personal Vault Structure
+
+```rust
+/// One personal vault per known person (user, client, contact).
+pub struct PersonalVault {
+    pub owner_id: UserId,
+    pub encryption: VaultEncryption,
+    pub atoms: Vec<EncryptedAtom>,
+    pub edges: Vec<EncryptedEdge>,
+    pub public_links: Vec<PublicLink>,  // links into shared concept graph
+    pub last_updated: Timestamp,
+}
+
+pub struct VaultEncryption {
+    pub algorithm: EncryptionAlgo,  // AES-256-GCM
+    pub key_sealed: Vec<u8>,        // sealed against master key
+    pub nonce_counter: u64,          // per-atom nonce
+}
+
+/// A link from private graph to public concept graph.
+/// This is the ONE-WAY window — private graph can read public, public cannot see private.
+pub struct PublicLink {
+    pub private_atom: AtomId,         // in this vault
+    pub public_atom: Atom,            // in shared graph
+    pub permeability: Permeability,   // controls info leakage direction
+    pub trust: TrustLevel,
+}
+
+#[derive(Clone, Copy)]
+pub enum Permeability {
+    /// Private atom can read public, but contributes NOTHING to public.
+    OneWayIn,
+    /// Private atom can read public AND contributes aggregated stats only.
+    AggregatedOut,
+    /// Forbidden — private atom fully isolated.
+    Isolated,
+}
+```
+
+## 17.2 Operations
+
+```rust
+pub struct PersonalExecutor {
+    pub vaults: BTreeMap<UserId, PersonalVault>,
+    pub master_key: SealedKey,
+}
+
+impl PersonalExecutor {
+    /// Remember a fact about a specific person, privacy-protected.
+    pub fn remember(
+        &mut self,
+        subject: UserId,
+        fact_atom: Atom,
+        provenance: ProvenanceRecord,
+    ) -> Result<(), PersonalError> {
+        let vault = self.vaults.entry(subject).or_insert_with(|| {
+            PersonalVault::new(subject, &self.master_key)
+        });
+        let encrypted = encrypt_atom(&vault.encryption, &fact_atom)?;
+        vault.atoms.push(encrypted);
+        vault.last_updated = now();
+        Ok(())
+    }
+
+    /// Recall facts about a person (requires owner authentication).
+    pub fn recall(
+        &self,
+        subject: UserId,
+        query: Option<Atom>,
+        requester: &AuthenticatedUser,
+    ) -> Result<Vec<Atom>, PersonalError> {
+        // Authorization check
+        if !can_access_vault(requester, subject) {
+            return Err(PersonalError::AccessDenied);
+        }
+        let vault = self.vaults.get(&subject)
+            .ok_or(PersonalError::VaultNotFound)?;
+        let atoms = decrypt_atoms(&vault.encryption, &vault.atoms)?;
+        match query {
+            Some(q) => Ok(filter_relevant(&atoms, q)),
+            None => Ok(atoms),
+        }
+    }
+
+    /// Aggregate statistics INTO public graph without leaking identities.
+    pub fn contribute_aggregated_stats(&self, public_graph: &mut Graph) {
+        let mut aggregated: FxHashMap<Atom, u32> = FxHashMap::default();
+        for vault in self.vaults.values() {
+            for enc_atom in &vault.atoms {
+                if is_safe_to_aggregate(&enc_atom.metadata) {
+                    let concept = enc_atom.linked_public_concept;
+                    *aggregated.entry(concept).or_insert(0) += 1;
+                }
+            }
+        }
+        // Apply differential-privacy noise
+        for (concept, count) in aggregated {
+            let noisy_count = add_laplace_noise(count, 1.0);
+            public_graph.increment_frequency(concept, noisy_count);
+        }
+    }
+}
+```
+
+## 17.3 The "Undeletable Atom" Principle
+
+**עידן אמר: "אטום שאסור לנתק".** כלומר — לכל אדם יש atom מרכזי שמזהה אותו, וכל הקשרים האישיים תלויים בו. הוא לא נמחק אוטומטית ב-NightMode.
+
+```rust
+/// Atom flags include an "IsPersonalAnchor" bit. These atoms are protected.
+pub const FLAG_PERSONAL_ANCHOR: u64 = 1 << 58;
+
+impl Atom {
+    pub fn is_personal_anchor(&self) -> bool {
+        (self.0 & FLAG_PERSONAL_ANCHOR) != 0
+    }
+}
+
+/// NightMode pruning respects anchors.
+pub fn prune_cold_edges(graph: &mut Graph, threshold: u8) {
+    graph.edges.retain(|edge| {
+        // Never prune edges to/from personal anchors
+        if graph.is_anchor(edge.source) || graph.is_anchor_u32(edge.target()) {
+            return true;
+        }
+        edge.strength() >= threshold
+    });
+}
+```
+
+---
+
+# 18. מיפוי קבלי — ספירות, פרצופים, מלאכים
+
+**לא קישוט. מבנה.**
+
+## 18.1 10 הספירות = 10 Pipeline Stages
+
+```rust
+/// Every query flows through 10 sefirot stages. Each is a Rust module.
+pub enum Sefira {
+    Keter     = 0,   // כתר — intent root, goal formation
+    Chokhmah  = 1,   // חכמה — flash insight, pattern recognition
+    Binah     = 2,   // בינה — decomposition, analysis
+    Chesed    = 3,   // חסד — expansive spreading activation
+    Gevurah   = 4,   // גבורה — pruning, constraint enforcement
+    Tiferet   = 5,   // תפארת — integration, harmonization
+    Netzach   = 6,   // נצח — persistent goals, repetition
+    Hod       = 7,   // הוד — acknowledgment, validation
+    Yesod     = 8,   // יסוד — foundation, memory consolidation
+    Malkhut   = 9,   // מלכות — realization, output
+}
+
+pub struct QueryFlow {
+    pub current_sefira: Sefira,
+    pub state: SefiraState,
+}
+
+impl QueryFlow {
+    pub fn execute(&mut self, registry: &Registry, graph: &mut Graph) -> Result<Output, FlowError> {
+        // Phase 1: Keter — form intent
+        let intent = intent::form_intent(&self.state.user_query)?;
+
+        // Phase 2: Chokhmah — flash match
+        let prototypes = prototype::flash_recall(graph, &intent)?;
+
+        // Phase 3: Binah — decompose
+        let subtasks = decompose::break_down(&intent, &prototypes)?;
+
+        // Phase 4: Chesed — expand
+        let field = spreading_activation::expand(graph, &subtasks)?;
+
+        // Phase 5: Gevurah — prune
+        let filtered = gate::enforce_constraints(&field, &self.state.user_policy)?;
+
+        // Phase 6: Tiferet — integrate
+        let composition = compose::build_answer(&filtered, &intent)?;
+
+        // Phase 7: Netzach — ensure goal aligned
+        goals::check_alignment(&composition, &self.state.user_goals)?;
+
+        // Phase 8: Hod — verify
+        verify::validate(&composition, graph)?;
+
+        // Phase 9: Yesod — consolidate (store into memory)
+        consolidation::persist_to_memory(&composition, graph)?;
+
+        // Phase 10: Malkhut — realize
+        let output = realize::to_natural_language(&composition, self.state.target_lang)?;
+
+        Ok(output)
+    }
+}
+```
+
+## 18.2 5 הפרצופים = 5 Walk Modes
+
+```rust
+/// Walk modes — each corresponds to a partzuf (cognitive style).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WalkMode {
+    ArichAnpin     = 0,  // אריך אנפין — goal (top-down, purpose-seeking)
+    Abba           = 1,  // אבא — flash insight (fast, shallow)
+    Imma           = 2,  // אמא — decomposition (wide, thorough)
+    ZeirAnpin      = 3,  // ז"א — process (step-by-step)
+    Nukvah         = 4,  // נוקבא — output (detailed, concrete)
+}
+
+impl WalkMode {
+    pub fn config(&self) -> WalkConfig {
+        match self {
+            Self::ArichAnpin => WalkConfig {
+                depth: 3, n_walkers: 5, decay: 0.95, direction: Direction::TopDown,
+            },
+            Self::Abba => WalkConfig {
+                depth: 2, n_walkers: 21, decay: 0.7, direction: Direction::FlashBurst,
+            },
+            Self::Imma => WalkConfig {
+                depth: 8, n_walkers: 21, decay: 0.9, direction: Direction::Expansive,
+            },
+            Self::ZeirAnpin => WalkConfig {
+                depth: 7, n_walkers: 14, decay: 0.85, direction: Direction::Sequential,
+            },
+            Self::Nukvah => WalkConfig {
+                depth: 5, n_walkers: 7, decay: 0.8, direction: Direction::BottomUp,
+            },
+        }
+    }
+}
+```
+
+## 18.3 7 המלאכים = 7 Intent Classifiers / Daemons
+
+```rust
+/// Intent classifiers — each angel specializes in one kind of user request.
+/// Validated (Apr 2026 introspection): 6.5/7 correctly identifiable.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Angel {
+    Gavriel    = 0,  // גבריאל — decision (choose between options)
+    Michael    = 1,  // מיכאל — support (emotional, encouragement)
+    Rafael     = 2,  // רפאל — diagnosis (health, problems, debugging)
+    Uriel      = 3,  // אוריאל — explain (teach, illuminate)
+    Raziel     = 4,  // רזיאל — find (search, retrieval)
+    Sandalfon  = 5,  // סנדלפון — execute (do an action)
+    Metatron   = 6,  // מטטרון — meta (reflect on system itself)
+}
+
+impl Angel {
+    /// Classify user query into the most likely angel.
+    pub fn classify(query: &str, context: &SessionContext) -> (Angel, f32) {
+        // Use pattern matching + keyword + session context
+        let scores = [
+            (Angel::Gavriel, decision_keywords_score(query)),
+            (Angel::Michael, emotional_markers_score(query)),
+            (Angel::Rafael, diagnosis_markers_score(query)),
+            (Angel::Uriel, question_words_score(query)),
+            (Angel::Raziel, search_verbs_score(query)),
+            (Angel::Sandalfon, imperative_score(query)),
+            (Angel::Metatron, meta_markers_score(query)),
+        ];
+        scores.into_iter().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap()
+    }
+}
+```
+
+## 18.4 22 האותיות = 22 Edge Types
+
+```rust
+/// Primary edge types, one per Hebrew letter.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum EdgeKind {
+    Aleph    = 1,   // א — IS (identity)
+    Bet      = 2,   // ב — IN (contains)
+    Gimel    = 3,   // ג — GIVES_TO (transfer)
+    Dalet    = 4,   // ד — HAS_PROPERTY (attribute)
+    He       = 5,   // ה — REFERENCES (pointer)
+    Vav      = 6,   // ו — AND (conjunction)
+    Zayin    = 7,   // ז — REMEMBERS (memory link)
+    Chet     = 8,   // ח — LIVES_IN (habitation)
+    Tet      = 9,   // ט — SURROUNDS (wrapping)
+    Yod      = 10,  // י — CAUSES (causation)
+    Kaph     = 20,  // כ — LIKE (similarity)
+    Lamed    = 30,  // ל — TEACHES (knowledge transfer)
+    Mem      = 40,  // מ — FROM (source)
+    Nun      = 50,  // נ — GROWS (emergence)
+    Samekh   = 60,  // ס — SUPPORTS (help)
+    Ayin     = 70,  // ע — SEES (perception)
+    Pe       = 80,  // פ — SPEAKS (expression)
+    Tsade    = 90,  // צ — ORDERS (command)
+    Qof      = 100, // ק — CALLS (invocation)
+    Resh     = 200, // ר — HEADS (leads)
+    Shin     = 300, // ש — CHANGES (transformation)
+    Tav      = 400, // ת — COMPLETES (terminus)
+    // Extended (non-letter) types start at 128...
+}
+```
+
+## 18.5 231 Reasoning Gates
+
+**עיקרון ספר יצירה:** כל 2 אותיות יוצרות "שער". 22 × 22 / 2 = 231 patterns.
+
+```rust
+/// A reasoning pattern formed by pairing two edge kinds.
+pub struct Gate {
+    pub letter_a: EdgeKind,
+    pub letter_b: EdgeKind,
+    pub pattern_name: &'static str,
+    pub apply: fn(&Graph, Atom) -> Vec<Atom>,
+}
+
+/// Example gates:
+pub const GATE_BET_LAMED: Gate = Gate {
+    letter_a: EdgeKind::Bet,    // ב — IN
+    letter_b: EdgeKind::Lamed,  // ל — TEACHES
+    pattern_name: "בל — contained-teaches",
+    apply: |graph, atom| {
+        // Find things inside X that teach about Y: (x)-[IN]->X and (x)-[TEACHES]->Y
+        find_two_hop(graph, atom, EdgeKind::Bet, EdgeKind::Lamed)
+    },
+};
+```
+
+---
+
+# 19. הבנת בקשת המשתמש (Intent Understanding)
+
+## 19.1 Deep Intent Analysis
+
+**השאלה אינה רק "מה המשתמש רוצה", אלא כל המעגל:**
+- **Who** — מי המשתמש (ידוע/חדש, רמת אמון, תחום עיסוק)
+- **What** — מה הוא רוצה (classifier angel)
+- **Why** — מה המוטיבציה (לפתור בעיה? ללמוד? לעשות?)
+- **For whom** — עבור מי (לעצמו? ללקוח? לצוות?)
+- **With what constraints** — מגבלות זמן, תקציב, טכנולוגיה
+
+```rust
+pub struct Intent {
+    pub user: UserContext,
+    pub angel: Angel,
+    pub primary_goal: Atom,
+    pub motivation: Motivation,
+    pub beneficiary: Option<UserId>,
+    pub constraints: Constraints,
+    pub urgency: Urgency,
+    pub confidence: f32,
+}
+
+pub struct UserContext {
+    pub user_id: UserId,
+    pub trust_level: TrustLevel,
+    pub role: UserRole,          // Owner, Collaborator, Client, Guest
+    pub domain: Option<Domain>,   // Developer, Designer, Manager, etc.
+    pub personal_vault_ref: Option<UserId>,  // link to their encrypted vault
+    pub session_history: Vec<Atom>,
+    pub language_preference: Language,
+    pub register_preference: Register,  // Formal/Neutral/Casual
+}
+
+pub enum Motivation {
+    SolveProblem,      // debugging, fixing
+    LearnSomething,    // explanation, tutorial
+    ProduceArtifact,   // write code, article, plan
+    MakeDecision,      // choose between options
+    Vent,              // emotional support
+    Explore,           // curiosity, no specific outcome
+    Automate,          // set up a process
+    Review,            // get feedback on existing work
+}
+
+pub enum Urgency {
+    Immediate,   // "now, right away"
+    Soon,        // "today, this hour"
+    Planned,     // "this week"
+    Eventually,  // "when possible"
+    NoRush,
+}
+```
+
+## 19.2 Intent Analysis Pipeline
+
+```rust
+pub fn analyze_intent(
+    query: &str,
+    session: &SessionContext,
+    graph: &Graph,
+    text: &TextExecutor,
+) -> Result<Intent, IntentError> {
+    // Step 1: Basic linguistic analysis
+    let tokens = text.invoke(TextInput::Tokenize(query.to_string(), session.language))?;
+    let parse = parse_sentences(&tokens);
+
+    // Step 2: Angel classification
+    let (angel, angel_confidence) = Angel::classify(query, session);
+
+    // Step 3: Primary goal extraction
+    let goal_atoms = extract_goal_atoms(&parse, graph);
+    let primary_goal = goal_atoms.first().copied().unwrap_or(Atom::UNKNOWN);
+
+    // Step 4: Motivation inference
+    let motivation = infer_motivation(query, angel, session);
+
+    // Step 5: Beneficiary detection
+    let beneficiary = detect_beneficiary(&parse, &session.user);
+
+    // Step 6: Constraints extraction
+    let constraints = extract_constraints(&parse);
+
+    // Step 7: Urgency signals
+    let urgency = detect_urgency(query);
+
+    // Step 8: Confidence aggregation
+    let confidence = aggregate_confidence(angel_confidence, goal_atoms.len());
+
+    Ok(Intent {
+        user: session.user.clone(),
+        angel,
+        primary_goal,
+        motivation,
+        beneficiary,
+        constraints,
+        urgency,
+        confidence,
+    })
+}
+```
+
+## 19.3 Full Query Lifecycle
+
+```rust
+/// The complete query → answer lifecycle, touching every subsystem.
+pub fn handle_query(
+    query: &str,
+    session: &mut SessionContext,
+    graph: &mut Graph,
+    registry: &Registry,
+) -> Result<Response, QueryError> {
+    // 1. PARSE — intent understanding
+    let intent = analyze_intent(query, session, graph, &registry.text())?;
+
+    // 2. LOAD PERSONAL CONTEXT — from encrypted vault
+    let personal_facts = registry.personal().recall(
+        session.user.user_id,
+        Some(intent.primary_goal),
+        &session.user.authenticated,
+    )?;
+
+    // 3. SPREADING ACTIVATION — build initial activation field
+    let field = contextual_activation(graph, session, &[intent.primary_goal], &walk_config());
+
+    // 4. ANGEL ROUTING — delegate to specialist
+    let output = match intent.angel {
+        Angel::Gavriel => decision_flow(&intent, &field, graph, registry)?,
+        Angel::Michael => support_flow(&intent, &field, graph, registry)?,
+        Angel::Rafael  => diagnosis_flow(&intent, &field, graph, registry)?,
+        Angel::Uriel   => explain_flow(&intent, &field, graph, registry)?,
+        Angel::Raziel  => search_flow(&intent, &field, graph, registry)?,
+        Angel::Sandalfon => execute_flow(&intent, &field, graph, registry)?,
+        Angel::Metatron => meta_flow(&intent, &field, graph, registry)?,
+    };
+
+    // 5. CREATE / COMPOSE if needed
+    let composed = if output.needs_composition() {
+        creation_flow(graph, registry, CreationRequest::from(&intent, &output))?
+    } else {
+        output.into()
+    };
+
+    // 6. REALIZE to target language
+    let surface = registry.text().realize_text(&composed, session.language, session.register)?;
+
+    // 7. PERSIST — store reasoning trace for L1 learning
+    let trace = ReasoningTrace {
+        query: query.to_string(),
+        intent: intent.clone(),
+        walk_path: field.top_path(),
+        output: composed.clone(),
+        timestamp: now(),
+    };
+    session.history.push(trace);
+
+    // 8. RETURN
+    Ok(Response {
+        text: surface,
+        citations: composed.citations(),
+        confidence: composed.confidence,
+        reasoning_path: field.to_debug_trace(),
+    })
+}
+```
+
+## 19.4 Feedback Loop (reward/penalty)
+
+```rust
+/// After a response, user can give feedback. ZETS learns.
+pub fn apply_feedback(
+    graph: &mut Graph,
+    trace: &ReasoningTrace,
+    feedback: UserFeedback,
+) -> Result<(), FeedbackError> {
+    match feedback {
+        UserFeedback::Positive => {
+            // Strengthen all edges on the walk
+            for (from, edge) in &trace.walk_path {
+                graph.strengthen_edge(*from, edge.target(), 2);
+            }
+            // Cache the composed output as a new motif
+            if trace.output.is_reusable() {
+                cache_plan_as_motif(graph, &trace.plan, &trace.output);
+            }
+        }
+        UserFeedback::Negative { reason } => {
+            // Weaken edges
+            for (from, edge) in &trace.walk_path {
+                graph.weaken_edge(*from, edge.target(), 2);
+            }
+            // Flag for dreaming: propose alternatives
+            graph.flag_for_dreaming(trace.intent.primary_goal, reason);
+        }
+        UserFeedback::Correction(correct_answer) => {
+            // Apply L5 surprise correction
+            l5_surprise_correct(graph, trace.output.atom, correct_answer, &trace.walk_path);
+        }
+        UserFeedback::Neutral => {
+            // No change to edges, but log
+        }
+    }
+    Ok(())
+}
+```
+
+
+---
+
+# 20. Insertion-Order Log — "הגרף הזול שמחזיק לפי סדר ההכנסה"
+
+**עידן אמר:** גרף יקר לא צריך. מה שצריך: **לוג זול, סדור לפי סדר ההכנסה**, שמצביע לaטומים האסוציאטיביים שלנו.
+
+זה דטה-סטרוקטורה נפרדת מהגרף הראשי. משלימה אותו.
+
+```rust
+/// Insertion-order log: every observation gets appended in order.
+/// Cheap, sequential, mmap-friendly. Points into the main atom graph for associations.
+pub struct InsertionLog {
+    /// Sequential entries, append-only.
+    pub entries: Vec<LogEntry>,
+    /// Mmap'd file for persistence
+    pub file: MmapMut,
+    /// Current write offset
+    pub write_pos: u64,
+}
+
+#[derive(Clone, Copy)]
+#[repr(C, packed)]
+pub struct LogEntry {
+    pub timestamp: u64,            // 8 bytes — nanoseconds since epoch
+    pub source_id: u32,            // 4 bytes — provenance (which session/file/url)
+    pub primary_atom: u32,          // 4 bytes — the main atom this entry is about
+    pub related_atoms: [u32; 3],    // 12 bytes — up to 3 associations
+    pub event_kind: u8,             // 1 byte — observation/statement/action/...
+    pub confidence: u8,             // 1 byte — 0..255
+    pub _padding: [u8; 2],          // 2 bytes — alignment to 32
+}
+// Total: 32 bytes per entry
+
+#[derive(Clone, Copy, Debug)]
+#[repr(u8)]
+pub enum EventKind {
+    Observed      = 0,  // saw in corpus
+    Stated        = 1,  // user said
+    Derived       = 2,  // inferred
+    ExecutorResult = 3, // from executor call
+    Feedback      = 4,  // user feedback
+    Dream         = 5,  // proposed by dreaming
+    Consolidation = 6,  // NightMode promotion
+}
+
+impl InsertionLog {
+    #[inline(always)]
+    pub fn append(&mut self, entry: LogEntry) -> Result<u64, LogError> {
+        let offset = self.write_pos;
+        let entry_bytes: &[u8] = unsafe {
+            std::slice::from_raw_parts(
+                &entry as *const _ as *const u8,
+                std::mem::size_of::<LogEntry>(),
+            )
+        };
+        self.file[offset as usize..offset as usize + 32].copy_from_slice(entry_bytes);
+        self.write_pos += 32;
+        self.entries.push(entry);
+        Ok(offset)
+    }
+
+    /// Iterate entries since a given timestamp (for consolidation/replay).
+    pub fn entries_since(&self, since: u64) -> impl Iterator<Item = &LogEntry> {
+        self.entries.iter().filter(move |e| e.timestamp >= since)
+    }
+
+    /// Find all log entries mentioning a specific atom (for provenance).
+    pub fn entries_touching(&self, atom: u32) -> Vec<&LogEntry> {
+        self.entries.iter().filter(|e| {
+            e.primary_atom == atom || e.related_atoms.contains(&atom)
+        }).collect()
+    }
+}
+```
+
+## 20.1 How the Log Reinforces the Main Graph
+
+```rust
+/// Periodically (NightMode), scan the log for patterns.
+pub fn consolidate_from_log(
+    log: &InsertionLog,
+    graph: &mut Graph,
+    since: u64,
+) -> Result<ConsolidationReport, Error> {
+    let mut report = ConsolidationReport::default();
+
+    // Count co-occurrences across log entries
+    let mut pair_counts: FxHashMap<(u32, u32), u32> = FxHashMap::default();
+    for entry in log.entries_since(since) {
+        for &rel in &entry.related_atoms {
+            if rel != 0 {
+                let key = sorted_pair(entry.primary_atom, rel);
+                *pair_counts.entry(key).or_insert(0) += 1;
+            }
+        }
+    }
+
+    // For each strong co-occurrence, strengthen or create edge in main graph
+    for ((a, b), count) in pair_counts {
+        if count >= 5 {
+            graph.strengthen_or_create_edge(
+                Atom::from_u32(a),
+                Atom::from_u32(b),
+                EdgeKind::CoOccurs,
+                count.min(15) as u8,
+            );
+            report.edges_reinforced += 1;
+        }
+    }
+
+    Ok(report)
+}
+```
+
+**התוצאה:** גרף ראשי נשאר דק ומהיר. הידע הראשוני נרשם בלוג הזול. NightMode מבחין בדפוסים ומקרב אותם לגרף.
+
+---
+
+# 21. תקציב ביצועים (Performance Budget)
+
+## 21.1 Latency Targets (הנורמה)
+
+| פעולה | Target | Technology |
+|---|---|---|
+| `Atom::kind()` | < 10 ns | inline bit shift |
+| `Atom` lookup by u32 ID | < 50 ns | array index |
+| `Graph::neighbors(atom)` | < 100 ns | CSR row slice |
+| `SemiticRootPool::lookup(id)` | < 50 ns | array index |
+| `LemmaRegistry::lookup(str)` | < 500 ns | FST match |
+| `Morphology::analyze(word)` | < 10 μs | rule pipeline |
+| `Walk(depth=7, N=21)` | < 10 ms | parallel BFS |
+| `ImageExecutor::embed(img)` | 50-200 ms | CLIP external |
+| `TextExecutor::realize(atom)` | < 1 ms | template fill |
+| End-to-end query | < 100 ms | full pipeline |
+
+## 21.2 Memory Budget (10M atoms, 1B edges)
+
+| Component | Size | Mechanism |
+|---|---|---|
+| Atom array | 80 MB | Vec<u64> |
+| Edge CSR | 6 GB | mmap (page-in on demand) |
+| Root pool | 128 KB | fixed array |
+| String pool | 50 MB | arena + index |
+| Hopfield banks (top 50K) | 500 MB | resident |
+| Hopfield banks (cold) | 5 GB | mmap |
+| Working memory | 1-5 MB | bumpalo arena per query |
+| Personal vaults | 10-100 MB | encrypted, per user |
+| Insertion log | 1-10 GB | append-only file |
+| **Peak RAM typical** | **~800 MB** | |
+| **Peak RAM heavy query** | **~2 GB** | |
+| **Disk total** | **~15 GB** | fits laptop |
+
+## 21.3 Disk Layout
+
+```
+/home/dinio/zets/data/
+├── atoms.bin          # 80 MB — atom array (mmap'd)
+├── edges_csr.bin      # 6 GB — CSR edge storage (mmap'd)
+├── root_pool.bin      # 128 KB — Semitic root table
+├── strings.bin        # 50 MB — string pool with FST index
+├── strings.fst        # 10 MB — FST for string → atom lookup
+├── hopfield/
+│   ├── image.bin      # variable — image vectors
+│   ├── audio.bin      # variable — audio vectors
+│   └── text.bin       # variable — text embedding vectors
+├── personal_vaults/
+│   ├── {user_id}.vault   # encrypted per-user
+├── insertion_log.bin  # 1-10 GB — append-only observation log
+└── blobs/
+    ├── 00/00/... (sharded)   # media + document blobs
+```
+
+---
+
+# 22. Verification Checklist
+
+ZETS is considered "working" only when these verifications pass:
+
+## 22.1 Layer 1 (Graph)
+- [ ] Atom encode/decode round-trips for all 3 variants
+- [ ] Semitic pool persists across restart
+- [ ] Root ID deterministic given same corpus
+- [ ] CSR neighbors query: < 100 ns on 1M atom graph
+- [ ] Memory: 10K atoms resident < 1 MB
+
+## 22.2 Layer 2 (Executors)
+- [ ] TextExecutor parses "ומהבית" → lemma:בית + {conj, from, def, masc, sg}
+- [ ] TextExecutor realizes {lemma:אדום, fem, sg, def} → "האדומה"
+- [ ] ImageExecutor: image → CLIP vector → Hopfield match within 500ms
+- [ ] WebExecutor respects robots.txt and rate limits
+- [ ] CodeExecutor runs Python hello world in sandbox < 1s
+
+## 22.3 Layer 3 (Learning)
+- [ ] L1: walk → edges strengthened after successful query
+- [ ] L2: user statement "X is Y" → edge created
+- [ ] L3: 10 co-occurrences → prototype atom created in NightMode
+- [ ] L4: cluster of 5+ similar atoms → parent atom abstracted
+- [ ] L5: contradiction → offending edge weakened
+
+## 22.4 End-to-End
+- [ ] Query "מה זה תפוח?" returns a coherent Hebrew answer
+- [ ] Query in English gets English response (same concept graph)
+- [ ] Personal: "remember Shai's phone is X" persists in vault, survives restart
+- [ ] Feedback: thumbs-up after answer → measurable edge strengthening
+- [ ] Autonomous: start with 1K concepts, after 1 hour of Wikipedia → 10K+ atoms
+
+## 22.5 Kabbalistic
+- [ ] Query flows through 10 sefirot stages (traceable)
+- [ ] Angel classifier: 6+/7 common query types correctly labeled
+- [ ] Gematria of ש.ל.ם = 370 (automatic, cached)
+- [ ] Walk modes (partzufim) produce different output shapes for same input
+
+## 22.6 Privacy
+- [ ] Personal vault encrypted at rest (AES-256-GCM)
+- [ ] Public graph query cannot leak personal details
+- [ ] Differential privacy noise applied on aggregated stats
+- [ ] "Forget" operation actually deletes (secure delete)
+
+## 22.7 Performance
+- [ ] End-to-end query < 100 ms (99th percentile) for typical load
+- [ ] Idle RAM < 500 MB
+- [ ] Works on laptop with 8 GB RAM
+- [ ] Offline mode: no Internet required for inference (only for Enrichment)
+
+---
+
+# 23. Open Questions Carried Forward
+
+These are intentionally NOT resolved — to be handled as the system matures:
+
+1. **Multi-instance federation sync** — when two ZETS instances discover the same new root, how do root_ids reconcile?
+2. **Schema evolution** — atom bit layout is fixed at 64 bits. What if we need more?
+3. **Backward-compat on executor upgrades** — when CLIP v2 replaces v1, what about stored vectors?
+4. **Dialect encoding** — Biblical Hebrew vs Modern vs Yemenite?
+5. **Can ZETS learn new Executors at runtime?** (Self-extension — security implications)
+6. **Exact Gemini batch size optimization** — measure actual latency + cost per batch size
+7. **Cross-modal Hopfield** — can one bank store both text embeddings and image embeddings?
+8. **Gematria as active semantic bias** — do walks weight by gematria similarity?
+
+---
+
+# 24. Reading Order for New Contributors
+
+If you're joining this project fresh:
+
+1. **This document (`AGI.md`)** — start here, 20 minutes, gives you the full picture
+2. **ADR-1, ADR-2, ADR-3** in `docs/30_decisions/` — binding decisions + rationale
+3. **Hebrew POC results** in `docs/20_research/` — empirical grounding
+4. **Read the code in this order:**
+   - `src/atoms.rs` — the 8-byte atom
+   - `src/root_pool.rs` — Semitic roots
+   - `src/graph_csr.rs` — edges
+   - `src/executor_registry.rs` — Layer 2
+   - `src/query_flow.rs` — the 10 sefirot pipeline
+
+5. **Run the demos:**
+   - `cargo run --release --bin query_demo`
+   - `cargo run --release --bin learn_from_wikipedia`
+   - `cargo run --release --bin enrich_colors`
+
+---
+
+# 25. Glossary
+
+| Term | Hebrew | Definition |
+|---|---|---|
+| Atom | אטום | An 8-byte semantic unit in the graph |
+| Edge | קשת | 6-byte connection between atoms |
+| Root | שורש | 3-letter Semitic core of a word |
+| Binyan | בניין | Verb pattern (Pa'al, Nif'al, ...) |
+| Lemma | ערך מילוני | Dictionary form of a word |
+| Wordform | צורה | Surface form as written |
+| Concept | מושג | Language-agnostic meaning |
+| Sense | משמעות | Polysemy-aware meaning |
+| Sefira | ספירה | Pipeline stage (one of 10) |
+| Partzuf | פרצוף | Walk mode (one of 5) |
+| Angel | מלאך | Intent classifier (one of 7) |
+| Gematria | גימטריה | Numerical value of letters |
+| Executor | מבצע | Specialist module that does heavy work |
+| Vault | כספת | Encrypted personal sub-graph |
+| Motif | מוטיב | Reusable compositional pattern |
+| Hopfield bank | בנק הופפילד | Associative memory for vectors |
+
+---
+
+# 26. Appendix: Sample Semitic Roots
+
+50 most common shared HE/AR roots with meanings (from POC):
+
+| שורש | Hebrew meaning | Arabic meaning (علي roots) | Gematria |
+|---|---|---|---|
+| כ.ת.ב | write, book | كتب — write, book | 422 |
+| ע.ב.ד | serve, slave | عبد — worship, slave | 76 |
+| ק.ב.ל | receive, accept | قبل — accept, before | 132 |
+| ס.פ.ר | book, count | سفر — journey, write | 340 |
+| ע.ל.מ | world, hidden | علم — knowledge, know | 140 |
+| ד.י.נ | law, judgment | دين — religion, debt | 64 |
+| ע.ר.ב | mix, evening, guarantee | عرب — Arab, mix | 272 |
+| ח.ב.ר | friend, connect | خبر — inform, news | 210 |
+| א.ש.ר | happy, blessed, who/which | أسر — capture, family | 501 |
+| ע.ב.ר | past, cross | عبر — cross, express | 272 |
+| ק.ד.מ | ancient, east | قدم — foot, front, advance | 144 |
+| ח.ד.ש | new, renew | حدث — event, new | 312 |
+| ג.ד.ל | big, grow | جدل — dispute | 37 |
+| פ.ע.ל | action, do | فعل — do, action | 190 |
+| ש.כ.ל | mind, intellect | سكل — stupid (!) | 350 |
+| ח.כ.מ | wisdom | حكم — rule, judgment | 68 |
+| ר.א.ש | head | رأس — head | 501 |
+| י.ל.ד | child, born | ولد — child, born | 44 |
+| כ.פ.ר | deny, village | كفر — disbelieve | 300 |
+| נ.פ.ש | soul, breath | نفس — self, breath | 430 |
+| ס.ל.ח | forgive | صلح — reconcile | 98 |
+| צ.ד.ק | righteous | صدق — truth | 194 |
+| ש.ל.מ | complete, peace | سلم — safe, peace | 370 |
+| ר.ח.מ | womb, mercy | رحم — mercy, womb | 248 |
+| ח.י.י | life | حيي — live | 28 |
+| מ.ו.ת | death | موت — death | 446 |
+| ב.נ.ה | build | بني — build | 57 |
+| פ.ת.ח | open | فتح — open, conquer | 488 |
+| ס.ג.ר | close | سجر — kindle | 263 |
+| ל.מ.ד | teach, learn | لمد — (rare in modern AR) | 74 |
+| ... | | | |
+
+Full list in `data/semitic_roots.tsv`.
+
+---
+
+# 27. Closing — What Makes ZETS Different
+
+Five statements that together define ZETS. If any is violated, it's not ZETS:
+
+1. **Traceable, never opaque.** Every answer has a walk path you can print.
+2. **Continuous, never frozen.** Learning happens on every interaction.
+3. **Personalized, never generic.** Each user shapes their own ZETS.
+4. **Offline-capable, not cloud-bound.** Runs on laptop, 8 GB RAM is the target.
+5. **Multilingual at the root.** Hebrew-first but truly multi. No translation layer.
+
+**ZETS is the AGI that grows with you, remembers you, explains itself, and fits in your pocket.**
+
+---
+
+## End of Master Specification
+
+**Next step after approval:** archive everything else, tag `v0.3-agi-spec`, begin Phase 1 implementation.
+
+**Signed:**
+Idan Eldad (עידן אלדד) — Architect
+Claude 4.7 — Scribe
+2026-04-24
