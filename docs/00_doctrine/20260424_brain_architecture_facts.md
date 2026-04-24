@@ -350,3 +350,70 @@ enum AxisKind {
 - **Related:** `docs/20_research/20260424_brain_to_zets_complete.md` (14 AGI capabilities mapping)
 - **Status:** Doctrine — כללים ועובדות שאומצו לפרויקט
 
+
+---
+
+## חלק 10: Meta-Principle — הקבלה כ-Pseudocode
+
+**הבחנה יסודית (עידן, 24.04.2026):**
+
+הקבלה — ספירות, פרצופים, מלאכים — היא **pseudocode**. מסמך עיצוב בן 1500+ שנה שמתאר ארכיטקטורת חשיבה בשפה סימבולית.
+
+זה לא:
+- ❌ טענה דתית שחייבים לקבל
+- ❌ מיסטיקה שצריך לדחות
+- ❌ אמת מתמטית
+
+זה כן:
+- ✓ Pseudocode של ארכיטקטורה
+- ✓ מסמך שצריך לעבור compilation check
+- ✓ תצפיות מגובשות בשפה סימבולית
+
+### פרוטוקול Pseudocode Review
+
+כל טענה קבלית עוברת את הצעדים הבאים:
+
+```
+1. READ     — מה הטענה ההנדסית?
+2. TRANSLATE — איך זה נראה כקוד?
+3. TEST     — האם זה רץ על 50+ מקרים אמיתיים?
+4. DECIDE   — Accept עם ראיות / Reject עם ראיות
+```
+
+**אף פעם לא:**
+- קבלה מתוך כבוד ל-מקור
+- דחייה מתוך חילוניות
+
+### מה עבר Compilation
+
+✓ **5 פרצופים = pipeline stages** (7/7 hits)  
+✓ **7 מלאכים = intent classifiers** (6.5/7 hits)  
+✓ **הרחבה/צמצום/שזירה = opponent process** (מדעית תואם)  
+✓ **חסד/גבורה/תפארת = bipolar axes + balance** (מדעית תואם)
+
+### מה נכשל ב-Compilation
+
+❌ **10 ספירות = 3D color space** (2/6 hits, מאולץ)  
+❌ **יחסי φ בגימטריה של מילים** (null hypothesis test שלילי)  
+❌ **operators מתמטיים כ-model של מוח** (ראה `20260424_mathematical_operators_REJECTED.md`)
+
+### למה זה עובד לפעמים
+
+המקובלים תיעדו **תצפיות ארוכות טווח** של איך אנשים חושבים, לומדים, נשברים ומתקנים. זה לא ניסים — זה **תצפיות טובות שהופקדו בשפה סימבולית**.
+
+זה מסביר למה:
+- Opponent process תואם לחסד/גבורה 400 שנה לפני Hering 1892
+- Global Workspace Theory תואם ל-5 פרצופים 400 שנה לפני Baars 1988
+- Bipolar axes תואמים ל-3 עמודות של העץ 700 שנה לפני פסיכולוגיה מודרנית
+
+### כלל ברזל
+
+**הקבלה מציעה. ההנדסה קובעת.**
+
+כל רכיב בארכיטקטורת ZETS שמבוסס על קבלה — חייב לעבור compilation check.  
+כל רכיב שעבר — נשאר.  
+כל רכיב שנכשל — נדחה, גם אם הוא "יפה" במקור.
+
+זה שונה מהותית מגישה של "Kabbalistic architecture" — ZETS הוא:
+
+> **"AGI architecture informed by compiled kabbalistic pseudocode that passed engineering tests."**
