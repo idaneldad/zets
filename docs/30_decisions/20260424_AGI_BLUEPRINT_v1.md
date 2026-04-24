@@ -487,3 +487,145 @@ STYLE:
 - `docs/40_ai_consultations/20260424_agi_blueprint_consultation.json` — today's AI responses
 - `sim/brain_v4/seven_angels_dive.py` — empirical validation of 7 angels approach
 
+
+---
+
+## 📎 Addendum: Revisions from Idan's Questions (later 2026-04-24)
+
+### Question 1: Edge directionality — bidirectional or unidirectional?
+
+**Answer: Unidirectional storage, bidirectional indexing.**
+
+- Edges stored **once** (src → dst) to avoid 2× memory + sync issues
+- Two indexes maintained:
+  - **Forward index:** `src → [edges]` (who does this atom connect to?)
+  - **Reverse index:** `dst → [edges]` (who points to this atom?)
+- The existing `asymmetry_factor` field (0-1) captures whether the relationship is truly symmetric or directional
+  - 0.0 = equivalent in both directions (e.g., אבא ↔ אמא as family members)
+  - 1.0 = fully one-way (e.g., אש → חום: fire causes heat, not vice versa)
+  - Intermediate = partial asymmetry (e.g., לימון → צהוב: lemon implies yellow, yellow doesn't imply lemon)
+
+**Implementation note:** In RocksDB, this is two column families or two key prefixes:
+- `fwd:{src_id}:{edge_id}` → edge data
+- `rev:{dst_id}:{edge_id}` → reference to forward key
+
+---
+
+### Question 2: State-dependent relationships (lemon green → yellow as it ripens)
+
+This exposed a gap in the original blueprint: not all edges are binary-true. Some depend on the **state** of the concept.
+
+### Principle 8 (NEW): Edge States — 4 Relationship Types
+
+Edges live in 4 distinct states, each requiring different modeling:
+
+| Type | Example | Active When | Representation |
+|------|---------|-------------|----------------|
+| **1. Static Permanent** | לימון → חמוץ | Always | Regular edge, no state dependency |
+| **2. Static Default** | לימון → צהוב (when ripe) | Default state | Edge with `state_dependency: peak_range` |
+| **3. Dynamic on State** | לימון לא-בשל → ירוק | State axis in range | Edge with `state_dependency: active_range` |
+| **4. Temporal Transition** | ירוק → צהוב over time | Evolving state | Edge with `temporal_transition` metadata |
+
+### State Axes per Concept
+
+Each concept can have **multiple state axes** that modulate its edges:
+
+```rust
+struct StateAxis {
+    id:         StateAxisId,
+    name:       String,        // "ripeness", "freshness", "age", "season"
+    range:      (f32, f32),    // typically (0.0, 1.0)
+    default:    f32,           // assumed value if not specified
+    description: String,
+}
+```
+
+Example for לימון (lemon):
+
+```
+Concept: לימון
+  State axes:
+    - ripeness  [0, 1]  default=0.9  ("בשל" by default when we say "lemon")
+    - freshness [0, 1]  default=0.8  
+    - season    cyclic  (no default)
+  
+  Edges:
+    [taste]         → חמוץ          (no state dep)           
+    [category]      → הדר           (no state dep)
+    [color]         → ירוק          (ripeness < 0.4)           TYPE 3
+    [color]         → צהוב          (ripeness > 0.6)           TYPE 2 (default)
+    [texture]       → קשה           (ripeness < 0.3)           TYPE 3
+    [texture]       → רך            (ripeness > 0.7)           TYPE 3
+    [surface]       → מבריק         (freshness > 0.7)          TYPE 3
+    [moisture]      → עסיסי         (freshness > 0.5)          TYPE 3
+    [transition]    ירוק→צהוב       (ripeness over ~30 days)  TYPE 4
+```
+
+### StateDependency Structure
+
+```rust
+struct StateDependency {
+    axis:          StateAxisRef,
+    active_range:  (f32, f32),        // in what range edge is valid
+    peak_value:    f32,                // max strength in active range
+    curve:         CurveType,          // how strength varies
+}
+
+enum CurveType {
+    Constant,                          // uniform in range
+    Linear { start: f32, end: f32 },   // linear increase/decrease
+    Bell { center: f32, width: f32 },  // peak at center
+    Sigmoid { midpoint: f32, slope: f32 }, // smooth transition
+}
+```
+
+### Query Behavior with State Dependencies
+
+When asked "what color is a lemon?":
+1. Find all `[color]` edges from `לימון`
+2. Filter by active state (use default if unspecified):
+   - `ripeness = 0.9` (default)
+3. With default: `ירוק` inactive (0.9 > 0.4), `צהוב` active (0.9 > 0.6) → **answer: צהוב**
+4. If context says "unripe lemon": `ripeness = 0.2` → `ירוק` active → answer: **ירוק**
+
+### Temporal Transitions (Type 4)
+
+```rust
+struct TemporalTransition {
+    from_state:       StateValue,      // {axis: ripeness, value: 0.3}
+    to_state:         StateValue,      // {axis: ripeness, value: 0.9}
+    typical_duration: Duration,         // 30 days, ±10 days
+    trigger:          TransitionTrigger,
+}
+
+enum TransitionTrigger {
+    TimeElapsed,
+    Environmental(String),   // "sunlight", "cold", "water"
+    Event(String),           // "picked", "cooked", "damaged"
+    Threshold(StateAxisRef, f32),
+}
+```
+
+This enables queries like:
+- "How will the lemon change in 10 days?"
+- "What causes a lemon to ripen?"
+- "How long until it ripens?"
+
+### Rationale
+
+Previous model assumed "an edge is either true or false". Reality:
+- **Lemons ARE yellow** (when ripe — the default when unspecified)
+- **Lemons ARE green** (before ripening)
+- **Both statements are true simultaneously** — just at different state values
+
+Without state axes, we'd have to choose one and be wrong half the time, OR store contradicting edges without resolution.
+
+---
+
+## 🔄 Revision History (updated)
+
+| Date | Change | Reason |
+|------|--------|--------|
+| 2026-04-24 | Initial v1 | Post breaking-the-tools + AI consultations |
+| 2026-04-24 | Added Principle 8 (Edge States) + directionality clarification | Idan's questions exposed gap: static-vs-dynamic edges, unidirectional storage |
+
