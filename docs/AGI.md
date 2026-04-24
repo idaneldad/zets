@@ -127,21 +127,53 @@ enum ExecutorKind {
 - `ArrayVec` / `SmallVec` לnon-heap collections
 - `&'static str` לkeys קבועים
 
-## 2.4 Quantum-First Operations
+## 2.4 Quantum-Inspired Cognition (Honest Disclosure)
 
-**עידן אמר: "כמה שיותר פונקציות קוונטיות שעובדות".**
+**Critical disclosure (post AI-council review, Apr 2026):**
+The term "quantum" throughout this document refers to **design metaphor and
+inspiration**, NOT literal quantum computing. ZETS runs on classical 
+deterministic CPU/RAM hardware. We use quantum-flavored naming because
+it captures three real cognitive principles we want to enforce:
 
-מה זה "קוונטי" בהקשר גרף?
+### Principle A — Deferred Commitment
+Don't collapse to a single answer too early. Hold weighted alternatives
+until context provides enough signal to choose. (Like beam search,
+A* with frontier, or MCTS — all classical.)
 
-| עיקרון קוונטי | ביישום ZETS |
-|---|---|
-| Superposition | Multiple senses/interpretations alive simultaneously |
-| Parallel walks | N walkers concurrent (typically 21) |
-| Interference | Intersections in walks amplify; contradictions cancel |
-| Measurement | Collapse to single answer at output |
-| Entanglement | Edges as strong correlations (memory_strength) |
+### Principle B — Convergent Activation
+When multiple parallel walks reach the same atom, that intersection 
+matters more than any single path. (Like spreading activation theory,
+Quillian 1968, Collins & Loftus 1975.)
 
-**לא quantum computer literal. Inspired-by, not implemented-as.**
+### Principle C — Continuous Spreading
+Activation flows like a wave through the graph — decaying, branching,
+accumulating. Not boolean visited/unvisited. (Like neural net activation,
+Hopfield dynamics — all classical.)
+
+| "Quantum" term in code | What it actually is | Honest label |
+|---|---|---|
+| Superposition | Weighted candidate set | Hypothesis tracking |
+| Parallel walks | Multi-source BFS | Multi-source search |
+| Interference | Sum/cancel scores at intersections | Score accumulation |
+| Measurement / Collapse | Argmax with threshold | Decision deferral |
+| Quantum walk | Stochastic depth-bounded BFS | Bounded random walk |
+| Entanglement | Strong bidirectional edges | Coupled associations |
+| Amplitudes | Continuous activation values | Soft scores (f32) |
+
+**Why keep the quantum framing despite being metaphor?**
+1. It reminds engineers NOT to greedy-decide early
+2. It encourages parallel hypothesis tracking
+3. It connects naturally to Kabbalistic concepts (Idan's domain)
+4. It makes the cognitive architecture distinct from greedy LLM decoding
+
+**What it does NOT mean:**
+- ZETS is not a quantum computer
+- We do not use complex amplitudes with phase
+- "Interference" is float arithmetic, not wave physics
+- Performance is bounded by classical CPU speeds, not quantum speedups
+
+This honesty is non-negotiable per AI-council audit. Future implementations
+must NOT claim quantum advantages they cannot deliver.
 
 ## 2.5 Performance Budget (ננו-שניות מטרה)
 
@@ -236,19 +268,34 @@ enum ExecutorKind {
 
 **ההכרעה לאחר ניתוח כל האופציות:** **Base37 Direct Encoding של השורש העברי, ללא pool. עברית = canonical. שפות אחרות = תרגומים אליה.**
 
-## 4.1 Base37 Alphabet (6 bits per character)
+## 4.1 Universal-First Alphabet (6 bits per character, 64 slots)
+
+**עידן's principle:** התווים האוניברסליים (ספרות, מפרידים) מקבלים את הקודים הנמוכים — מובטח שיש להם משמעות זהה בכל השפות. רק אחר כך, האותיות שמשתנות לפי שפה.
 
 ```
-Code  | Character        | Range
-------|------------------|--------------------------------
-0     | NULL / padding   | reserved
-1-22  | אותיות עבריות    | א(1) ב(2) ג(3) ... ת(22), סופיות normalized
-23-32 | ספרות 0-9        | 0(23) 1(24) ... 9(32)
-33-37 | מפרידים          | #(33) .(34) -(35) _(36) :(37)
-38-63 | reserved future  | Arabic letters / Latin / symbols
+Universal codes (identical meaning across all languages):
+  Code  | Character        | Notes
+  ------|------------------|------------------------------
+  0     | NULL / padding   | always reserved
+  1-10  | ספרות 0-9        | 0(1) 1(2) ... 9(10)
+  11-15 | מפרידים          | #(11) .(12) -(13) _(14) :(15)
+
+Per-language codes (interpretation depends on language_id field):
+  Code  | Hebrew (id=0) | Arabic (id=1) | English (id=10) | Greek (id=30)
+  ------|---------------|---------------|------------------|---------------
+  16    | א              | ا              | a                | α
+  17    | ב              | ب              | b                | β
+  18    | ג              | ت/ث           | c                | γ
+  ...   | ...            | ...            | ...              | ...
+  37    | ת              | ي              | -                | -
+  38    | -              | ث              | -                | -
+  ...   | ...            | ...            | ...              | -
+  63    | reserved       | reserved       | reserved         | reserved
 ```
 
-**6 bits per char** (not 5, not 7) — קלאסי power-of-2-minus-1 design space.
+**Key property:** ספרה "5" באנגלית = ספרה "5" בעברית = ספרה "5" בסינית. אין צורך ב-language_id כדי לפרש אותם — תמיד code 6 (1+5).
+
+**זה מאפשר identifiers מעורבים** כמו "GPT-4" או "iPhone15" without ambiguity.
 
 ## 4.2 ההשוואה של 4 האופציות
 
@@ -312,7 +359,96 @@ pub const fn decode_root_3(encoded: u32) -> (u8, u8, u8) {
 
 **Performance:** encode/decode = pure bit operations, inline-able, ~2ns measured on modern x86.
 
-## 4.4 "Hebrew First, Other Languages Translate"
+## 4.4 Unified Variant — All Languages, One Atom Format
+
+**Major change from earlier ADR:** במקום kind=0x0 (Hebrew), 0x1 (Arabic), 0x2 (Aramaic) כ-variants נפרדים — **kind=0x0 הוא Lexical generic** עם **6-bit language_id field** שמפרש את ה-encoded chars לפי השפה.
+
+```
+Lexical Atom (kind=0x0) — works for all languages:
+
+  [63..60] kind = 0x0           (4 bits)
+  [59]     quadriliteral flag    (1 bit) — extends chars to 4
+  [58]     foreign_loan flag     (1 bit) — pseudo-root from phonetics
+  [57]     irregular flag        (1 bit) — has irregular forms in graph
+  [56]     extended flag         (1 bit) — uses string pointer (long word)
+  [55..50] language_id           (6 bits) — 64 languages
+  [49..32] encoded_chars         (18 bits) — 3 chars × 6 bits base37
+  [31..30] gender                (2 bits) — masc_bit + fem_bit (Idan's design)
+  [29..27] binyan/morph          (3 bits)
+  [26..24] tense                 (3 bits)  
+  [23..20] pgn                   (4 bits)
+  [19..19] definite              (1 bit)
+  [18..0]  semantic_id           (19 bits) — 500K variants per lemma
+```
+
+### 4.4.1 Language IDs (6 bits = 64 slots)
+
+```
+Group 1 — Semitic (sharing Semitic root patterns):
+  0  = Hebrew (default canonical)
+  1  = Arabic
+  2  = Aramaic
+  3  = Amharic
+  4  = Maltese
+  5  = Akkadian (ancient texts)
+  6-9 = reserved
+
+Group 2 — European:
+  10 = English        15 = Portuguese
+  11 = Spanish        16 = Russian
+  12 = French         17 = Polish
+  13 = German         18 = Czech
+  14 = Italian        19 = Dutch
+  20 = Swedish        21 = Norwegian
+  22-29 = reserved Indo-European
+
+Group 3 — Other major:
+  30 = Greek (Modern)  35 = Hindi (Devanagari)
+  31 = Latin           36 = Bengali
+  32 = Turkish         37 = Tamil
+  33 = Persian/Farsi   38 = Thai
+  34 = Hebrew Paleo    39 = reserved
+
+Group 4 — East Asian (use Logographic kind=0x3 instead):
+  40 = Japanese Hiragana
+  41 = Japanese Katakana
+  42 = Korean Hangul (24 jamo)
+  43-49 = reserved
+
+Group 5 — Specialty:
+  50 = Chinese Simplified (use kind=0x3)
+  51 = Chinese Traditional (use kind=0x3)
+  52-63 = reserved (sign languages, IPA, future)
+```
+
+### 4.4.2 Gender Encoding (2 bits, Idan's design)
+
+**עידן's structural insight:** במקום arbitrary mapping, כל ביט מייצג aspect:
+- Bit 31 = `has_masculine_aspect`
+- Bit 30 = `has_feminine_aspect`
+
+```
+Value | Meaning           | Examples
+------|-------------------|----------------------------------
+00    | Special/Neuter    | Concepts (אהבה), abstract (צדק)
+                            Ambiguous names (עדי, עמית)
+                            German neuter (Kind, Mädchen)
+01    | Feminine          | כלבה, דלת, אישה, ילדה
+10    | Masculine         | כלב, ספר, איש, ילד
+11    | Dual / Both       | תינוקות (mixed group),
+                            זוג (pair),
+                            cross-gender collectives
+```
+
+**Bitwise queries** (the elegance of bit-structural encoding):
+- `has_fem  = (gender & 0b01) != 0`
+- `has_masc = (gender & 0b10) != 0`
+- `is_dual  = gender == 0b11`
+- `is_neuter = gender == 0b00`
+
+Independent of mapping — derived from semantics of the bits themselves.
+
+### 4.4.3 The Hebrew-First Translation Pattern
 
 ```
                     ┌─────────────────────────┐
@@ -373,11 +509,40 @@ impl HebrewAtom {
 ## 5.1 Core struct (מאוחד, 3 variants)
 
 ```rust
-/// The atom core — exactly 8 bytes, bit-packed into a u64.
-/// ADR-3 defines three variants dispatched on the top 4 bits (kind).
+/// AtomId — the IDENTITY/INDEX of an atom in the table (32 bits).
+/// Use this for edges, references, lookups. NOT the payload.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[repr(transparent)]
+pub struct AtomId(pub u32);
+
+/// Atom — the PAYLOAD/CONTENT of an atom (64 bits, bit-packed).
+/// Lives in the atom table; accessed via AtomId index.
+/// Use this when you need to read/write the atom's fields.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Atom(pub u64);
+
+/// AtomTable — maps AtomId → Atom payload.
+/// This is the single canonical structure for atom storage.
+/// All other tables (string pool, root pool, etc.) reference AtomId.
+pub struct AtomTable {
+    payloads: Vec<Atom>,                 // indexed by AtomId.0
+    pub root_pool: SemiticEncoding,      // base37 letters
+    pub string_pool: StringInterner,     // for ForeignWord variants
+    pub blob_store: BlobStore,           // for Media + heavy data
+}
+
+impl AtomTable {
+    #[inline(always)]
+    pub fn payload(&self, id: AtomId) -> Atom {
+        self.payloads[id.0 as usize]
+    }
+    
+    #[inline(always)]
+    pub fn set_payload(&mut self, id: AtomId, atom: Atom) {
+        self.payloads[id.0 as usize] = atom;
+    }
+}
 
 /// Atom kinds — top 4 bits of the atom.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -657,30 +822,182 @@ pub mod foreign {
 }
 ```
 
-## 5.4 Logographic Variant (CJK)
+## 5.4 Logographic Variant (CJK) — Radical Composition Approach
+
+**עידן's insight (Apr 2026):** במקום לאחסן glyph vectors (200MB), לפרק character לרכיבים (radicals) הקטנים — בדיוק כמו ש-Hebrew מפרק מילה לשורש 3-letters. סינית בנויה compositionally מ-214 radicals.
+
+### 5.4.1 Storage breakdown (~1MB total, not 200MB)
+
+```
+214 Radicals (atoms with flag is_radical):
+  Each radical = standard 8-byte atom (kind=0x3, flag=is_radical)
+  214 × 8 bytes                                = 1.7 KB
+  
+75,000 Characters (composition entries):
+  Each entry: codepoint(u32) + radicals[u8;4] + position_pattern(u8) + stroke_count(u8)
+  10 bytes × 75,000                            = 750 KB
+  
+Composition edges (radicals → characters):
+  ~300,000 edges (each char has ~4 radicals)
+  CSR storage at 6 bytes/edge                  = 1.8 MB
+  
+─────────────────────────────────────────────────
+Total Chinese infrastructure:                    ~2.5 MB
+```
+
+**Compare:** Pixel-based VisualBank would be 200MB. **חיסכון פי 80.**
+
+### 5.4.2 Logographic Atom Layout (kind=0x3)
 
 ```rust
-/// Layout for Logographic atoms (Chinese, Japanese kanji, Korean hanja).
+/// Logographic atoms — Chinese characters, Japanese kanji, Korean hanja.
+/// The Unicode codepoint is the canonical identity (works across all systems).
 ///
 /// Bit layout:
-///   [63..60]  kind = 0x4   (4 bits)
-///   [59..56]  flags        (4 bits) — traditional/simplified/kanji
-///   [55..32]  codepoint    (24 bits) = Unicode codepoint
-///   [31..0]   semantic_id  (32 bits) = large discriminator
+///   [63..60] kind = 0x3            (4 bits)
+///   [59]     flag_traditional      (Chinese: traditional vs simplified)
+///   [58]     flag_kanji             (Japanese context)
+///   [57]     flag_hanja             (Korean context)
+///   [56]     flag_is_radical        (this atom IS a radical, not a composed char)
+///   [55..32] codepoint              (24 bits — Unicode, up to U+FFFFFF)
+///   [31..0]  semantic_id            (32 bits — 4B variants for disambiguation)
 pub mod logographic {
     use super::*;
-
-    pub const CODEPOINT_SHIFT: u32 = 32;
-    pub const CODEPOINT_MASK:  u64 = 0xFFFFFF << 32;
-
-    pub const SEM_SHIFT: u32 = 0;
-    pub const SEM_MASK:  u64 = 0xFFFFFFFF;
-
-    pub const FLAG_TRADITIONAL: u64 = 1 << 56;
-    pub const FLAG_KANJI:       u64 = 1 << 57;
-    pub const FLAG_HANJA:       u64 = 1 << 58;
+    
+    pub const FLAG_TRADITIONAL: u64 = 1 << 59;
+    pub const FLAG_KANJI:        u64 = 1 << 58;
+    pub const FLAG_HANJA:        u64 = 1 << 57;
+    pub const FLAG_IS_RADICAL:   u64 = 1 << 56;
+    pub const CODEPOINT_SHIFT:   u32 = 32;
+    pub const CODEPOINT_MASK:    u64 = 0xFFFFFF << 32;
+    pub const SEM_MASK:          u64 = 0xFFFFFFFF;
+    
+    pub const fn make(codepoint: u32, is_radical: bool, traditional: bool) -> Atom {
+        let mut bits: u64 = 0;
+        bits |= (AtomKind::Logographic as u64) << 60;
+        if traditional { bits |= FLAG_TRADITIONAL; }
+        if is_radical { bits |= FLAG_IS_RADICAL; }
+        bits |= (codepoint as u64) << CODEPOINT_SHIFT;
+        Atom(bits)
+    }
 }
 ```
+
+### 5.4.3 Composition Pool (separate from atoms)
+
+```rust
+/// Composition table — for each character, lists which radicals compose it
+/// and how they are positioned. Stored as separate file, mmap'd on demand.
+#[repr(C, packed)]
+pub struct CompositionEntry {
+    pub codepoint: u32,             // 4 bytes — links to Logographic atom
+    pub radicals: [u8; 4],          // 4 bytes — up to 4 radical IDs (1-214)
+    pub position_pattern: u8,       // 1 byte — left-right, top-bottom, surround...
+    pub stroke_count: u8,           // 1 byte — for drawing/sorting
+}
+// Total: 10 bytes per entry × 75K characters = 750 KB
+
+#[repr(u8)]
+pub enum PositionPattern {
+    Single = 0,           // single radical, no composition
+    LeftRight = 1,        // 你 (亻+尔)
+    TopBottom = 2,        // 早 (日+十)
+    SurroundFull = 3,     // 国 (□+玉)
+    SurroundLeft = 4,     // 区 (匚+乂)
+    SurroundTop = 5,      // 同 (冂+一+口)
+    Vertical3 = 6,        // 草 (艸+早)
+    LeftRight3 = 7,       // 谢 (讠+身+寸)
+}
+```
+
+### 5.4.4 The Composition Graph in Action
+
+```
+Radical atoms (214 of them, like Hebrew letters):
+  radical_心 = Logographic { codepoint: 0x5FC3, is_radical: true }
+  radical_氵 = Logographic { codepoint: 0x6C35, is_radical: true }
+  radical_火 = Logographic { codepoint: 0x706B, is_radical: true }
+
+Character 愛 (love):
+  atom_愛 = Logographic { codepoint: 0x611B, is_radical: false }
+  Composition: [爫, 冖, 心, 夂] in vertical-stack pattern
+  Edges:
+    radical_爫 --COMPOSED_INTO--> atom_愛
+    radical_冖 --COMPOSED_INTO--> atom_愛
+    radical_心 --COMPOSED_INTO--> atom_愛
+    radical_夂 --COMPOSED_INTO--> atom_愛
+
+Word 我愛你 (I love you):
+  Path = [atom_我, atom_愛, atom_你]
+  Stored in Article Path Graph (see §20)
+  
+Concept "love declaration":
+  concept_atom_love_declaration
+  Edge from path → EXPRESSES_CONCEPT
+```
+
+### 5.4.5 Reasoning by Radical (semantic discovery)
+
+```rust
+/// Find all characters containing a specific radical.
+/// Useful for: "show me all emotion characters" (containing 心),
+/// "show me water-related characters" (containing 氵).
+pub fn characters_containing_radical(
+    graph: &Graph,
+    radical: AtomId,
+) -> Vec<AtomId> {
+    graph.outgoing_edges(radical, EdgeKind::ComposedInto)
+         .map(|e| e.target())
+         .collect()
+}
+
+// Example: characters_containing_radical(radical_心)
+// Returns: [愛, 情, 思, 念, 恋, 慈, 悲, 怒, 怕, 忘, ...]
+// All emotion-related characters, discovered via shared radical!
+```
+
+**This emerges semantic clustering for free** — without any corpus training,
+ZETS knows which concepts share the "heart" component, simply from
+script structure.
+
+### 5.4.6 Simplified vs Traditional
+
+```
+愛 (Traditional, U+611B) - flag_traditional=1
+   ↕ SCRIPT_VARIANT edge
+爱 (Simplified, U+7231)  - flag_traditional=0
+   ↓ EXPRESSES_CONCEPT
+concept_love (shared)
+```
+
+Both characters point to the same concept — ZETS treats them as variants
+of the same meaning, picks the right surface form based on user preference
+or document context.
+
+### 5.4.7 Japanese Kanji (subset of Chinese characters)
+
+Japanese uses ~2,136 jōyō kanji (official list) + ~5,000 for advanced reading.
+**All are subsets of the Chinese character set** — same Unicode codepoints,
+same composition data, just `flag_kanji=1` to indicate Japanese context.
+
+**Multiple readings per kanji** stored as graph edges:
+```
+kanji_生 (U+751F) --HAS_READING[on]--> reading_atom_sei
+kanji_生 --HAS_READING[on]--> reading_atom_shou
+kanji_生 --HAS_READING[kun]--> reading_atom_nama
+kanji_生 --HAS_READING[kun]--> reading_atom_iki
+```
+
+ZETS picks the right reading from sentence context — like human readers do.
+
+### 5.4.8 Korean Hangul (block-syllabic, NOT logographic)
+
+Korean is alphabetic (24 jamo) composed into syllabic blocks. **Use Lexical
+variant (kind=0x0) with language_id=42**, not Logographic.
+
+11,172 possible hangul blocks fit in 14 bits. Pool of jamo combinations
+(pre-composed) takes ~44KB. Cheap.
+
 
 ## 5.5 Edge — 6 Bytes Hot Path
 
@@ -703,8 +1020,8 @@ pub struct EdgeHot {
 
 impl EdgeHot {
     #[inline(always)]
-    pub fn target(&self) -> u32 {
-        u32::from_le_bytes([self.packed[0], self.packed[1], self.packed[2], self.packed[3]])
+    pub fn target(&self) -> AtomId {
+        AtomId(u32::from_le_bytes([self.packed[0], self.packed[1], self.packed[2], self.packed[3]]))
     }
 
     #[inline(always)]
@@ -877,6 +1194,61 @@ When collision occurs (pseudo-root matches a native root), `semantic_id` discrim
 
 ---
 
+
+## 6.7 Optional: Strokes Layer 0 (Phase 5 capability — not core)
+
+**ספר יצירה insight:** העולם נוצר מאותיות. אבל linguistically, האותיות עצמן 
+בנויות מ**strokes primitives** — קווים, קשתות, נקודות — שמשותפים לכל הscripts.
+
+This is **deferred to Phase 5** (capability layer, not core data structure).
+Reason: Strokes don't save storage, but they enable powerful capabilities
+when added later: drawing, OCR, Kabbalistic shape analysis.
+
+### 6.7.1 The Universal Strokes Set (~10 primitives)
+
+```rust
+#[repr(u8)]
+pub enum Stroke {
+    Horizontal      = 0,   // ─
+    Vertical        = 1,   // │
+    DiagonalRight   = 2,   // ╱
+    DiagonalLeft    = 3,   // ╲
+    Curve           = 4,   // ⌒
+    Hook            = 5,   // ⌐
+    Dot             = 6,   // ·
+    Spiral          = 7,   // ◌
+    Cross           = 8,   // ╳
+    Closed          = 9,   // ○
+}
+```
+
+### 6.7.2 Storage Cost (negligible)
+
+```
+10 strokes × 128 bytes (vector path data)        = 1.3 KB
+Hebrew  22 letters × 4 strokes avg × 2 bytes     =  176 bytes
+Latin   26 letters × 4 strokes avg × 2 bytes     =  208 bytes
+Arabic  28 letters × 5 strokes avg × 2 bytes     =  280 bytes
+Greek   24 letters × 4 strokes avg × 2 bytes     =  192 bytes
+Cyrillic 33 letters × 5 strokes avg × 2 bytes    =  330 bytes
+Chinese 214 radicals × 6 strokes avg × 2 bytes   =  2.5 KB
+─────────────────────────────────────────────────────────
+Total all writing systems:                          ~5 KB
+```
+
+### 6.7.3 Capabilities Unlocked (when Phase 5 implements)
+
+1. **Drawing** — render any character in any size as SVG
+2. **OCR** — recognize handwritten characters via stroke matching
+3. **Kabbalistic similarity** — "אילו אותיות חולקות צורה?"
+4. **Cross-script comparison** — discover universal letter shapes
+5. **Generation** — create new symbols with controlled aesthetics
+
+### 6.7.4 NOT in Phase 1-4
+
+Phase 1-4 implementations should NOT depend on Strokes Layer.
+The atom storage and graph queries work without it.
+Strokes are an **augmentation**, like an X-ray adds info to a body.
 
 # 7. ארבע שכבות לשוניות
 
@@ -1635,9 +2007,20 @@ pub fn l5_surprise_correct(
 
 ---
 
-# 11. Reasoning — Quantum Walks + Spreading Activation + Interference
+# 11. Reasoning — Spreading Activation + Convergent Search
 
-## 11.1 Superposition over Senses
+**Honest naming note:** Despite the "quantum" framing throughout this section,
+the algorithms here are **classical**:
+- "Superposition" = weighted candidate tracking (like beam search)
+- "Parallel walks" = multi-source BFS
+- "Interference" = score accumulation at graph intersections  
+- "Collapse" = argmax with confidence threshold
+
+These are well-known classical techniques. The quantum vocabulary helps us
+maintain three design principles: (A) defer commitment, (B) reward
+convergence, (C) continuous spread. See §2.4 for full disclosure.
+
+## 11.1 Superposition over Senses (= Weighted Hypothesis Tracking)
 
 **עיקרון:** כל query מתחיל במצב של **כל פרשנויות אפשריות alive במקביל**. context מכווץ אותם.
 
@@ -3397,6 +3780,49 @@ Five statements that together define ZETS. If any is violated, it's not ZETS:
 **ZETS is the AGI that grows with you, remembers you, explains itself, and fits in your pocket.**
 
 ---
+
+
+
+---
+
+# Appendix B: Decision Log (Sessions 24.04.26+)
+
+## v1.2 (2026-04-24, evening + late evening sessions)
+
+### Major decisions added
+1. **Quantum framing → Quantum-Inspired** (with full honest disclosure §2.4)
+2. **AtomId(u32) vs Atom(u64) separation** — clean API + storage distinction
+3. **Universal-first alphabet** — codes 0-15 universal, 16-63 per-language
+4. **6-bit language_id** — single Lexical variant for all alphabetic languages
+5. **2-bit gender bit-structural encoding** — Idan's design (masc_bit + fem_bit)
+6. **Chinese via radical composition** — 1MB total (not 200MB pixel approach)
+7. **Strokes Layer 0** — deferred to Phase 5 (~5KB total when added)
+8. **231 Sefer Yetzirah gates** — confirmed as reasoning patterns, NOT compression
+9. **π / Modulo encoding** — examined and rejected (Shannon bound)
+
+### Open for next session
+- **Compression: Huffman + Delta on Article paths** (~1.5GB savings, deferred)
+- **Article Path Graph** vs Edges (separation between facts/documents)
+- **Edge Tier System** (basic 6B, sensory 8B, rich 6B+blob)
+- **Bidirectional via 2 CSRs** (no edge duplication)
+- **AI Council recommendations** to integrate (TMS, Global Workspace, Predictive
+  Processing, Idle Dreaming, Affective State, Self-Narrative, Frozen tests)
+
+### Methodology insights from this session
+
+**עידן's contribution to ZETS architecture:**
+- Articles as paths separate from facts edges (resolved CSR mutability concern)
+- 2-bit structural gender encoding (cleaner than enum mapping)
+- Universal-first alphabet (digits/separators have universal codes)
+- Chinese radical composition (insight from Hebrew root pool generalized)
+- Bit-structural design over arbitrary mappings
+
+**Patterns we recognized:**
+- Compression works via *non-uniform structure* (Huffman, Markov)
+- Compression FAILS on uniform random (π, white noise)
+- Each script gets compression matching its nature (Semitic→roots,
+  Chinese→radicals, alphabetic→direct, logographic→Unicode)
+- Honest disclosure beats fake claims ("quantum-inspired" not "quantum")
 
 ## End of Master Specification
 
