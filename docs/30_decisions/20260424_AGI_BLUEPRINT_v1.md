@@ -1278,3 +1278,186 @@ This is the absolute leanest possible representation that preserves full content
 |------|--------|--------|
 | 2026-04-24 | Principle 14: Atom-as-u64 | Idan's question on leanest possible atom encoding |
 
+
+---
+
+## 📎 Addendum 7: Principle 15 — Hybrid Atom Storage (Small + Dynamic)
+
+**Date:** 2026-04-24 (later)  
+**Question by Idan:** "Can atom size be dynamic based on content?
+Put fixed-position header bytes to describe type, then variable content after.
+This way we can store words AND rules in the same atom system."
+
+### The Insight
+
+Until now, atoms were limited to representing **words**. 
+Idan's question reframes atoms as **universal knowledge containers** that can hold:
+- Simple concepts (words)
+- Rules (IF X THEN Y)
+- Functions (compute F(a,b,c))
+- Templates (reusable patterns)
+- Executables (wasm bytecode)
+- Sequences, sets, formulas
+
+This requires atoms of **variable size** — and that changes everything.
+
+### The Design
+
+**Header (2 bytes, 16 bits) — fixed, always first:**
+```
+┌────────┬────────┬─────────────┬──────────┐
+│ lang 4 │ type 4 │ size_class 4│ flags 4  │
+└────────┴────────┴─────────────┴──────────┘
+```
+
+**Content (variable, 2-32 bytes) — sized by size_class:**
+
+| size_class | bytes | max letters | max atom_ids | example |
+|---|---|---|---|---|
+| 0 | 2 | 3 | - | "אב" |
+| 1 | 4 | 6 | - | "לימון" |
+| 2 | 6 | 9 | 1 id | "ירושלים" |
+| 3 | 8 | 12 | 2 ids | rules with 1 condition+action |
+| 4 | 12 | 19 | 3 ids | complex rules |
+| 5 | 16 | 25 | 4 ids | functions |
+| 6 | 24 | 38 | 6 ids | templates |
+| 7 | 32 | 51 | 8 ids | executables |
+
+### Atom Type Encoding (4 bits)
+
+This is where the power lies. The `atom_type` field tells the parser how to interpret `content`:
+
+| type | Name | Content interpretation |
+|---|---|---|
+| 0x0 | concept | 5-bit letter encoding of a word |
+| 0x1 | entity | name + unique ID |
+| 0x2 | event | event descriptor + metadata |
+| 0x3 | **rule** | `[opcode][condition_atom_id][action_atom_id]` |
+| 0x4 | **function** | `[fn_opcode][param1][param2][...]` |
+| 0x5 | template | pattern spec with placeholders |
+| 0x6 | formula | mathematical expression tree |
+| 0x7 | executable | wasm bytecode |
+| 0x8 | sequence | ordered [atom_id, atom_id, ...] |
+| 0x9 | set | unordered {atom_id, atom_id, ...} |
+
+**Net effect:** ZETS is no longer a knowledge graph of words. It's a knowledge graph of **knowledge itself** — where rules, functions, and concepts are all first-class atoms.
+
+### Practical Examples
+
+```
+atom A (concept):   "לימון"
+  header: lang=he, type=0x0, size_class=1, flags=0
+  content: [0x10, 0x30, 0x90, 0x6E] (5 letters × 5 bits)
+  total: 6 bytes
+
+atom B (rule):      "IF לימון.ripeness > 0.6 THEN color=צהוב"  
+  header: lang=ops, type=0x3 (rule), size_class=3, flags=conditional
+  content: [cmp_op][atom_id_לימון][axis_ripeness][0.6_byte][set_op][atom_id_color][atom_id_צהוב]
+  total: 10 bytes
+
+atom C (function):  "max(a, b, c)"
+  header: lang=ops, type=0x4 (function), size_class=3, flags=0
+  content: [fn_max_opcode][param1_type][param2_type][param3_type]
+  total: 10 bytes
+
+atom D (Chinese):   "日本語"
+  header: lang=zh, type=0x0 (concept), size_class=2, flags=0
+  content: [14-bit × 3 ideographs = 42 bits] = 6 bytes content
+  total: 8 bytes
+```
+
+### The Random Access Problem
+
+With fixed u64 atoms, `atoms[42]` = `base + 42*8` = O(1) with 1 memory access.
+
+With dynamic sizes, we can't compute the address. Solution: **offset table**.
+
+```rust
+struct DynamicAtomStore {
+    data: Vec<u8>,          // concatenated atom bytes
+    offsets: Vec<u32>,       // offset of each atom in data
+}
+
+fn atom_at(&self, id: u32) -> &[u8] {
+    let start = self.offsets[id as usize] as usize;
+    let end = self.offsets[(id + 1) as usize] as usize;
+    &self.data[start..end]
+}
+```
+
+Still O(1) with 2 memory accesses — acceptable.
+
+**Cost:** +4 bytes per atom (offset). At 10M atoms = +40 MB.
+
+### The Recommended Architecture — Hybrid
+
+Don't pay the dynamic cost for everything. **Use fixed for simple, dynamic for complex:**
+
+```rust
+struct AtomStore {
+    // 95% of atoms — simple concepts, u64 fixed
+    small: Vec<u64>,              // 8 bytes each, O(1) direct access
+    
+    // 5% of atoms — rules, functions, complex
+    large_data: Vec<u8>,          // concatenated
+    large_offsets: Vec<u32>,      // O(1) via offset lookup
+}
+
+// ID scheme uses high bit to route:
+fn get_atom(id: u32) -> AtomRef {
+    if id & 0x8000_0000 == 0 {
+        // bit 31 = 0 → small atom
+        AtomRef::Small(self.small[id as usize])
+    } else {
+        // bit 31 = 1 → large atom
+        let idx = (id & 0x7FFF_FFFF) as usize;
+        let start = self.large_offsets[idx];
+        let end = self.large_offsets[idx + 1];
+        AtomRef::Large(&self.large_data[start..end])
+    }
+}
+```
+
+### Storage Cost (at 10M atoms)
+
+| Component | Size |
+|---|---|
+| Small atoms (9.5M × 8 B) | 76 MB |
+| Large data (0.5M × ~20 B avg) | 10 MB |
+| Large offsets (0.5M × 4 B) | 2 MB |
+| **TOTAL** | **88 MB** |
+
+vs u64-only at 80 MB → **+10% cost for infinite flexibility**.
+
+### Why This Is Major
+
+Before this principle:
+- ZETS = knowledge graph (concepts + edges)
+
+After this principle:
+- ZETS = **universal knowledge system** (concepts + rules + functions + templates + edges)
+
+The ability to store rules as atoms means ZETS can:
+- Learn IF-THEN relationships from user input
+- Store procedural knowledge, not just declarative  
+- Execute inference chains natively (rules trigger rules)
+- Compose functions from atomic operations
+- Build templates that expand into concrete queries
+
+This is **the infrastructure for agentic behavior**.
+
+### The principle in one line
+
+> **An atom is a container. Its type tells the parser what's inside.  
+> Fixed header + variable body = the universal knowledge unit.**
+
+Simple concepts get 8 bytes. Complex rules get what they need. Both live in the same system, accessed the same way, through the same ID space.
+
+---
+
+## 🔄 Revision History (updated)
+
+| Date | Change | Reason |
+|------|--------|--------|
+| 2026-04-24 | Principle 15: Hybrid Atom Storage | Idan's insight — atoms can hold rules, not just words |
+
