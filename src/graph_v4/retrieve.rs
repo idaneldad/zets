@@ -146,6 +146,29 @@ pub fn answer(
         }
     }
 
+    // ── DISAMBIGUATION BOOST ──
+    // If a seed's key matches an article title (case-insensitive), multiply that article's score.
+    // Helps distinguish e.g. "Apollo 11" query → Apollo 11 article vs Apollo 14.
+    for (_, seed_key, _) in &seeds {
+        let seed_lower = seed_key.to_lowercase();
+        for (art_id, score) in art_scores.iter_mut() {
+            let title = &g.atoms[*art_id as usize].key;
+            let title_lower = title.to_lowercase();
+            // exact match: score ×5
+            if title_lower == seed_lower {
+                *score *= 5.0;
+            }
+            // title starts with seed (e.g. "Apollo 11" → "Apollo 11" article): ×3
+            else if title_lower.starts_with(&seed_lower) && seed_lower.len() >= 4 {
+                *score *= 3.0;
+            }
+            // seed is full article title minus parenthetical (e.g. "C" → "C (programming language)"): ×2
+            else if title_lower.split(" (").next().unwrap_or("") == seed_lower {
+                *score *= 4.0;
+            }
+        }
+    }
+
     // sort
     let mut sent_vec: Vec<(AtomId, f32)> = sent_scores.into_iter().collect();
     sent_vec.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));

@@ -189,6 +189,81 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Response::json(200, body)
     });
 
+    // ─── /answer — long-form answer (multi-sentence from top article) ───
+    let c = ctx.clone();
+    srv.on("POST", "/answer", move |req| {
+        let q = match json_get(&req.body, "q").or_else(|| json_get(&req.body, "question")) {
+            Some(x) => x,
+            None => return Response::bad_request("q required"),
+        };
+        let t = Instant::now();
+        let ans = answer(&q, &c.g, &c.idf, &c.phrases, 30, 5);
+        let dt_ms = t.elapsed().as_millis();
+
+        let (art_name, art_score, confidence) = match (ans.top_articles.get(0), ans.top_articles.get(1)) {
+            (Some((n, s1)), Some((_, s2))) => (n.clone(), *s1, s1 / (s2 + 1.0)),
+            (Some((n, s1)), None) => (n.clone(), *s1, 10.0_f32),
+            _ => return Response::json(200, String::from("{\"paragraph\":[],\"confidence\":0,\"article\":\"\"}")),
+        };
+
+        let prefix = format!("{}:", art_name);
+        let mut from_article: Vec<(u32, String)> = Vec::new();
+        for (text, _sc, key) in &ans.top_sentences {
+            if key.starts_with(&prefix) {
+                if let Some(pos_str) = key.rsplit(':').next() {
+                    if let Ok(pos) = pos_str.parse::<u32>() {
+                        from_article.push((pos, text.clone()));
+                    }
+                }
+            }
+        }
+        for atom in c.g.atoms.iter() {
+            if atom.kind != AtomKind::Sentence { continue; }
+            if !atom.key.starts_with(&prefix) { continue; }
+            if let Some(pos_str) = atom.key.rsplit(':').next() {
+                if let Ok(pos) = pos_str.parse::<u32>() {
+                    if pos <= 3 {
+                        if let Some(txt) = &atom.text {
+                            if !from_article.iter().any(|(p, _)| *p == pos) {
+                                from_article.push((pos, txt.clone()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        from_article.sort_by_key(|(p, _)| *p);
+
+        from_article.retain(|(_, t)| {
+            let tl = t.trim();
+            if tl.starts_with("thumb|") || tl.starts_with("|") { return false; }
+            if tl.starts_with("*") || tl.starts_with("==") { return false; }
+            if tl.contains("{{Infobox") || tl.contains("{{infobox") { return false; }
+            if tl.contains("| birth_") || tl.contains("| death_") { return false; }
+            if tl.contains("| caption =") || tl.contains("| image =") { return false; }
+            if tl.split_whitespace().count() < 5 { return false; }
+            // junk: sentence contains more `|` than letters — fragment of wiki table
+            let pipes = tl.matches('|').count();
+            if pipes > 3 { return false; }
+            true
+        });
+        from_article.truncate(5);
+
+        let mut body = String::from("{");
+        body.push_str(&format!("\"question\":{},", json_escape(&q)));
+        body.push_str(&format!("\"article\":{},", json_escape(&art_name)));
+        body.push_str(&format!("\"article_score\":{:.3},", art_score));
+        body.push_str(&format!("\"confidence\":{:.3},", confidence));
+        body.push_str(&format!("\"time_ms\":{},", dt_ms));
+        body.push_str("\"paragraph\":[");
+        for (i, (pos, txt)) in from_article.iter().enumerate() {
+            body.push_str(&format!("{{\"pos\":{},\"text\":{}}}", pos, json_escape(txt)));
+            if i + 1 < from_article.len() { body.push(','); }
+        }
+        body.push_str("]}");
+        Response::json(200, body)
+    });
+
     println!("listening on 0.0.0.0:{}", port);
     println!("  GET  /health");
     println!("  GET  /stats");

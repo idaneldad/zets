@@ -1,6 +1,6 @@
 #!/bin/bash
 cd /home/dinio/zets
-SNAPSHOT=${SNAPSHOT:-data/baseline/v4_pilot.zv4}
+SNAPSHOT=${SNAPSHOT:-data/baseline/v4_fixed.zv4}
 PORT=${PORT:-3148}
 LOG=/tmp/zets_v4_server.log
 if pgrep -f "zets_v4_server"; then

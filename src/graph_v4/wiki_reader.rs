@@ -36,6 +36,7 @@ pub fn read_articles<P: AsRef<Path>>(
         let line = match line_r { Ok(l) => l, Err(_) => continue };
         // parse JSON ידנית (זול) — אנחנו רק צריכים title + text
         if let Some((title, text)) = extract_title_and_text(&line) {
+            if is_low_value_title(&title) { continue; }
             let tlen = text.len();
             if tlen >= min_len && tlen <= max_len {
                 out.push(Article { title: title.to_string(), text: text.to_string() });
@@ -125,3 +126,39 @@ mod tests {
         assert!(x.contains("הלב"));
     }
 }
+
+/// מזהה article titles שהם low-value (dates, lists, disambiguation).
+/// קורא מ-pre-built list + regex patterns.
+pub fn is_low_value_title(title: &str) -> bool {
+    // Hebrew date pattern: "N בחודש"
+    if let Some(first_char) = title.chars().next() {
+        if first_char.is_ascii_digit() {
+            // "1 בינואר", "10 במרץ", etc.
+            let hebrew_months = [
+                "בינואר", "בפברואר", "במרץ", "באפריל", "במאי", "ביוני",
+                "ביולי", "באוגוסט", "בספטמבר", "באוקטובר", "בנובמבר", "בדצמבר",
+            ];
+            for m in &hebrew_months {
+                if title.contains(m) { return true; }
+            }
+            // pure years or decades: "1972", "1970s"
+            if title.chars().all(|c| c.is_ascii_digit() || c == 's') { return true; }
+        }
+    }
+    // Lists
+    if title.starts_with("List of ") || title.starts_with("רשימת ") { return true; }
+    // Disambiguation
+    if title.ends_with("(disambiguation)") { return true; }
+    // Season articles
+    if title.contains(" season ") || title.starts_with("Season ") { return true; }
+    // "Outline of X"
+    if title.starts_with("Outline of ") { return true; }
+    // Sport seasons: "2001 World Series", "1903 NBA..."
+    if title.chars().take(5).all(|c| c.is_ascii_digit() || c == ' ') && title.len() > 10 {
+        if title.contains("World Series") || title.contains("NBA") || title.contains("Olympic") {
+            return true;
+        }
+    }
+    false
+}
+
