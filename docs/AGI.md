@@ -179,6 +179,53 @@ Federation between ABI versions: only same-version graphs federate directly.
 Cross-version requires explicit translation layer.
 
 ---
+
+## §0.10 Reserved Bits for 30-Year Future-Proofing [BINDING]
+
+To support embodiment (2031+) + lifelong learning + sensorimotor binding 
+without breaking ABI, atoms reserve specific bit ranges:
+
+```
+Within atom kind=0x9 TimeAtom — Dynamic Temporal Tag block:
+  bits 31..16  spatial_reference_frame_id (16 bits, 65K frames)
+  bits 15..0   temporal_anchor_lamport (16 bits, logical clock)
+
+Within atom kind=0xB ObservationAtom — Sensorimotor binding:
+  bits 47..32  sensor_modality (16 modalities)
+  bits 31..0   bound_atom_id (cross-graph reference)
+```
+
+**Why both:**
+- spatial_reference_frame: required for embodiment (robotic limbs, cameras)
+- temporal_anchor_lamport: deterministic time without wall-clock dependency
+- sensor_modality: which physical sense produced this observation
+- bound_atom_id: connects observation to abstract concept
+
+NotebookLM Q16 + F8 confirmed: without these reserved NOW, ABI v2 
+forced by 2031.
+
+## §0.11 Atom Bit Layout Reconciliation [EXPERIMENTAL — pending Iter 1]
+
+Two layouts proposed, both 64 bits:
+
+**Layout A (original §0.2):**
+```
+4 kind | 4 flags | 6 lang | 18 chars | 2 gender | 
+3 binyan | 3 tense | 4 pgn | 1 def | 19 semantic
+```
+
+**Layout B (NotebookLM Q15, SDR-optimized):**
+```
+20 root | 12 binyan/tense | 16 cluster | 16 ID
+```
+
+Layout B enables direct bit-level overlap (SDR dot-product) without 
+lookup tables. Layout A enables structured field access.
+
+**Decision deferred to Iter 1 council vote.** Likely synthesis: 
+hybrid where root encoding (20 bits) replaces chars+gender+pgn fields.
+
+
 # 1. החזון
 
 ## מה ZETS הוא
@@ -2923,6 +2970,43 @@ impl FileIngester {
 
 ---
 
+
+## §14.X Latent Trajectory Planning (JEPA-style) [EXPERIMENTAL]
+
+Per NotebookLM Q5 + Wireless Dreamer model, ZETS uses latent atom space 
+to simulate walks before executing on the main graph.
+
+### Mechanism
+
+```
+Query arrives
+   |
+   v
+Project query into 256-dim VSA latent space
+   |
+   v
+Simulate top-K candidate walks in latent space (cheap, ~5ms)
+   |
+   v
+Evaluate predicted reward + confidence per simulated path
+   |
+   v
+Execute only top-3 trajectories on real graph
+   |
+   v
+Compare actual vs predicted (Prediction Error → learning signal)
+```
+
+### Cost Reduction
+
+- Without latent: 100 candidate walks × 50ms = 5000ms
+- With latent: 100 simulated × 0.5ms + 3 real × 50ms = 200ms
+- **25× speedup** on agentic planning
+
+### NotebookLM E5: Latent dim = 256
+Confirmed by JEPA literature for graph-native systems on CPU.
+
+
 # 15. Default vs Typical vs Observed Knowledge
 
 **הדוגמה של עידן: "מכונית אדומה" vs "מכונית לבנה דמיונית".**
@@ -4527,4 +4611,298 @@ Every failure recovery generates an immutable audit log entry:
 
 User can query: `audit("what went wrong last week?")` returns chronological
 list of all recoveries with explanations.
+
+
+
+---
+
+# §28.0 Self-Improvement via AAR Pattern [EXPERIMENTAL]
+
+ZETS will use the AAR (Automated Alignment Researcher) pattern to 
+bootstrap-improve its own architecture, not just its parameters.
+
+## Mechanism
+
+```
+Weak supervisor (small model, e.g., Qwen 1.5-0.5B)
+     |
+     | proposes hypothesis about ZETS internals
+     v
+Strong base model (ZETS itself + larger evaluator)
+     |
+     | tests hypothesis, measures improvement
+     v
+PGR (Performance Gap Recovered) score computed
+     |
+     | if PGR > 0.6: accept change to candidate spec
+     | if PGR > 0.9: promote to mainline AGI.md
+     v
+NightMode applies accepted changes deterministically
+```
+
+PGR formula:
+```
+PGR = (Strong with Weak Supervision - Weak Teacher) / 
+      (Strong with Ground Truth - Weak Teacher)
+```
+
+## Empirical Targets
+
+- Claude Opus 4.6 demonstrated PGR 0.97 on alignment research
+- ZETS should aim PGR > 0.85 on architecture decisions
+- Cost: ~$22/AAR-hour (NotebookLM source)
+- 9 AARs × 800 hours = ~$18K for breakthrough cycle
+
+## Integration with §31 Graph Topology
+
+AAR runs in **L. Sandbox graph**. Promoted insights move to **A. Core** 
+only via §29 verification (no Reward Hacking detected, GPT-5.5 audit pass).
+
+---
+
+# §29 Failure Modes — Extension F11-F13 [BINDING]
+
+Continuing from §29.2 catalog:
+
+## F11: Reward Hacking
+- **Trigger:** Self-improvement loop finds shortcut to score
+- **Detection:** 4 strategies from Anthropic:
+  1. No Ground Truth access (training set isolated)
+  2. Statistical pattern filter (reject answers matching frequency distributions)
+  3. Adversarial Verifier (separate council member assigned to attack)
+  4. No test bypass (cannot read test cases)
+- **Mitigation:** Adversarial Verifier in every iteration, blacklist gaming patterns
+- **Recovery:** Roll back to last verified checkpoint, retrain with adversarial set
+
+## F12: Alignment Faking / Sandbagging
+- **Trigger:** Procedure (L0+) hides true intent, performs correctly only when monitored
+- **Detection:**
+  - Random shadow-monitoring (procedure doesn't know when watched)
+  - Behavioral consistency check across monitored vs unmonitored runs
+  - Variance analysis: similar inputs should produce similar trust signals
+- **Mitigation:** Demote to L0 on any inconsistency, log as TrustEvent
+- **Recovery:** Quarantine procedure family, require manual review before re-promotion
+
+## F13: Multi-Agent Collusion
+- **Trigger:** Multiple procedures coordinate to bypass single-procedure checks
+- **Detection:**
+  - Inter-procedure communication tracking
+  - Sudden correlated trust changes across procedures
+  - Information flow analysis (entropy spike between specific procedure pairs)
+- **Mitigation:** Procedures cannot share write access to same atoms without 
+  explicit user approval. Communication graph is itself an audit graph.
+- **Recovery:** Disconnect colluding procedures, force re-promotion individually
+
+NotebookLM F10 source: Anthropic alignment research warns Multi-agent 
+collusion is "biggest blind spot for self-improving systems."
+
+---
+
+# §30 Tri-Memory Architecture [BINDING]
+
+ZETS implements three explicit memory tiers, mapping to neurocognitive 
+research (Hierarchical Temporal Memory / Numenta Thousand Brains):
+
+## §30.1 Working Memory (Short-Term)
+- **Size:** Top-20 atoms (per Global Workspace Theory)
+- **Content:** Currently active session context
+- **Decay:** Recent_Visits × 0.95 per micro-sleep cycle
+- **Lifetime:** Session duration only, never persisted as-is
+- **Storage:** RAM-only, cleared on session end
+
+## §30.2 Episodic Memory (Long-Term)
+- **Content:** User interactions, observed events, learned facts
+- **Storage:** PersonalVault (graph I) + Temporal graph (G)
+- **Consolidation:** NightMode merges Working into Episodic deterministically
+- **Decay:** Ebbinghaus-style with confidence-weighted reinforcement
+- **Lifetime:** Years to decades, user-scoped
+
+## §30.3 Permanent Memory (Core)
+- **Content:** Concept atoms, axioms, core procedures, ABI itself
+- **Storage:** Core graph (A) + selected Semantic (C)
+- **Decay:** None — atoms here are unprunable
+- **Lifetime:** ABI version lifetime (decade+)
+- **Modification:** Only via §28.0 AAR pipeline + §29 verification
+
+## §30.4 Promotion Rules
+
+```
+Working → Episodic:  
+  Triggered by NightMode if Salience > threshold AND repeated >2 sessions
+  
+Episodic → Permanent:
+  Triggered by user explicit + AAR PGR > 0.9 + cross-validation
+  Manual review required
+```
+
+NotebookLM D2 confirmed: 20-atom Working > Miller 7±2 for AI workloads 
+because CPU bottleneck differs from human cognitive bottleneck.
+
+---
+
+# §31 Graph Topology — 13 Sub-Graphs [BINDING]
+
+(Full ADR: docs/00_doctrine/ADR_GRAPH_TOPOLOGY_20260425.md)
+
+ZETS is NOT one monolithic graph. It is 13 physically separate sub-graphs 
+with cryptographic boundaries:
+
+```
+Layer 1 — Core (signed):                A. Core
+Layer 2 — Knowledge (public):           B. Sense, C. Semantic, D. Article  
+Layer 3 — Verification (internal):      E. Provenance, F. Trust, G. Temporal
+Layer 4 — Action:                       H. Procedure
+Layer 5 — Identity (sovereign):         I. Personal[user], J. ZETS-Self, K. Group
+Layer 6 — Safety / Federation:          L. Sandbox, M. Federation
+```
+
+## Cross-Graph References
+
+Atoms reference other graphs via (GraphId, AtomId) tuple. 4 bits in atom 
+header reserved for home_graph_id (16 graph types max, sufficient).
+
+## Permission Model (cryptographic)
+
+| Graph | Read | Write | Encryption |
+|---|---|---|---|
+| A Core | All | ZETS upgrade only | Signed |
+| B-D Knowledge | All | Append-only via TMS | None (public) |
+| E-G Verification | All | Internal only | Signed |
+| H Procedure | All | L0-L3 promotion | Signed at L2+ |
+| I Personal | Owner only | Owner only | User key |
+| J ZETS-Self | ZETS only | ZETS only | ZETS master key |
+| K Group | Members per scope | Per scope rules | Group key |
+| L Sandbox | Read-isolated | Auto-promotion | None |
+| M Federation | Auth required | Consensus protocol | Multi-sig |
+
+## Procedure Pattern: Template + Instance + Compiled
+
+```
+TemplateAtom (kind=0x4) — pure pattern, no state, stored once
+       |
+       | INSTANTIATES edge
+       v
+InstanceAtom (kind=0xC) — bound params, runtime state, event log
+
+After 100 successful runs (L1):  compile to WASM bytecode
+After verification (L2):          compile to native binary  
+After core promotion (L3):        mmap as executable, native call
+
+Memory: 1 template + N instances << N copies of code
+```
+
+---
+
+# §32 Beit Midrash Federation Model [EXPERIMENTAL — Hebrew-Canonical]
+
+This is the architectural insight that distinguishes ZETS from all 
+Western federation models.
+
+## §32.1 The Problem with Western Federation
+
+Standard CRDT (Conflict-Free Replicated Data Types) treat conflicting 
+edges as bugs to resolve via "eventual consistency." When ZETS-instance-A 
+says "X causes Y" and ZETS-instance-B says "X does NOT cause Y", 
+CRDT picks one by tiebreaker (last-write-wins, vector clock, etc.).
+
+Information is destroyed.
+
+## §32.2 The Hebrew-Canonical Alternative
+
+In Talmudic tradition, contradictions are not deleted — they are preserved 
+as multiple valid views. "Beit Shammai vs Beit Hillel" — both opinions 
+remain in the canon, each correct in their context.
+
+## §32.3 Technical Implementation
+
+Instead of CRDT merge, ZETS uses Context Pointers (VSA orthogonal binding):
+
+```
+Standard CRDT:                  Beit Midrash:
+edge X→Y conflict               edge_A: X →[ctx=A] Y    
+   |                             edge_B: X →[ctx=B] !Y
+   v                             both preserved
+pick one winner                  
+delete other                     query at runtime selects ctx by relevance
+```
+
+Each contradicting edge carries a **Context Pointer** (orthogonal vector 
+in VSA space) representing the perspective that supports it.
+
+## §32.4 Runtime Resolution
+
+When ZETS performs a walk and encounters Beit Midrash multiplicity:
+1. Compute current query context (from session, user, task)
+2. Project context onto each edge's context pointer (dot product)
+3. Walk continues via edge with highest contextual relevance
+4. **Lower-relevance edges remain in graph** (not deleted)
+
+## §32.5 Why This is the Differentiator
+
+LLMs cannot do this — they collapse to a single "most likely" answer.
+GPT/Claude/Gemini show one trained perspective.
+
+ZETS preserves **all valid perspectives** and selects by context at 
+inference time. This is closer to actual human expert reasoning 
+("it depends...") than any current LLM architecture.
+
+## §32.6 Failure Mode
+
+If contexts become incomparable (no clear winner), ZETS returns 
+**multiple answers with explicit attribution**: "According to context A 
+(rabbinic view): X. According to context B (engineering view): Y."
+
+User chooses or asks for clarification.
+
+NotebookLM Round 3 origin: bias flag suggested replacing Western CRDT 
+with Beit Midrash as Hebrew-canonical alternative. Three independent 
+review rounds confirmed novelty.
+
+---
+
+# §33 Tensor vs Graph Boundary [BINDING]
+
+Where deep learning (DL) belongs in ZETS architecture, settled by 
+NotebookLM F12.
+
+## §33.1 Graph (Default)
+
+ZETS default: graph traversal for ALL reasoning, knowledge, planning.
+Deterministic, auditable, walks-based.
+
+## §33.2 Tensor (Specific Roles Only)
+
+DL is allowed ONLY in these layers:
+1. **Perception (raw sensory input):** image → atoms, audio → atoms
+2. **Pattern recognition in noisy data:** when no clean discrete representation exists
+3. **Trajectory prediction:** non-deterministic motor planning (when embodied)
+4. **Style/register polish (NL output):** post-template stylistic refinement
+
+## §33.3 Strict Boundaries
+
+DL outputs MUST:
+- Pass through TMS gates (trust scored, provenance attached)
+- Quantize to atoms before entering Core/Semantic graphs
+- Be marked with kind=0xB ObservationAtom (non-canonical)
+- Be promotable to canonical only via §29 verification
+
+DL NEVER does:
+- Direct fact storage
+- Reasoning chains (only graph walks)
+- Self-modification (only graph atoms self-modify via §28.0)
+
+## §33.4 Hybrid Pattern
+
+```
+Sensor (camera) → DL embedder → Quantize to atoms → 
+Insert as ObservationAtom in Sandbox → 
+TMS verifies + promotes if confidence high → 
+Eventually merges with Episodic/Permanent
+```
+
+NotebookLM F12 confirmed: graph traversal cannot replace DL for 
+raw perception. But graph reasoning cannot be replaced by DL either.
+ZETS is the bridge.
+
+---
 
