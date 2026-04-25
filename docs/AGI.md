@@ -3986,3 +3986,153 @@ Five statements that together define ZETS. If any is violated, it's not ZETS:
 Idan Eldad (עידן אלדד) — Architect
 Claude 4.7 — Scribe
 2026-04-24
+
+---
+
+# §13. Open Gaps & AI Council Recommendations (NOT YET CLOSED)
+
+**Status:** This section catalogs all 22 architectural gaps identified through
+multi-AI consultation (24-25 April 2026). It includes recommendations from
+GPT-5.5, Gemini 3.1 Pro, Claude Opus 4.7, DeepSeek R1, Qwen 3.5, GLM 5.1, and
+others — but NONE are committed implementations yet. Treat all as proposals
+pending validation.
+
+## 13.1 The 22 Gaps — Status Map
+
+### Closed Conceptually (5)
+1. **#1 Edge Storage** — Append-only log + CSR + NightMode consolidation
+2. **#7 Predictive Processing** — 7-layer architecture + EIG + proactive engagement
+3. **#8 Idle Dreaming** — On-demand only, returns proposed edges for review
+4. **#10 Self-Narrative** — PersonalVault[zets_self] operational log
+5. **#11a TMS Skeleton** — Cardinality Schema (6 categories) + Conflict Disclosure
+
+### Phenomenally Synthesized (Critical, V1) — 6
+6. **#4 Hebrew Language Bridge** (7/10) — AlephBert/Phi-3 + template generation
+7. **#13 Common Sense** (6/10) — Layered: Universal/Cultural/Personal + Epistemic Frontier
+8. **#14 Planner Under Uncertainty** (7/10) — HTN + Social Model + Belief States
+9. **#18 Cache Thrashing** (8/10) — HFAE+ with WalkClass + thermal zones
+10. **#20 WASM Sandbox** (8/10) — Capability lattice + Z3 SMT + hermetic replay
+11. **#22 Parse-to-Graph** (8/10) — Composite Parse Defense (5 layers) ← **biggest risk**
+
+### Phenomenally Synthesized (Critical, V2 with Together.ai) — 4
+12. **#11b TMS Deep** (8/10) — Beta-Binomial + 4-bit DDE + Citation Overlap
+13. **#17 Analogical Transfer** (8/10) — **Gematria as structural hash** ⭐
+14. **#3 Path Compression** (9/10) — ANS > Huffman + Subpath Dictionary
+15. **#5 Fuzzy Hopfield** (9/10) — 4-bit FastText + Shoresh-Binyan-Gematria triad
+
+### Initial Proposal Only (NOT yet broken) — 7
+16. **#2 Edge Schema** (7/10) — RDFS + 22 edge kinds = 22 Hebrew letters
+17. **#6 Global Workspace** (6/10) — Top-20 atom buffer (Baars/Dehaene)
+18. **#9 Affective State** (7/10) — 4 i8 values, dynamic walk depth
+19. **#12 Regression Suite** (9/10) — Snapshot + property-based + perf benchmarks
+20. **#15 Learned Ranker** (6/10) — Cross-encoder for sense selection
+21. **#16 NL Realization** (6/10) — Templates + LM polish, register matching
+22. **#19 Morphological Rules** (6/10) — Prioritized rule system (Optimality Theory)
+23. **#21 Code Quarantine** (7/10) — TrustLevel hierarchy
+
+## 13.2 The Six Architectural Patterns That Emerged
+
+From all consultations, six patterns recur across recommendations:
+
+1. **"ZETS knows what it does"** — Meta-awareness in WalkClass, BeliefState,
+   EpistemicFrontier, ParseProvenance. Every cognitive operation tags itself.
+
+2. **"The graph contains itself"** — Security policies, parse decisions, 
+   planning state, code provenance — all stored as atoms+edges. ZETS audits
+   itself via the same walks it uses for everything else.
+
+3. **"Hebrew-native, not Hebrew-patched"** — AlephBert > Phi-3 fine-tuned.
+   Morphology as first-class structural feature. Gematria as hash function.
+
+4. **"Determinism even with LM"** — When LMs are used, they output JSON via
+   constrained decoding. Templates handle 80% of NL realization. LM never
+   source of truth on facts.
+
+5. **"Cost/Benefit realistic"** — Every feature has memory + latency budget.
+   No vague "scalable" claims. Concrete numbers throughout.
+
+6. **"Graceful degradation everywhere"** — LM unavailable → templates. Phase
+   change → gradual reorganization. Rollback → O(|affected|) not O(graph).
+
+## 13.3 The Convergent Discovery — Gematria
+
+**Three independent models** (DeepSeek R1, Qwen 3.5, GLM 5.1), without
+coordination, converged on Gematria as structural hash function for
+analogical reasoning. This was the most striking emergent insight:
+
+- מ-ש-י-ח (Mashiach) = 358
+- נ-ח-ש (Nachash) = 358
+- Both occupy same role archetype in the graph
+
+Gematria is **not** Kabbalistic mysticism in this context — it's a
+deterministic semantic hash function that emerges naturally from Hebrew's
+canonical structure. Every concept anchored to 3-letter shoresh has an
+intrinsic numeric signature. This enables:
+- Zero-shot cross-domain analogy (no embeddings)
+- O(1) hash lookup vs O(N²) similarity
+- ZETS-unique advantage no English-first system can replicate
+
+## 13.4 The Recommendations Pending Validation
+
+Each recommendation below is a CANDIDATE, not commitment:
+
+### From GPT-5.5
+- DECISION NEEDED framing for all architectural decisions
+- Assumptions table to surface hidden premises
+- Quality metrics labeled as measured/derived/estimated/assumed
+
+### From Gemini 3.1 Pro
+- Visible chain-of-thought via XML scratchpad blocks
+- Mechanical sympathy: byte-level layouts mandatory
+- Anti-OOP: Array-of-Structures > Node/Edge objects
+- "Invariant Tension" framework forces honest trade-offs
+
+### From DeepSeek R1
+- #[repr(C, align(64))] for cache-line alignment
+- Falsification tests (benchmarks that invalidate design)
+- Quantified +1 insights (X% improvement required)
+- CRDTs for distributed-style provenance
+
+### From Qwen 3.5 (Hebrew specialist)
+- Quantized HeBERT 4-bit + LoRA on ZETS corpus
+- Tripartite index keys: vector + root + gematria mod 100
+- Multiplicative confidence decay for fuzzy walks
+
+### From GLM 5.1 (theoretical depth)
+- Beta-Binomial Prior (3,2) → mean 0.6 for trust init
+- 4-bit Decay Domain Enum (16 half-life categories)
+- Inverted Topology Index for O(1) WL-3 hash lookup
+- Structured Ignorance Payload for fuzzy failure UX
+
+### From Cogito v2.1 671B
+- Trade-off analysis as separate output section
+- "What was sacrificed and why" forces honesty
+
+## 13.5 What's Still Open
+
+Critical questions remaining:
+
+1. **Trust score initialization** — empirical validation needed. Beta(3,2)?
+   Beta(7,3)? Domain-specific?
+
+2. **Common-sense quality** — $50/mo budget realistic? How to measure
+   coverage gaps?
+
+3. **Echo chamber detection threshold** — What citation overlap triggers
+   trust discount? 80%? 60%?
+
+4. **Fuzzy walk stop conditions** — λ=0.55 or 0.6 for confidence decay?
+   Domain-dependent?
+
+5. **Cache phase-change recovery** — How to handle the 50-100ms lag when
+   workload shifts dramatically?
+
+6. **Parse boundary failure** — If LM returns invalid JSON, what's the 
+   fallback chain that maintains determinism?
+
+7. **Bootstrapping** — Cold-start from zero atoms requires what minimum
+   knowledge base?
+
+These need either (a) empirical validation via prototypes, or (b) further
+council consultation, or (c) Idan's architectural decision.
+
