@@ -707,3 +707,387 @@ pub enum Answer {
 - Planning First, Question Second (Li & Zhang 2024)
 - Educational QG (multiple)
 
+
+---
+
+# 🚨 ADDENDUM — 9 GAPS FOUND IN ORIGINAL AI CRITIQUES, MISSING FROM ABOVE
+
+**Added 25.04.2026 after Idan's audit question: "Are there AI-identified items not in this doc?"**
+
+Yes. The original 11-gap synthesis consolidated/dropped several items. Full list below.
+
+## פער #13 — Common-Sense / World-Knowledge Coverage 🔴 קריטי
+
+### From GPT-5.2-pro critique
+> "High-recall world knowledge by default. Users will ask: 'compare X vs Y',
+> 'what's the best approach', 'summarize this messy thread', 'what's the likely
+> cause', and you'll often have missing edges / missing concepts."
+
+### From Gemini-3.1-pro critique
+> "ZETS also lacks the massive, implicit 'common sense' prior that comes from
+> reading the entire internet; we have to explicitly teach it or batch-enrich it."
+
+### הבעיה
+ZETS מתחיל ריק. LLM יודע ש"אם גשם → רטוב" מהאינטרנט. ZETS צריך ללמוד את זה edge אחרי edge.
+
+### הצעה
+**Batch enrichment pipeline:**
+- Nightly ingestion of curated sources: Wikipedia, Wikidata, ConceptNet, WordNet
+- LLM-assisted expansion: "for atom X, what are 10 common-sense facts?"
+- Gemini 2.5 Flash batch calls: ~1000 concepts/hour, ~$0.10/hour
+- 1 year = ~8.7M common-sense facts injected
+
+### ערך מצופה
+מ"savant עם חורים" ל"knowledge base רחב". 3 חודשים של enrichment = coverage של Wikipedia + common sense.
+
+### עד כמה אפשרי?
+מאוד. LLM-assisted graph enrichment = טכניקה ידועה (Open Information Extraction, ConceptNet pipeline).
+**זמן:** 2-3 שבועות setup + ongoing enrichment.
+
+### מחקרים
+- ConceptNet (Speer 2017) — commonsense knowledge graph
+- ATOMIC (Sap 2019) — inferential commonsense
+- Knowledge graph completion (Bordes 2013)
+- Gemini batch API for enrichment
+
+---
+
+## פער #14 — Planner Under Uncertainty 🔴 קריטי
+
+### From GPT-5.2-pro
+> "You have procedure atoms + motifs, but you're missing a principled planner
+> (search + cost + uncertainty + fallback) comparable to what agentic LLM
+> stacks approximate with deliberation."
+
+### הבעיה
+ZETS יכול להריץ procedures, אבל כשמשתמש שואל "איך מגיעים מ-X ל-Y" — צריך **לתכנן רצף פעולות**, להעריך cost, ולבחור מסלול.
+
+### הצעה
+**Classical AI planning + graph integration:**
+- Goal → backward chain to find applicable procedures
+- A* / MCTS על מרחב המסלולים
+- Cost estimation per action (uses Affective State #9!)
+- Fallback strategies (אם X נכשל → נסה Y)
+
+```rust
+fn plan_toward(goal: AtomId, start: WorldState) -> Option<Plan> {
+    let frontier = BinaryHeap::new();  // priority queue
+    frontier.push((0.0, start, vec![]));
+    
+    while let Some((cost, state, path)) = frontier.pop() {
+        if state.satisfies(goal) { return Some(Plan::new(path)); }
+        
+        for procedure in applicable_procedures(state) {
+            let new_state = procedure.apply(state);
+            let new_cost = cost + estimate_cost(procedure, new_state);
+            let heuristic = estimate_remaining(new_state, goal);
+            frontier.push((new_cost + heuristic, new_state, path + [procedure]));
+        }
+    }
+    None  // no plan found
+}
+```
+
+### ערך מצופה
+ZETS כ-agent אמיתי, לא רק Q&A. "תעזור לי לקבוע פגישה" → מתכנן: בדוק calendar → מצא זמן → שלח invite → אשר.
+
+### עד כמה אפשרי?
+**בינוני-גבוה.** Classical planning = פתור. אינטגרציה עם graph + uncertainty דורש עבודה.
+**זמן:** 2-3 שבועות.
+
+### מחקרים
+- PDDL (Planning Domain Definition Language) — standard
+- A* for planning (Hart 1968)
+- MCTS (Coulom 2006) — Monte Carlo Tree Search
+- POMDP (Partially Observable Markov Decision Processes)
+
+---
+
+## פער #15 — Lightweight Learned Ranker 🟡 חשוב
+
+### From GPT-5.2-pro
+> "A lightweight learned ranker (on-device) for sense selection and retrieval
+> scoring; not to 'think', but to map language→graph robustly."
+
+### ההבדל מ-#4 Phi-3-mini
+**Phi-3-mini (3.8B)** — generation, paraphrasing, intent
+**Learned Ranker (~10-50M)** — scoring only, picks best match from candidates
+
+### הבעיה
+כשיש 20 candidate atoms לquery → איך מדרגים אותם?
+אפשרויות: 
+- Pure graph walk scoring (current) — מהיר אבל לא רגיש לnuance
+- Phi-3-mini to rank — איטי ויקר ל-20 candidates
+- **Lightweight model** — מהיר ורגיש יותר
+
+### הצעה
+Cross-encoder scorer: **~10-50M params, 10-50ms inference**.
+Input: (query, candidate_atom_description) → Output: relevance score 0-1.
+Trained on user click data over time (implicit supervision).
+
+### ערך מצופה
+30-50% improvement in ranking precision vs pure graph walk.
+Minimal latency cost.
+
+### עד כמה אפשרי?
+**מאוד.** Cross-encoders are standard (sentence-transformers, BERT-base).
+**זמן:** 1 שבוע setup + ongoing training from clicks.
+
+### מחקרים
+- Sentence-BERT (Reimers 2019)
+- MonoBERT / ColBERT — ranking architectures
+- ListNet (Cao 2007) — learning-to-rank theory
+
+---
+
+## פער #16 — NL Realization Quality 🟡 חשוב
+
+### From GPT-5.2-pro
+> "If the LLM is 'optional I/O', ZETS will feel robotic fast — especially in
+> Hebrew register control, discourse coherence, and long answers."
+
+### ההבדל מ-#4 LM Bridge
+**#4** — תרגום שפה → atoms (input side)
+**#16** — atoms → שפה טבעית באיכות גבוהה (output side)
+
+הבעיות ספציפיות:
+- **Register control** — פורמלי (למשפטים) vs חברי (לילדים) vs מקצועי (למתכנתים)
+- **Discourse coherence** — תשובה ארוכה שמתחברת פנימית
+- **Hebrew-specific** — ניקוד, בינוני/רבים אגב, סמיכות
+
+### הצעה
+Template-based fallback + LM polish:
+1. Generate structured response from walk
+2. Apply Hebrew templates with correct agreement
+3. LM pass: improve register + flow + coherence
+4. Fallback: if LM unavailable, use template-only (less polished but valid)
+
+### ערך מצופה
+ZETS נשמע כמו מומחה מדבר, לא כמו תוכנה.
+
+### עד כמה אפשרי?
+תלוי ב-#4. אם יש Phi-3-mini → #16 בחינם כמעט.
+**זמן:** ~יום נוסף לאחר #4.
+
+---
+
+## פער #17 — Zero-Shot Analogical Transfer 🟡 חשוב
+
+### From Gemini-3.1-pro
+> "Because ZETS is discrete, if an edge doesn't exist, the walk stops.
+> Mainstream models can 'feel' their way through the continuous latent space
+> to connect 'quantum mechanics' to 'baking a cake' via stylistic mimicry."
+
+### ההבדל מ-#5 Fuzzy Hopfield
+**#5** — fuzzy match על atom ספציפי (קרוב סמנטית)
+**#17** — **cross-domain** analogies (rare to find matching atoms)
+
+דוגמה: "איך ה-quantum mechanics דומה ל-baking a cake?"
+- שני domains נפרדים
+- אין edges ישירים ביניהם
+- צריך "structural mapping" — משקל יחסי, סדר פעולות, stability
+
+### הצעה
+**Structure-Mapping Engine (Gentner 1983):**
+1. Identify structural roles in domain A (ingredients, process, outcome)
+2. Find analogous roles in domain B
+3. Propose cross-domain edges via structural similarity
+4. User confirms/rejects — learning signal
+
+### עד כמה אפשרי?
+**מורכב.** Structure-Mapping Engine יש impl קלאסי אבל יקר חישובית.
+**זמן:** 3-4 שבועות.
+
+### מחקרים
+- Structure-Mapping (Gentner 1983) — foundational
+- SME: Structure Mapping Engine (Forbus 1989)
+- Analogy via embeddings (Mikolov 2013 — word2vec analogies)
+
+---
+
+## פער #18 — Cache Thrashing Mitigation 🔴 קריטי לביצועים
+
+### From Gemini-3.1-pro
+> "Random walks across a 6GB CSR graph will destroy the CPU cache. Every hop
+> is a cache miss (~100ns). If we aren't careful, the 'quantum' parallel walks
+> will stall the CPU."
+
+### הבעיה
+ZETS מתפאר ב-2ns per operation. אם כל hop = 100ns cache miss → **50× slower**.
+זו פצצת זמן.
+
+### הצעה
+**Cache-aware graph layout:**
+1. Vertex reordering — shorten average edge distance (Rabbit Order, METIS partitioning)
+2. Clustered storage — hot atoms together in memory pages
+3. Pre-fetching — during walk, issue prefetch hints to CPU
+4. Workload-based reorganization — atoms often co-accessed → co-located
+
+### ערך מצופה
+Performance budget actually achievable. Without this, 2ns target is fiction.
+
+### עד כמה אפשרי?
+**קריטי.** זה לא optional — זה requirement לביצועים.
+**זמן:** 1-2 שבועות עיצוב + מדידה.
+
+### מחקרים
+- Rabbit Order (Arai 2016) — graph reordering for cache
+- METIS (Karypis 1998) — graph partitioning
+- Gorder (Wei 2016) — graph ordering for BFS
+- Cache-oblivious algorithms (Frigo 1999)
+
+---
+
+## פער #19 — Morphological Rule Explosion 🟡 חשוב
+
+### From Gemini-3.1-pro
+> "Hebrew grammar is full of exceptions. Encoding all of them as RuleAtoms
+> in the graph will create a massive, conflicting rule-resolution phase that
+> could break determinism."
+
+### הבעיה
+עברית: 7 binyanim × tenses × person × gender × number + exceptions = **thousands of rules**.
+If stored as RuleAtoms without priority → conflicts.
+
+### הצעה
+**Prioritized rule system:**
+1. Specific rules override general rules (e.g., "buy→bought" overrides "add -ed")
+2. Rule Atoms sorted by specificity at insertion
+3. First match wins (deterministic)
+4. Exception edges marked with flag_irregular
+
+### עד כמה אפשרי?
+**בינוני.** עיצוב טוב → פשוט ליישום. עיצוב רע → סיוט.
+**זמן:** 1-2 שבועות עיצוב קפדני.
+
+### מחקרים
+- Optimality Theory (Prince & Smolensky 1993) — ranked constraints
+- Two-level morphology (Koskenniemi 1983)
+- Finite-State Morphology (Beesley & Karttunen 2003)
+
+---
+
+## פער #20 — WASM Sandboxing for Self-Extended Code 🔴 קריטי לבטיחות
+
+### From Gemini-3.1-pro
+> "If ZETS generates a Python script to 'clean up disk space' and wires it
+> into a Procedure atom, it could delete its own edges_csr.bin.
+> Strict WASM sandboxing is non-negotiable."
+
+### הבעיה
+אם ZETS יכול להריץ procedures (כולל code חדש), בלי sandbox הוא יכול:
+- למחוק את עצמו
+- לשתף מידע פרטי
+- להיכנס ל-infinite loop
+
+### הצעה
+**WASM sandbox לכל code execution:**
+1. Code compiled to WASM bytecode
+2. Executed in wasmtime/wasmer with:
+   - No filesystem access (unless explicitly granted)
+   - Memory limits (prevent OOM)
+   - Execution time limits
+   - No network
+3. Capabilities model — explicitly grant permissions
+
+### עד כמה אפשרי?
+**מאוד.** wasmtime is mature. Cargo crates available.
+**זמן:** 1 שבוע integration.
+
+### מחקרים
+- WebAssembly Security Model
+- WASI (WebAssembly System Interface)
+- Capability-based security (Dennis 1966)
+
+---
+
+## פער #21 — Code Quarantine System (TrustLevel) 🟡 חשוב
+
+### From Gemini-3.1-pro
+> "Proposed by Imma walk, tested in sandbox, quarantined with
+> TrustLevel::Experimental. Cannot be promoted to Learned without human
+> approval or passing a rigorous test suite."
+
+### ההצעה
+**Trust hierarchy for procedures:**
+```
+TrustLevel::Experimental — newly generated, sandbox only
+TrustLevel::Tested — passed automated test suite
+TrustLevel::Human_Approved — user reviewed
+TrustLevel::Core — built-in, immutable
+```
+
+Promotion requires: pass tests + human approval + no failures in N runs.
+
+### עד כמה אפשרי?
+**קל.** Enum + edge metadata.
+**זמן:** 2-3 ימים.
+
+---
+
+## פער #22 — Parse-to-Graph Boundary 🔴 **THE BIGGEST RISK** (Gemini's #1)
+
+### From Gemini-3.1-pro
+> "The 'Parse to Graph' boundary. If the LLM/TextExecutor fails to accurately
+> map the user's nuanced intent into our rigid 8-byte atoms, the entire
+> Kabbalistic pipeline operates on garbage. The graph is only as good as the
+> ingestion fidelity."
+
+### הבעיה
+**זה לא gap לפתור, זה risk למיזער.** כל הארכיטקטורה סומכת על זה שParse נכון.
+אם parsing שגוי → GIGO (Garbage In, Garbage Out) לכל 6GB הגרף.
+
+### הצעה
+**Multi-layer defense:**
+1. **Confidence threshold** — if parse confidence < 0.8, ask clarification
+2. **Explicit confirmation** — for novel atoms, confirm with user before creating
+3. **Rollback mechanism** — if parse proves wrong later, remove all dependent edges
+4. **Parse logs** — audit trail of every parse decision
+5. **Re-parse pass** — NightMode reviews recent parses with latest models
+
+### ערך מצופה
+Data integrity for long-term ZETS. זה what makes ZETS trustable.
+
+### עד כמה אפשרי?
+**חייב.** אחרת הפרויקט נופל בשימוש ארוך.
+**זמן:** 1-2 שבועות למערכת מלאה.
+
+---
+
+# 📊 סטטוס מעודכן — 22 פריטים
+
+## נסגרו רעיונית (5)
+#1, #7, #8, #10, #11a
+
+## פתוחים — קטגוריה A: פורמליזציה (3)
+#2 Edge Schema, #12 Regression Suite, #21 Trust Levels
+
+## פתוחים — קטגוריה B: אחסון (2)
+#3 Compression, #18 Cache Thrashing Mitigation
+
+## פתוחים — קטגוריה C: שפה ו-LM (4)
+#4 Small LM, #5 Fuzzy Hopfield, #15 Learned Ranker, #16 NL Realization
+
+## פתוחים — קטגוריה D: Cognitive (4)
+#6 Global Workspace, #9 Affective State, #11b TMS deep, #17 Analogical Transfer
+
+## פתוחים — קטגוריה E: הרחבה + בטיחות (2)
+#14 Planner, #20 WASM Sandbox
+
+## פתוחים — קטגוריה F: Integrity (2)
+#19 Morphology rules, #22 Parse-to-Graph
+
+## פתוחים — קטגוריה G: Knowledge (1)
+#13 Common-sense / world-knowledge
+
+---
+
+# סיכום סטטיסטי
+- **5 נסגרו (23%)**
+- **17 פתוחים (77%)**
+  - קריטיים 🔴: 6
+  - חשובים 🟡: 9
+  - Nice-to-have: 2
+
+**Time estimate:** ~12-16 שבועות לסגור הכל (במקום 6-8 שחישבתי קודם).
+
