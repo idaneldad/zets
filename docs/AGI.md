@@ -2191,6 +2191,160 @@ pub fn interference_score(
 
 ---
 
+
+## 11.6 Predictive Processing — 7-Layer Architecture
+
+**Idan's question (Apr 2026):** "What should ZETS predict, and how to balance?"
+
+ZETS predicts not because predicting is trendy, but because prediction enables 5 capabilities:
+1. **Autocomplete** — save user typing
+2. **Speed** — start walks before user finishes typing
+3. **Routing** — choose pipeline early via intent recognition
+4. **Gap detection** — surprise from prediction → learning signal
+5. **Proactive engagement** — initiate conversation with user about things they wanted/may want
+
+### 11.6.1 The 7 Layers
+
+```
+Layer 1 — Token-level prediction
+  Source: Article Path Graph n-gram statistics
+  Output: top-K next tokens for autocomplete
+
+Layer 2 — Phrase-level prediction
+  Source: common phrase patterns from articles
+  Output: longer continuations
+
+Layer 3 — Question prediction
+  Source: question patterns from corpus + user history
+  Output: complete question stem from partial input
+
+Layer 4 — Intent prediction (PATTERN-BASED, NOT NEURAL)
+  Source: Rule atoms (kind=0xB) with patterns like:
+    "תוכל ל..."  → request_action
+    "זוכר ש..."  → invoke_memory
+    "כמה זמן..." → temporal_query
+  Output: intent atom + pipeline routing
+  Recognition window: first 3-5 tokens
+
+Layer 5 — Answer shape prediction
+  Based on intent: NUMERIC, PROCEDURE_LIST, PERSON, TEMPORAL...
+  Output: structured answer template ready before content found
+
+Layer 6 — Follow-up generation (EIG-based)
+  Maximize Expected Information Gain (binary entropy)
+  Optimal question splits candidate space at p≈0.5
+  Output: 3-5 informative follow-up questions (Perplexity-style)
+
+Layer 7 — User pattern prediction (personal + temporal)
+  Time-of-day, recency, frequency patterns
+  Output: personalized weights α₁..α₅ for layers 1-6
+```
+
+### 11.6.2 The Balancing Formula
+
+```
+score(candidate) = 
+    α₁ × P(c | recent_context)           ← local context
+  + α₂ × P(c | session_history)
+  + α₃ × P(c | personal_vault)           ← Layer 7 personalization
+  + α₄ × P(c | global_articles)
+  + α₅ × P(c | aggregate_users) × pf     ← privacy-filtered!
+  + γ  × recency_boost(c)
+  + δ  × EIG(c | current_state)
+  - β  × novelty_penalty(c)
+```
+
+α-coefficients are **dynamic, learned from clicks/ignores feedback**.
+
+### 11.6.3 Proactive Engagement (Idan's vision)
+
+The same 7-layer architecture enables ZETS to **initiate** conversation,
+not only respond. This is unique because most LLMs are purely reactive.
+
+**Examples of proactive engagement:**
+
+```
+Scenario A: User had unresolved question last week
+  Layer 7 (temporal): identifies recurring concern in personal_vault
+  Layer 6 (EIG):     formulates question that would resolve open thread
+  Output:            "באתה זוכר ששאלת לפני שבוע על X — מצאתי תשובה?"
+
+Scenario B: User has standing interest, new info appeared
+  Layer 4 (intent):   user previously expressed interest in topic
+  New article ingested matching topic
+  Output:            "ראיתי משהו חדש על X שאולי מעניין אותך"
+
+Scenario C: User started research, never completed
+  Layer 7 (gap):      detects open task in user's personal_vault
+  Layer 6 (research): can autonomously continue research
+  Output:            "ראיתי שלא סיימת לחקור Y — להמשיך עבורך?"
+
+Scenario D: Time-sensitive followup
+  Layer 7 (temporal): event/deadline approaching
+  Output:            "שבוע לפני המועד שציינת — האם להזכיר/להכין X?"
+```
+
+### 11.6.4 Privacy Architecture for Cross-User Layer
+
+Layer 5's "aggregate_users" (questions from other users) carries
+privacy risk. Solution: **anonymization-by-default**.
+
+```rust
+fn cross_user_suggestion(query_pattern: &Pattern) -> Option<Suggestion> {
+    let matching_users = users_with_similar_query(query_pattern);
+    
+    // k-anonymity: must have at least 50 similar users
+    if matching_users.len() < 50 { return None; }
+    
+    // Differential privacy: add Laplacian noise to count
+    let noisy_count = matching_users.len() + laplace_noise(epsilon=1.0);
+    
+    // Aggregate only — never identifies individuals
+    Some(Suggestion {
+        query: query_pattern.canonical_form(),
+        popularity: noisy_count,
+        // NO user_ids, NO timestamps, NO content fragments
+    })
+}
+```
+
+### 11.6.5 Why Graph + EIG (NOT neural) for ZETS
+
+| Aspect | LLM-based (e.g. GPT) | Graph + EIG (ZETS) |
+|---|---|---|
+| Memory | 14GB+ | <100MB |
+| Latency per prediction | 50-100ms | 1-5ms |
+| Determinism | partial | full |
+| Updates | requires retraining | append edge to graph |
+| Privacy | data may leak in training | per-user vaults isolated |
+| Auditability | black box | every walk is traceable |
+| Cost per prediction | $0.001-0.01 | ~$0 |
+
+ZETS chooses graph stats + EIG because it aligns with all 4 core principles:
+- Determinism ✓
+- Static-over-dynamic ✓
+- Quantum-inspired (deferred commitment via EIG) ✓
+- Performance budget (1-5ms target) ✓
+
+### 11.6.6 Research References
+
+- **EIG-DPO** (Bertolazzi et al. 2024) — using Expected Information Gain
+  as training signal for question generation
+- **FollowupQG dataset** (Meng et al. 2023) — taxonomy of follow-up
+  question types based on Anderson 2001
+- **Predictive Processing theory** (Friston 2010, Clark 2013) — brain as
+  prediction machine, prediction-error minimization
+- **Spreading Activation** (Quillian 1968, Collins & Loftus 1975) —
+  classical foundation for Layer 1-2
+
+### 11.6.7 Status
+
+**Closes Gap #7 (Predictive Processing) with 7-layer architecture.**
+Adds proactive engagement as bonus capability beyond Council recommendations.
+Privacy architecture prevents cross-user data leakage.
+All deterministic, all graph-based, all <5ms.
+
+
 # 12. זרימת יצירה (קוד/שירים/מאמרים)
 
 **עקרון מאוחד:** הכל נוצר באותה זרימה. הבדל רק בExecutor הסופי + motif bank.
