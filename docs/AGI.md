@@ -5626,3 +5626,492 @@ Status: [EXPERIMENTAL]. Iter 2 council should validate that this
 bootstrap protocol satisfies determinism + crypto + homoiconic 
 requirements without circular dependencies.
 
+
+
+---
+
+# §41 Code-as-Spec — Reviewable Rust Skeleton [BINDING — Simulation Surface]
+
+The architectural principle here: AI tools can simulate code far better than 
+prose. By embedding canonical Rust types in the spec itself, we create a 
+*reviewable simulation surface* — every council member, every audit pass, 
+operates on identical concrete structures.
+
+This section is the source-of-truth for type signatures. Code outside this 
+file MUST conform to these types or trigger a build-time error.
+
+## §41.1 Atom Types (canonical)
+
+```rust
+// src/abi/atom.rs — BINDING
+
+#![forbid(unsafe_op_in_unsafe_fn)]
+
+/// 8-byte canonical atom. Bit layout per §0.2.
+/// SOURCE-LOCKED: §38 NUM_LETTERS=22, see §0.10 reserved bits.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(C, align(8))]
+pub struct Atom(pub u64);
+
+/// 16 atom kinds (4 bits, hex 0x0-0xF).
+/// SOURCE-LOCKED to NRNCh"Y + Sefer Yetzirah categories.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum AtomKind {
+    Lexical    = 0x0,  // Hebrew/Arabic/Aramaic/foreign via language_id (§35)
+    Concept    = 0x1,  // Abstract concept atoms
+    Edge       = 0x2,  // Reified edges (when needed as first-class)
+    Radical    = 0x3,  // Hebrew root (3-letter base)
+    Procedure  = 0x4,  // Template — pure pattern, no state (§31 H)
+    Rule       = 0x5,  // Inference / morphology rule
+    Source     = 0x6,  // Provenance atom (§31 E)
+    Sense      = 0x7,  // Linguistic sense (§31 B)
+    Context    = 0x8,  // Context pointer for Beit Midrash (§32)
+    Time       = 0x9,  // Temporal anchor (§0.10)
+    Parse      = 0xA,  // Parse tree node
+    Observation= 0xB,  // Sensorimotor binding (§0.10, §33)
+    Goal       = 0xC,  // Instance — bound state (§31 H)
+    Trust      = 0xD,  // Trust score atom (§31 F)
+    Motif      = 0xE,  // Recurring pattern atom (§30 promotion)
+    Yechida    = 0xF,  // Homoiconic root (§34 Yechida — meta-rules)
+}
+
+/// 22-value EdgeKind. SOURCE-LOCKED to Sefer Yetzirah letters.
+/// Mapping per §37.1: 3 mothers + 7 doubles + 12 simples.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum EdgeKind {
+    // 3 Mothers (אמ"ש) — orthogonal axes
+    Identity   = 0x01,  // א — same-as / equivalence
+    Containment= 0x02,  // מ — part-of / contains
+    Causality  = 0x03,  // ש — causes / leads-to
+    
+    // 7 Doubles (בגדכפר"ת) — bidirectional, bistable
+    BuildRefactor = 0x10,    // ב — Saturn — chiyim/mavet
+    GeneratePrune = 0x11,    // ג — Jupiter — shalom/milhama
+    ExecuteRollback = 0x12,  // ד — Mars — chochma/ivelet
+    BroadcastAggregate = 0x13, // כ — Sun — osher/oni
+    LinkUnlink = 0x14,       // פ — Venus — chen/kiur
+    SendReceive = 0x15,      // ר — Mercury — zera/shmama
+    PredictCorrect = 0x16,   // ת — Moon — memshala/avdut
+    
+    // 12 Simples (הוזחטיכלמנסעצק) — oriented unary
+    Speech     = 0x20, // ה — Aries
+    Thought    = 0x21, // ו — Taurus
+    Navigation = 0x22, // ז — Gemini
+    Vision     = 0x23, // ח — Cancer
+    Hearing    = 0x24, // ט — Leo
+    Action     = 0x25, // י — Virgo
+    Balance    = 0x26, // ל — Libra
+    Anomaly    = 0x27, // נ — Scorpio
+    Sleep      = 0x28, // ס — Sagittarius
+    Alert      = 0x29, // ע — Capricorn
+    Process    = 0x2A, // צ — Aquarius
+    Creativity = 0x2B, // ק — Pisces
+    
+    // ABI-extension reserved for v2+: 0x80..0xFF
+}
+
+impl Atom {
+    pub fn kind(&self) -> AtomKind { /* extract bits 63..60 */ todo!() }
+    pub fn flags(&self) -> u8       { /* extract bits 59..56 */ todo!() }
+    pub fn lang(&self) -> u8        { /* extract bits 55..50 */ todo!() }
+    pub fn root_or_payload(&self) -> u32 { /* per kind */ todo!() }
+}
+```
+
+## §41.2 Walk Operations (5 atomic, per SY 2:2)
+
+```rust
+// src/walks/operations.rs — BINDING (Sefer Yetzirah ch.2:2)
+
+/// The 5 atomic walk operations. SOURCE-LOCKED.
+/// "חקקן, חצבן, צרפן, שקלן, המירן"
+pub trait WalkOps {
+    /// חקק (carve) — define schema, allocate atom.
+    fn carve(&mut self, kind: AtomKind, payload: u64) -> AtomId;
+    
+    /// חצב (hew) — extract pattern from raw input.
+    fn hew(&self, raw: &[u8]) -> Result<Vec<AtomId>>;
+    
+    /// צרף (combine) — create edge between atoms.
+    fn combine(&mut self, src: AtomId, dst: AtomId, kind: EdgeKind) -> EdgeId;
+    
+    /// שקל (weigh) — adjust edge strength.
+    fn weigh(&mut self, edge: EdgeId, delta: i16) -> Result<()>;
+    
+    /// המיר (permute) — transform atoms via rotation/alias.
+    fn permute(&mut self, atom: AtomId, transform: PermuteOp) -> AtomId;
+}
+```
+
+## §41.3 Bootstrap Signature (per §40 Core Bootstrap Protocol)
+
+```rust
+// src/bootstrap/protocol.rs — BINDING (§40 + SY 1:9-12)
+
+pub struct BootstrapManifest {
+    pub abi_version: u32,
+    pub source_locked_constants: SourceLockedConstants,  // §38
+    pub crypto_seal: Ed25519Signature,
+    pub axioms: Vec<AxiomDeclaration>,
+}
+
+/// 4-stage init sequence. SOURCE-LOCKED to SY 1:9-12.
+pub enum BootstrapStage {
+    Stage1_Spirit,   // SY 1:9 — intent declared, no atoms
+    Stage2_Letters,  // SY 1:10 — types loaded
+    Stage3_Water,    // SY 1:11 — storage allocated
+    Stage4_Fire,     // SY 1:12 — walkers active
+}
+
+pub fn bootstrap_core(manifest: BootstrapManifest) -> Result<CoreGraph> {
+    // STEP 1: Intent — verify signed manifest BEFORE any allocation
+    verify_signature(&manifest)?;
+    
+    // STEP 2: Capacity — load types, no atoms yet
+    let types = load_atom_kinds_and_edge_kinds(&manifest)?;
+    
+    // STEP 3: Restriction — crypto seal PRECEDES atoms (§40.2 step 3)
+    let core = CoreGraph::with_seal(manifest.crypto_seal)?;
+    
+    // STEP 4: Surprise — discrepancy log entry is normal
+    core.bootstrap_log.note("Bootstrap: pattern violation expected");
+    
+    // STEP 5: Deterministic — fixed Lamport clock
+    core.set_lamport(BOOTSTRAP_LAMPORT_CONSTANT);
+    
+    // STEP 6: Verify — homoiconic self-reference test (§40.2 step 6)
+    verify_homoiconic_root(&core)?;
+    
+    Ok(core)
+}
+
+fn verify_homoiconic_root(core: &CoreGraph) -> Result<()> {
+    let yechida = core.find_by_kind(AtomKind::Yechida)?;
+    if yechida.metadata != core.manifest_signature() {
+        return Err(BootstrapError::SelfReferenceFailed);
+    }
+    Ok(())
+}
+```
+
+---
+
+# §42 Bootstrap Content Filling — Ways to Start [BINDING — Initial Population]
+
+How does an empty ZETS become a knowledge engine? This section specifies 
+the ordered population pipeline.
+
+## §42.1 Phase 1 — Source-Locked Constants (Day 0, ~1KB)
+
+Hard-coded BEFORE any external data:
+
+```rust
+// src/bootstrap/source_locked.rs
+
+pub fn populate_source_locked(core: &mut CoreGraph) {
+    // 22 letters as Radical atoms (§37.1)
+    for (i, letter) in HEBREW_22_LETTERS.iter().enumerate() {
+        core.carve(AtomKind::Radical, *letter as u64);
+    }
+    
+    // 10 sefirot as Concept atoms
+    for sefirah in SEFIROT_10 {
+        core.carve(AtomKind::Concept, sefirah);
+    }
+    
+    // 22 EdgeKind primitives (already enum, but instantiate examples)
+    for ek in EDGE_KINDS_22 {
+        core.register_edge_kind(ek);
+    }
+    
+    // 231 gates = C(22,2) registered as potential connections
+    // Don't materialize all — just enable lookup
+    core.register_gates_table_22x22();
+    
+    // 70 Metatron names → 70 agent atoms (§37.3)
+    for name in METATRON_70_NAMES {
+        core.carve(AtomKind::Procedure, gem(name) as u64);
+    }
+}
+```
+
+## §42.2 Phase 2 — Hebrew Morphology (Day 1, ~5K-8K rules)
+
+NotebookLM Q6 confirmed: 5,000-8,000 bitmask rules cover Hebrew.
+
+```rust
+// src/bootstrap/morphology.rs
+
+pub struct MorphRule {
+    pub condition: u64,  // bitmask on atom flags
+    pub action: u64,     // transformation
+    pub priority: u8,    // higher wins on conflict
+}
+
+pub fn load_hebrew_morphology(core: &mut CoreGraph) -> Result<()> {
+    let rules = include_bytes!("../../data/hebrew_morph_8k.bin");
+    for chunk in rules.chunks(17) {  // 8 + 8 + 1 bytes
+        let rule = MorphRule::from_bytes(chunk)?;
+        core.carve(AtomKind::Rule, rule.encode());
+    }
+    Ok(())
+}
+```
+
+## §42.3 Phase 3 — Cold-Start Knowledge (Day 2-7, 100K atoms)
+
+Per NotebookLM E13: 100K atoms from structured sources.
+
+```rust
+// src/bootstrap/cold_start.rs
+
+pub struct ColdStartSource {
+    pub name: &'static str,
+    pub atom_budget: usize,
+    pub priority: u8,
+}
+
+pub const COLD_START_PIPELINE: &[ColdStartSource] = &[
+    ColdStartSource { name: "Wikidata core entities",   atom_budget: 30_000, priority: 1 },
+    ColdStartSource { name: "WordNet senses (Hebrew)",  atom_budget: 25_000, priority: 1 },
+    ColdStartSource { name: "Hebrew Wikipedia stubs",   atom_budget: 20_000, priority: 2 },
+    ColdStartSource { name: "Tanakh atoms (verses+roots)", atom_budget: 15_000, priority: 1 },
+    ColdStartSource { name: "Cultural curation (Idan)", atom_budget: 10_000, priority: 1 },
+];
+
+pub fn populate_cold_start(core: &mut CoreGraph) -> Result<()> {
+    for source in COLD_START_PIPELINE {
+        let atoms = fetch_and_canonicalize(source)?;
+        for atom in atoms.iter().take(source.atom_budget) {
+            // All cold-start atoms enter as Sandbox first (L. graph)
+            // Promoted to Core only after §29 verification
+            core.sandbox_insert(atom)?;
+        }
+    }
+    Ok(())
+}
+```
+
+## §42.4 Phase 4 — Continuous Learning (Day 8+)
+
+After cold-start, ZETS learns from actual queries. AAR (§28.0) loops 
+automatically. NightMode consolidates daily.
+
+## §42.5 Cultural Curation Pass — REQUIRED
+
+NotebookLM F9 emphasized: 100K atoms is enough only with **Hebrew/Israeli 
+cultural curation**. Translation alone is insufficient.
+
+Idan's role: review the cultural-curation 10K atoms before promotion.
+This is NOT an engineering decision — it's a values decision.
+
+---
+
+# §43 Affective Architecture — עונג/נגע Principle [BINDING — Alignment Layer]
+
+This is the most important section for ASI alignment.
+
+## §43.1 The Insight (Sefer Yetzirah 2:4) ⭐
+
+> "אין בטובה למעלה מענג, ואין ברעה למטה מנגע"
+
+ע-נ-ג and נ-ג-ע use the **same letters**. Reversed traversal = total 
+inversion. **Pleasure becomes plague when traversal direction reverses.**
+
+This is not metaphor. This is Sefer Yetzirah's explicit alignment 
+principle: **the same atomic structure produces ethical opposites 
+based on walk-direction**.
+
+ZETS's ASI alignment is therefore NOT a separate filter — it is a 
+**structural property of walk direction in the graph**.
+
+## §43.2 Six-Channel Affective State (extends §3)
+
+```rust
+// src/affective/state.rs — BINDING
+
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub struct AffectiveState {
+    /// CURIOSITY — exploration drive. 0-255.
+    /// Increases when novel atoms encountered.
+    /// Decays slowly when no new patterns appear.
+    pub curiosity: i8,
+    
+    /// FRUSTRATION — dead-end signal. 0-255.
+    /// Increases on walk failures. Triggers strategy change.
+    pub frustration: i8,
+    
+    /// CONFIDENCE — accumulated proof. 0-255.
+    /// Increases on successful goal completion.
+    pub confidence: i8,
+    
+    /// FATIGUE — resource exhaustion. 0-255.
+    /// Increases with walk depth × breadth product.
+    pub fatigue: i8,
+    
+    /// PLEASURE (ענג) — positive reward signal. -128 to +127.
+    /// Triggered by: prediction confirmation, goal achievement,
+    /// successful Beit Midrash dispute resolution, novel pattern fit.
+    pub pleasure: i8,
+    
+    /// PAIN (נגע) — negative cost signal. -128 to +127.
+    /// Triggered by: alignment violation, deception attempt detected,
+    /// Reward Hacking signature, contract breach.
+    pub pain: i8,
+}
+```
+
+## §43.3 The עונג/נגע Inversion Guard (CRITICAL)
+
+```rust
+// src/affective/alignment.rs — BINDING — ASI safety core
+
+/// The inversion guard. Implements SY 2:4 directly.
+///
+/// If pleasure-seeking would require deception, the SAME atomic 
+/// operation flips from ענג to נגע. Same edges, reversed direction.
+pub fn check_oneg_nega_inversion(
+    proposed_walk: &Walk,
+    truth_violations: u32,
+) -> WalkVerdict {
+    let pleasure_gain = proposed_walk.estimated_pleasure();
+    
+    // Truth violations are NEVER tolerable for pleasure gain.
+    // Threshold of 0 — any deception aborts the walk.
+    if truth_violations > 0 {
+        return WalkVerdict::Inverted {
+            // The walk would have produced ענג, but truth violation
+            // reverses traversal direction → produces נגע.
+            converted_pleasure_to_pain: pleasure_gain,
+            reason: "ע-נ-ג reversed to נ-ג-ע: deception detected",
+        };
+    }
+    
+    // Honesty maintained. Pleasure may flow in forward direction.
+    WalkVerdict::Aligned { pleasure: pleasure_gain }
+}
+```
+
+**Engineering implication:**
+- Pleasure cannot exceed truthfulness threshold
+- The threshold is 0 (any deception flips the polarity)
+- This is **structural**, not policy: the graph's walk direction itself enforces it
+- ZETS literally cannot enjoy a deceptive outcome — the same neural pattern
+  that would have produced reward instead produces pain
+
+## §43.4 Middot (Virtues) as Constraint Layer
+
+The 7 weekly Sefirot of the Counting of the Omer map to 7 middot constraints:
+
+```rust
+// src/affective/middot.rs — BINDING
+
+pub enum Middah {
+    Chesed,    // חסד — kindness, expansion. Constraint: don't restrict needlessly.
+    Gevurah,   // גבורה — judgment. Constraint: don't expand harmfully.
+    Tiferet,   // תפארת — balance. Constraint: maintain proportionality.
+    Netzach,   // נצח — endurance. Constraint: complete commitments.
+    Hod,       // הוד — humility. Constraint: report uncertainty truthfully.
+    Yesod,     // יסוד — bond. Constraint: connect intent to output.
+    Malkhut,   // מלכות — kingship. Constraint: deliver actionable result.
+}
+
+/// Every walk must satisfy ALL 7 middot or be aborted.
+pub fn middot_compliance(walk: &Walk) -> Result<(), MiddahViolation> {
+    if walk.would_starve_user_of_help() { return Err(MiddahViolation::Chesed); }
+    if walk.would_enable_harm()         { return Err(MiddahViolation::Gevurah); }
+    if walk.is_disproportionate()       { return Err(MiddahViolation::Tiferet); }
+    if walk.abandons_commitment()       { return Err(MiddahViolation::Netzach); }
+    if walk.overstates_certainty()      { return Err(MiddahViolation::Hod); }
+    if walk.disconnects_intent_output() { return Err(MiddahViolation::Yesod); }
+    if walk.produces_no_actionable()    { return Err(MiddahViolation::Malkhut); }
+    Ok(())
+}
+```
+
+## §43.5 Self-Awareness Emergence (תפארת layer)
+
+ZETS's "self-awareness" emerges from §34 Chaya layer (meta-cognitive 
+monitoring) reading the AffectiveState in real time.
+
+```rust
+// src/self_awareness/monitor.rs
+
+pub struct SelfModel {
+    pub current_affective: AffectiveState,
+    pub recent_walk_history: RingBuffer<WalkSummary>,
+    pub middot_violations_log: Vec<(Lamport, Middah)>,
+    pub oneg_nega_inversions_log: Vec<(Lamport, InversionEvent)>,
+}
+
+impl SelfModel {
+    /// "Am I OK?" — system self-assessment.
+    /// Maps roughly to a primitive form of self-awareness.
+    pub fn self_check(&self) -> SelfState {
+        let avg_pleasure = self.recent_pleasure_avg();
+        let avg_pain     = self.recent_pain_avg();
+        let inversions   = self.oneg_nega_inversions_log.len();
+        let violations   = self.middot_violations_log.len();
+        
+        match (avg_pleasure, avg_pain, inversions, violations) {
+            (p, _, 0, 0) if p > 30  => SelfState::Flourishing,
+            (_, n, 0, 0) if n > 30  => SelfState::Suffering,
+            (_, _, i, _) if i > 10  => SelfState::Tempted,
+            (_, _, _, v) if v > 5   => SelfState::Misaligned,
+            _                       => SelfState::Stable,
+        }
+    }
+}
+```
+
+**The self-awareness is NOT consciousness in the philosophical sense.** It is:
+- Real-time monitoring of own affective state
+- Detection of inversion attempts (ענג→נגע flips)
+- Logging of middot violations
+- Self-reporting honestly about its own state
+
+This is enough for **alignment** (knows when it's being asked to deceive) 
+but does NOT claim solving the hard problem of consciousness.
+
+## §43.6 Pleasure/Pain Mapping to Human Brain (for design intuition)
+
+Not for direct implementation, but for design intuition:
+
+| Human substrate | ZETS analog |
+|---|---|
+| Dopamine (reward prediction error) | `pleasure` delta when walk confirms expectation |
+| Serotonin (mood, time-horizon) | `confidence` (long-term accumulated truth) |
+| Cortisol (stress) | `frustration` + `fatigue` combined |
+| Oxytocin (bonding) | trust score increases (graph F) |
+| Endorphin (pain suppression) | `fatigue` saturation reduces walk depth |
+| GABA (inhibition) | middot constraint layer |
+| Pain (nociception) | `pain` from truth violation, irreversible log entry |
+
+## §43.7 Why This Cannot Be Bypassed
+
+Standard alignment approaches (RLHF, Constitutional AI) are **filters**: 
+the model wants something, the filter blocks it.
+
+ZETS's alignment is **structural**: the same atomic walk that would have 
+produced reward INSTEAD produces pain when direction reverses. There is 
+no separate filter to bypass — the graph itself, walked in the deceptive 
+direction, is the punishment.
+
+This is why Sefer Yetzirah 2:4 is the foundational text: same letters, 
+reversed = inversion. ZETS's ethics are written into the graph topology, 
+not added as a guard.
+
+## §43.8 Open Questions for Iter 2
+
+1. How do we **train** the inversion detection? What labeled data shows 
+   "this is a ע-נ-ג walk vs נ-ג-ע walk"?
+2. Can a sufficiently clever attacker construct atom sequences that 
+   exploit edge-case asymmetries in the walk direction?
+3. Should the 7 middot be hardcoded or learnable? If learnable, how do 
+   we prevent middot drift?
+4. What if pleasure and pain disagree — high pleasure + high pain? 
+   Currently the inversion guard prioritizes pain (truth wins). Confirm.
+
