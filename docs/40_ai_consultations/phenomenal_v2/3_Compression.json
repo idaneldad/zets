@@ -1,0 +1,27 @@
+{
+  "gap_id": "3_Compression",
+  "gap_name": "Path Compression — Huffman + Delta",
+  "context": "Article paths take 2GB. Zipf distribution natural in language. Need static random access (walks read middles, not full paths). Idan explicitly flagged this gap to remember. Target: 2GB → 600MB.",
+  "question": "PHENOMENAL compression for ZETS paths? Beyond Huffman+Delta — what's 10/10? Specifically: (1) Adaptive frequency table — when to recompute? (2) Random access at byte-N — how without decompressing whole path? (3) Personal frequency boost — user X's vocab might differ from corpus. (4) Versioning — table change = format change, how to migrate 1.4GB? (5) What about SHARED motifs across paths (same 5-atom subsequence repeated 1000×)? Subpath dictionary?",
+  "models_used": [
+    "deepseek_r1",
+    "qwen35",
+    "glm51"
+  ],
+  "responses": {
+    "qwen35": {
+      "response": "",
+      "elapsed_s": 51.5,
+      "retried": true
+    },
+    "glm51": {
+      "response": "**Architecture: RePair-ANS Block Forest**\n\nTo crush 2GB to 600MB while preserving O(1) random access for graph walks, ZETS requires a layered architecture: **RePair grammar compression** for shared motifs, **Asymmetric Numeral Systems (ANS)** for entropy coding, and **Elias-Fano** block indexing. \n\n**(1) Adaptive Frequency Table:** \nDo not recompute globally on every write. Use a **Count-Min Sketch (CMS)** per LSM-segment to track atom frequencies in O(1) time. Recompile the ANS frequency table only when the segment reaches its flush boundary (64MB) OR when the Kullback-Leibler divergence between the live CMS and the active ANS table exceeds 0.15 bits/symbol. The table is then frozen and appended to the segment footer.\n\n**(2) Random Access at Byte-N:** \nPaths are partitioned into fixed-atom blocks (512 atoms ≈ 4KB compressed).",
+      "elapsed_s": 20.7
+    },
+    "deepseek_r1": {
+      "response": "### PHENOMENAL Compression for ZETS Paths  \n**Core Solution:** Hybrid *Dictionary-Enhanced Asymmetric Numeral Systems (ANS)* with *Versioned Block Indexing*  \n\n#### 1. **Algorithm & Data Structures**  \n- **Subpath Dictionary**: Trie-based motif index for 5-atom sequences (≥100× occurrences). Assigns variable-length ANS codes.  \n- **Block Structure**: Paths split into 4KB blocks (512 atoms). Each block:  \n  - Header: Start atom ID, ANS state table ID, compressed size.  \n  - Body: ANS-compressed delta-encoded atoms (for non-dictionary segments) + dictionary codes.  \n- **Frequency Tables**:  \n  - Global: Static Huffman table (corpus-derived).  \n  - Personal: ANS table updated via *exponential decay*:  \n    ```python  \n    user_freq = (global_freq * α) + (user_local_freq * (1-α))  # α=0.7 initially  \n    ```  \n    Recompute when local data ≥10% of corpus size or compression ratio drops >15%.  \n- **Versioning**: LSM-like tiering. New blocks use updated tables; old blocks retain version tag. Background recompression during consolidation.  \n\n#### 2. **Concrete Numbers**  \n- **Compression**: 2GB → **~550MB** (27.5% original).  \n  - Dictionary: 100K motifs (5 atoms → 2.5 bytes avg vs. 40 bytes raw).  \n  - ANS: 30% better than Huffman on deltas.  \n- **Latency**: Decompress single block: **0.2 ms** (CPU-bound).  \n- **Accuracy**: Lossless (by design; checksums per block).  \n- **Memory Overhead**:  \n  - Global Dictionary: 75MB (100K entries × 40 bytes + trie).  \n  - Block Index: 1.5MB (350K blocks × 12 bytes: offset + version).  \n\n#### 3. **Failure Modes**  \n1. **Cold-Start Thrashing**: New user vocab triggers frequent table rebuilds until α stabilizes. Mitigation: Warm-up using top-1K global motifs.  \n2. **Fragmented Access**: Fetching path segments spanning 5+ blocks degrades latency (>1 ms). Mitigation: Prefetch adjacent blocks.  \n3. **Dictionary Bloat**: Rare motifs added during user extension waste space. Mitigation: Prune motifs with <50 hits post-update.  \n\n#### 4. **The \"+1 Subtle Thing\"**  \n**Asymmetric Numeral Systems (ANS) for Personalization**:  \n- ANS combines Huffman efficiency with arithmetic coding adaptability.  \n- **Key innovation**: Personal frequency tables are *stacked* atop global tables:  \n  - Encode global symbol → ANS state → refine with user frequencies → final bitstream.  \n- **Why phenomenal?**  \n  - Achieves **98% of entropy limit** (vs. 90% for Huffman).  \n  - User-specific adjustments require **no full recompression**—update ANS state tables incrementally.  \n  - Supports **O(1) random access** per block via state table caching.  \n\n#### 5. **Migration & Random Access**  \n- **Versioning**: Block index maps `(block_offset → version_id)`. Old blocks use on-demand decompression if table missing.  \n- **Random Access**:  \n  1. Binary-search block index for atom position.  \n  2. Decompress single block (seek to offset + read header).  \n  3. Decode from the middle: ANS saves intermediate state every 64 atoms (4-byte checkpoint).  \n- **Migration**: Background \"compaction\" rewrites old blocks (<5% CPU). Prioritize high-access paths first.  \n\n**Tradeoffs**: ANS 15% slower than Huffman but enables user adaptation without full recompute. Subpath dictionary cuts 60% of redundancy; ANS squeezes residual deltas to theoretical limits.  \n\n**Final Edge**: For shared motifs, combine dictionary with *relative delta*—encode `[dict_code, start_atom_delta, end_atom_delta]`. Achieves **5.2× compression** on Zipf tail (vs. 3.1× for vanilla delta).",
+      "elapsed_s": 91.0,
+      "retried": true
+    }
+  }
+}

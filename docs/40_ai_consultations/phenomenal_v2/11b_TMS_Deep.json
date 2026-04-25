@@ -1,0 +1,25 @@
+{
+  "gap_id": "11b_TMS_Deep",
+  "gap_name": "Truth Maintenance System — Deep Implementation",
+  "context": "ZETS needs full TMS: provenance per edge, trust scoring per source (learned), conflict resolution (recency + trust + corroboration), time-aware queries ('what was true in Jan 2025?'), 'I don't know' as first-class answer state. Skeleton exists (Cardinality Schema with 6 categories). Now need full impl.",
+  "question": "PHENOMENAL TMS implementation? Beyond JTMS/ATMS classical — what's 10/10 for ZETS? Specifically: (1) Trust score INITIALIZATION — start at what? Learned how? (2) Time decay — domain-specific or universal? (3) Echo chamber prevention when 3 sources agree wrongly. (4) UI for surfacing uncertainty without overwhelming user. (5) Performance: provenance check on every walk = N× slowdown. How to keep <5ms?",
+  "models_used": [
+    "deepseek_r1",
+    "qwen35",
+    "glm51"
+  ],
+  "responses": {
+    "qwen35": {
+      "response": "**ZETS Truth Maintenance System (ZTMS) Deep Implementation**\n\nThe ZETS Truth Maintenance System (ZTMS) moves beyond classical JTMS/ATMS by embedding probabilistic truth values directly into the CSR edge metadata, leveraging the 8-byte atom structure for minimal overhead. The goal is deterministic reasoning with probabilistic grounding, adhering to the 6GB RAM CPU-only constraint.\n\n**1. Trust Initialization & Learning**\nTrust scores are not random; they are **Class-Based Bayesian Priors** stored as 16-bit floats per source ID.\n*   **Initialization:** Human-input = 0.85, Verified API",
+      "elapsed_s": 18.8
+    },
+    "glm51": {
+      "response": "**1. Trust Initialization & Learning**\nInitialize sources at **Beta-Binomial Prior α=3, β=2** (mean 0.6). Starting at 1.0 is gullible; 0.5 is uninformative. 0.6 enforces mild skepticism with a bias toward verification. Learning is incremental Bayesian updating: every edge corroboration increments α; every contradiction increments β. Store trust as a **Source-Trust Vector (STV)**—a contiguous array of `[α, β]` floats. 100k sources = 1.5MB. \n\n**2. Time Decay: Domain-Specific via 4-bit DDE**\nUniversal decay fails; physics is eternal, tech half-life is days. Pack a **4-bit Decay Domain Enum (DDE)** into the 8-byte atom’s metadata. DDE maps to 16 hardcoded half-lives (",
+      "elapsed_s": 25.1
+    },
+    "deepseek_r1": {
+      "response": "### Phenomenal TMS Implementation for ZETS\n\n**Core Architecture**  \nLeverage **CRDTs (Conflict-Free Replicated Data Types)** for provenance tracking and **Bayesian Hybrid Trust Modeling**. Store per-edge metadata in a **Columnar Overlay** on CSR: 16B/edge (8B edge ID + 4B trust score + 4B timestamp/source hash). Trust scores initialized at **0.7 (±0.2 entropy)** via Beta(7,3) prior, updated via **Bayesian Online Changepoint Detection** (BOCD) on conflict events. Time decay uses **domain-adaptive half-lives**: 30 days for news, ∞ for physics.  \n\n**Echo Chamber Prevention**  \nImplement **Corroboration Discounting** using **Jaccard-Braun-Blanquet Similarity** across source clusters. If sources S1-S3 agree but share >80% citation overlap, trust = max(S_i) * log(1/",
+      "elapsed_s": 47.3
+    }
+  }
+}
