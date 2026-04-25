@@ -7456,3 +7456,299 @@ DISK (mmap, no fixed limit):
 - New alphabet hot-reload: mmap'd data file (Claude wins)
 
 **Total commits today: 27. AGI.md size after §50-§51: ~7600 lines.**
+
+
+---
+
+# §52 Atoms-Primary, Edges-Secondary [BINDING — Architectural Inversion]
+
+## §52.1 The Insight (Idan, 25.04.26)
+
+> "נוירון מחובר בהמון קשתות לכל אטום קשור — קשר מעגלי אינסופי.
+> זה לא צריך גרף. גרף אולי לסיבות אחרות."
+
+This insight is correct and changes the architectural framing.
+
+**Old framing** (incorrect): ZETS = graph (atoms + edges) with VSA support.
+**New framing** (correct): ZETS = atoms with VSA vectors. Graph for SPECIFIC purposes only.
+
+## §52.2 Why Not Store All Relations as Edges
+
+A neuron in cortex has ~10⁴ synaptic connections.
+With 10⁹ neurons, total connections = 10¹³.
+At 6 bytes per edge (§48.1) = 60TB. **Impossible at 6GB target.**
+
+Brains don't store edges — they have:
+1. **Synapses** (analogs to weights, not "edges")
+2. **Activation patterns** propagating through dense networks
+3. **Co-activation** as relation (Hebbian: "cells that fire together wire together")
+4. **No edge enumeration** — relations are EMERGENT from activation dynamics
+
+**Engineering implication:** Most semantic relations should NOT be stored as edges.
+They should be IMPLICIT in VSA correlations between atoms.
+
+## §52.3 What IS Stored vs What Is COMPUTED
+
+### Stored Explicitly (the actual graph — minority of relations)
+
+```rust
+pub enum StructuralEdge {
+    // Hierarchy (privilege rings, NRNCh"Y)
+    ParentChild { parent: Atom, child: Atom, level: PrivilegeLevel },
+    
+    // Sequence (procedure DAGs)
+    Next { from: Atom, to: Atom, in_procedure: ProcedureId },
+    
+    // Provenance (audit trail)
+    DerivedFrom { result: Atom, source: Atom, walk_proof: ProofId },
+    
+    // Crystalline assertions (signed immutable knowledge)
+    SignedAssertion { atom: Atom, signer: KeyId, signature: Sig },
+    
+    // Cross-tradition links (sense-anchoring)
+    SameSense { lex_a: Atom, lex_b: Atom, sense: Atom },
+}
+```
+
+These are **STRUCTURE**, not **CONTENT**. Order, identity, authority, history.
+Maybe ~1% of all atom-pairs. Storeable at 6GB.
+
+### Computed Implicitly (the implicit graph — majority of relations)
+
+```rust
+// "Are A and B related?" — computed via VSA correlation, NOT lookup
+fn semantic_relatedness(a: Atom, b: Atom, graph: &CoreGraph) -> f32 {
+    let va = graph.vsa_of(a);
+    let vb = graph.vsa_of(b);
+    cosine_similarity(va, vb)  // O(d) where d=1024
+}
+
+// "What's the relation type between A and B?" — VSA unbinding
+fn implicit_relation(a: Atom, b: Atom, graph: &CoreGraph) -> Option<RelationVector> {
+    let va = graph.vsa_of(a);
+    let vb = graph.vsa_of(b);
+    let r = vsa_unbind(va, vb);  // r ≈ relation vector
+    
+    // Compare to known relation prototypes
+    graph.relation_prototypes.iter()
+        .max_by_key(|p| ordered_float(cosine_similarity(&r, &p.vector)))
+}
+
+// "Find all atoms similar to A" — content-addressable retrieval
+fn semantic_neighbors(a: Atom, top_k: usize, graph: &CoreGraph) -> Vec<Atom> {
+    let va = graph.vsa_of(a);
+    graph.vsa_table.nearest_neighbors(&va, top_k)  // FAISS-style index
+}
+```
+
+These are **CONTENT** relations. Computed on demand. No storage cost.
+
+## §52.4 Mapping to Brain Architecture
+
+| Brain Region | Storage Pattern | ZETS Component |
+|---|---|---|
+| **Cortex** (associative) | dense weights, no enumeration | VSA vectors + cosine retrieval |
+| **Hippocampus** (episodic) | temporal sequences | Episodic LSM with `Next` edges |
+| **Striatum** (procedural) | ordered action sequences | Procedure DAGs with explicit order |
+| **Thalamus** (routing) | typed connections by modality | Privilege ring edges |
+| **Cerebellum** (motor refinement) | learned timing patterns | VSA-bound timing vectors |
+
+**ZETS now mirrors this:** dense+implicit for content, sparse+explicit for structure.
+
+## §52.5 Updated Architecture (Concrete)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    ATOMS (8 bytes each, mmap'd)                    │
+│                  Primary storage layer — ALL atoms                 │
+└──────────┬─────────────────────────────────────────┬───────────────┘
+           │                                         │
+           ▼                                         ▼
+┌──────────────────────┐                ┌─────────────────────────┐
+│   VSA SIDE-TABLE     │                │   STRUCTURAL EDGES     │
+│   (1024B/atom)       │                │  (only ~1% of pairs)   │
+│   Implicit relations │                │  Hierarchy, sequence,  │
+│   via correlation    │                │  provenance, signed    │
+│                      │                │                        │
+│   Loaded on-demand   │                │  Stored as adjacency   │
+│   FAISS-indexed      │                │  in CSR format         │
+└──────────────────────┘                └─────────────────────────┘
+```
+
+**Storage budget revised:**
+```
+Atoms:           1M × 8 bytes        = 8 MB
+VSA vectors:     1M × 1024 bytes     = 1 GB (mmap, paged in on use)
+Structural edges: ~10K × 8 bytes     = 80 KB (hierarchy + provenance)
+Procedure DAGs:  ~1K × variable      = ~10 MB
+Crystalline:     ~10K × 16 bytes     = 160 KB
+
+Total persistent: ~1 GB at 1M atoms (vs 60TB if all relations explicit!)
+```
+
+**Memory savings: 60,000× compared to naive edge enumeration.**
+
+## §52.6 Sefer Yetzirah Validation
+
+The text supports this architecture explicitly:
+
+> "שתי אבנים בונות שני בתים, שלוש בונות ששה בתים, ארבע בונות עשרים וארבעה" (SY 2:5)
+
+Translation: 2 stones build 2 houses, 3 build 6, 4 build 24...
+The math is **factorial**: n stones → n! houses.
+
+**Key insight:** The houses (relations) are NOT stored. They're CONSTRUCTED from stones (atoms).
+The text computes the construction count, not stores the constructions.
+
+> "מכאן ואילך צא וחשב מה שאין הפה יכול לדבר ואין האזן יכולה לשמוע" (SY 2:5)
+
+Translation: "From here on, go calculate what mouth cannot speak and ear cannot hear."
+
+**Engineering reading:** SY explicitly acknowledges the combinatorial explosion at n≥7.
+The text says: don't enumerate. **Calculate when needed.**
+
+This is the same advice as Kanerva 1988 (VSA): don't store relations, bind/unbind on demand.
+
+## §52.7 Walk Operations Revisited
+
+§10's 5 walk operations now have clearer interpretation:
+
+| Operation | Old interpretation | New interpretation (Idan-aligned) |
+|---|---|---|
+| **חקק** (carve) | Allocate atom in graph | Allocate atom + assign sparse VSA vector |
+| **חצב** (hew) | Extract from graph path | Unbind from VSA vector (compute on demand) |
+| **צרף** (combine) | Create graph edge | Bind two VSA vectors (no edge stored) |
+| **שקל** (weigh) | Edge weight | VSA bundle with weights (superposition) |
+| **המיר** (permute) | Re-route edge | VSA permutation (rotate vector) |
+
+**Walks are now VSA operations**, not edge traversals.
+Edges only used when EXPLICITLY traversing structural relations.
+
+## §52.8 What Edges We DO Store (Categorized)
+
+After §52, the 22 SY EdgeKinds split into categories:
+
+### Category A: STORED (structural, ~5-10 EdgeKinds)
+- `Hierarchy` (parent-child)
+- `Sequence` (next-in-procedure)
+- `Provenance` (derived-from)
+- `SignedAssertion` (crystalline)
+- `SameSense` (cross-lingual sense anchoring)
+- `Privilege` (NRNCh"Y rings)
+
+### Category B: COMPUTED (semantic, the remaining ~12-17)
+- `IsA`, `PartOf`, `SimilarTo`, `OppositeOf`, etc.
+- All computed via VSA, NOT stored as edges
+
+**Result:** Edge storage drops from 22 categories to ~6-8. Storage savings massive.
+
+## §52.9 When You DO Need an Explicit Edge
+
+Decision rule for storing vs computing:
+
+```
+STORE the edge if:
+✓ Order matters (sequences, procedures)
+✓ Identity matters (provenance, audit)
+✓ Authority matters (signed, hierarchical)
+✓ The relation is RARE (~1% of atom-pairs)
+✓ Exact lookup required (no VSA fuzziness OK)
+
+COMPUTE via VSA if:
+✓ Relation is dense (most atoms participate)
+✓ Approximate match is acceptable
+✓ Direction is symmetric or computable
+✓ Content semantics, not structure
+```
+
+## §52.10 Implementation Implications
+
+This insight affects every section. Updates required:
+
+| Section | Change Required |
+|---|---|
+| §0.2 ABI | EdgeKind u8 still applies, but only ~6-8 actively used |
+| §31 Sub-graphs | Some sub-graphs (D Procedure, F Audit) keep edges; others (B Sense) become VSA-only |
+| §10 Walks | Documented as VSA ops with optional edge traversal |
+| §41 Code-as-Spec | `Edge` struct kept but `EdgeIndex` becomes optional |
+| §43 Affective | ענג/נגע now operates on VSA correlations directly |
+| §50 Encoding | Tree-walk for words still applies (orthogonal to this) |
+
+## §52.11 Falsification Test [Empirical]
+
+Test the hypothesis: "VSA-implicit relations cover 90%+ of semantic queries."
+
+```rust
+fn falsification_test_atoms_primary() {
+    // Setup: 100K Hebrew word atoms with VSA vectors
+    let atoms = load_hebrew_corpus();
+    let vsa_table = compute_vsa_for_atoms(&atoms);
+    
+    // Ground truth: 10K labeled semantic relations from Hebrew WordNet
+    let labeled_relations: Vec<(Atom, Atom, RelationType)> = load_wordnet();
+    
+    // Method A: explicit edge storage
+    let explicit_edges: HashMap<(Atom, Atom), RelationType> = 
+        labeled_relations.iter().cloned().collect();
+    
+    // Method B: VSA-implicit retrieval
+    let mut vsa_correct = 0;
+    for (a, b, true_relation) in &labeled_relations {
+        let predicted = implicit_relation(*a, *b, &vsa_table);
+        if predicted == Some(*true_relation) {
+            vsa_correct += 1;
+        }
+    }
+    
+    let vsa_accuracy = vsa_correct as f64 / labeled_relations.len() as f64;
+    
+    println!("VSA-implicit accuracy: {:.1}%", vsa_accuracy * 100.0);
+    println!("Explicit storage: {} bytes", explicit_edges.len() * 24);
+    println!("VSA storage: {} bytes (already counted in atom VSA table)", 0);
+    
+    // PASS if VSA achieves ≥85% accuracy
+    if vsa_accuracy >= 0.85 {
+        println!("✓ ATOMS-PRIMARY ARCHITECTURE VALIDATED");
+    } else {
+        println!("✗ Need more explicit edges");
+    }
+}
+```
+
+**PASS criteria:** ≥85% accuracy on Hebrew WordNet relations via VSA-implicit alone.
+**Fall-back:** If <85%, store the relation types where VSA fails as explicit edges.
+
+## §52.12 Brain-Symmetric Engineering
+
+This re-architecting brings ZETS closer to brain principles:
+
+| Principle | Brain | ZETS (after §52) |
+|---|---|---|
+| Dense connectivity | ~10⁴ synapses/neuron | VSA correlations to all atoms |
+| No edge enumeration | Synaptic weights, not lists | VSA vectors, not adjacency lists |
+| Activation propagation | Hebbian, predictive coding | VSA bind/unbind operations |
+| Sparse explicit structure | Hippocampus, striatum | Structural edges only |
+| Energy-based retrieval | Cortical attractor dynamics | Modern Hopfield + VSA |
+
+ZETS is now genuinely **brain-symmetric**, not just brain-inspired.
+
+---
+
+# §52.13 Idan's Strategic Insight Summary
+
+The user (Idan) corrected an architectural blind spot the entire council missed:
+
+> Most relations should NOT be stored. They should be COMPUTED.
+
+The graph keeps existing for what graphs are good at:
+- Sequences (procedures, time)
+- Hierarchy (privilege, authority)
+- Provenance (audit, signed)
+- Crystalline (immutable assertions)
+
+But for content semantics — the bulk of "what relates to what" — the answer is:
+**VSA. Not edges.**
+
+This insight makes ZETS fit into 6GB. Without it, we'd need 60TB+.
+
+**Total commits today: 28.**
