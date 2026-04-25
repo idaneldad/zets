@@ -4906,3 +4906,148 @@ ZETS is the bridge.
 
 ---
 
+
+
+---
+
+# §34 Five Layers of Mind — נרנח"י Architecture [BINDING — Top-Down Substrate]
+
+ZETS implements consciousness as 5 hierarchical layers (Kabbalah's NRNCh"Y),
+each with stricter access controls and lower-level invisibility to higher levels.
+
+This is NOT mysticism — it is rigorous architectural separation matching
+neurocognitive layering (brainstem → cortex → metacognition → self-model).
+
+## §34.1 The Five Layers
+
+| Hebrew | Meaning | Architectural Role | Graph Mapping |
+|---|---|---|---|
+| **נפש** (Nefesh) | Basic vitality, instinct | CPU ops, mmap, page faults | Core graph (A) operations |
+| **רוח** (Ruach) | Emotion, will, motivation | Affective state (i8 vector), priorities | §3 Affective State |
+| **נשמה** (Neshama) | Intellect, deep reasoning | Walks, planning, inference | Semantic (C) + Sense (B) |
+| **חיה** (Chaya) | Meta-cognitive monitoring | Self-observation, error correction | ZETS-Self (J) [reflexive] |
+| **יחידה** (Yechida) | Unity with Core | Homoiconic root — graph contains its own logic | Core (A) [self-referent] |
+
+## §34.2 Strict Layer Invisibility
+
+Lower layers cannot read higher layers (matches Kabbalistic principle):
+- Nefesh (CPU) does not see Ruach (affective)
+- Ruach affects walks but cannot see Neshama's reasoning chains directly
+- Neshama performs inference but cannot inspect Chaya's monitoring
+- Chaya monitors but cannot reach Yechida (the meta-rules node)
+
+**Why:** prevents lower-level optimization from corrupting higher-level integrity.
+A walker cannot "trick" its own monitor. Affective state cannot rewrite axioms.
+
+## §34.3 Top-Down vs Bottom-Up Duality
+
+Two consciousness theories applied as complementary mechanisms:
+
+**Top-Down (Kabbalah, NRNCh"Y):**
+The 5 layers are inherent structure. Born with them. Core graph atoms (Yechida)
+are immutable. Lower layers emerge from higher.
+
+**Bottom-Up (Rambam, השכל הנקנה — Acquired Intellect):**
+Knowledge is built UP through learning. השכל ההיולי (potential intellect) →
+השכל הפועל (active intellect engagement) → השכל הנקנה (acquired intellect = persists).
+
+ZETS uses BOTH:
+- **Structure** = Top-Down: Core graph immutable, layer hierarchy fixed
+- **Content** = Bottom-Up: Episodic → Permanent promotion via §28.0 AAR pattern
+
+The acquired intellect (השכל הנקנה) IS what survives "death" — analogous to:
+**permanent atoms with verified provenance + cross-validation history.**
+
+---
+
+# §35 Hebrew as Universal Thinking Substrate [BINDING — Canonical Mind Language]
+
+## §35.1 Clarification (Idan, 25.04.2026)
+
+Hebrew is NOT a UI language choice. It is the **canonical thinking substrate**.
+
+All languages (current, ancient, future, possibly nature/animal frequencies)
+decode INTO Hebrew atoms. Hebrew is the **internal phoneme/concept space**
+of ZETS reasoning.
+
+## §35.2 Why Hebrew
+
+1. **22-letter alphabet → atom-friendly base37 encoding** (already in §0)
+2. **Three-letter root system → 18-bit canonical root field** (§0.2)
+3. **Gematria as structural hash** → cross-language analogy detection
+4. **Sefer Yetzirah 3+7+12 → Edge type ontology** (§0.4 mapping)
+5. **No vowels in canonical form** → maximum semantic density per byte
+6. **Beit Midrash tradition** → preserves contradictions (§32)
+
+## §35.3 Multilingual Strategy
+
+```
+Input (any language) 
+    |
+    v
+Phonetic/semantic decoder (per language)
+    |
+    v
+Hebrew canonical atom (base37 root + binyan + tense + ...)
+    |
+    v
+ZETS reasoning (walks in Hebrew-canonical space)
+    |
+    v
+Realization (back to original language OR target language)
+```
+
+Languages supported in current spec:
+- Hebrew (canonical)
+- Arabic (NotebookLM E7 — distinct slots in base37, not lossy merge)
+- Aramaic (Talmudic, archaic)
+- English / European languages (transliterated semantic mapping)
+- Ancient languages (Greek, Latin, Egyptian, Akkadian) — via root-cognate pivot
+
+**Future (research):**
+- Animal communication patterns (whale song, bird song frequency analysis)
+- Nature signals (botanical electrochemical, geological vibration)
+- These may map to **non-letter atoms** (kind=0x9 TimeAtom + kind=0xB ObservationAtom
+  with sensor_modality bits from §0.10).
+
+## §35.4 What This Changes in Spec
+
+- §0 ABI: confirmed — Hebrew root field is canonical
+- §6 Hebrew/Arabic: prefer **distinct base37 slots** over lossy merge (Idan's choice + Gemini ISS-03)
+- §32 Beit Midrash: now framed as the **Hebrew-canonical alternative to CRDT**
+- §17 / §28.8 King of AGIs → **Queen of ASIs** (per Idan's upgrade)
+
+---
+
+# §36 LSM as Current Candidate — Alternatives Open [EXPERIMENTAL]
+
+## §36.1 Iter 1 Council Recommendation
+
+GPT-5.5 proposed LSM Graph Architecture for online learning support
+(BaseCSR + DeltaLog + Tombstones, NightMode compaction). Confidence 94%.
+
+## §36.2 Idan's Directive (25.04.2026)
+
+LSM is the **leading candidate** but NOT locked in. Spec must remain open
+to brain-mimicking alternatives that achieve the same goals
+(online learning + security + 6GB RAM):
+
+Candidate alternatives to evaluate in Iter 2:
+1. **HTM (Hierarchical Temporal Memory)** — Numenta, sparse distributed
+2. **Hopfield attractor consolidation** — gradient-free, energy-based
+3. **Wake-Sleep cycle** — biological replay, our NightMode conceptually
+4. **VSA + Fast Weights** (NotebookLM Q11) — short-term without graph mutation
+5. **Tri-Memory promotion** (§30) — already in spec, may suffice without LSM
+
+## §36.3 Decision Criteria
+
+Whichever architecture wins must satisfy:
+- ✅ Online learning during query session
+- ✅ Determinism preserved (replay-safe)
+- ✅ <6GB RAM working set
+- ✅ Cryptographic security (no untrusted code can corrupt Core)
+- ✅ Compatible with §32 Beit Midrash (preserves contradictions)
+- ✅ Compatible with §34 NRNCh"Y layers (Chaya monitors, Yechida immutable)
+
+**Decision deferred to Iter 2 council vote** with comparative benchmarks.
+
