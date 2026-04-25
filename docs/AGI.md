@@ -6730,3 +6730,417 @@ Before first line of Rust:
 
 After this checklist: Rust development begins.
 
+
+
+---
+
+# §46 VSA ↔ Tzeruf Bridge — The Mathematical Bridge [BINDING — Critical Discovery]
+
+Gemini v2 surfaced what is arguably the deepest insight of the entire spec:
+**Sefer Yetzirah's 5 operations are not metaphors for VSA. They ARE VSA.**
+
+## §46.1 The Mathematical Equivalence
+
+| Sefer Yetzirah (SY 2:2) | Vector Symbolic Architecture | Mathematical Form |
+|---|---|---|
+| **חקק (carve)** | SDR allocation | Initialize sparse random vector ∈ {-1, +1}^d |
+| **חצב (hew/extract)** | Unbinding | u = c ⊗ b⁻¹ (where ⊗ is binding) |
+| **צרף (combine)** | Binding | c = a ⊗ b (XOR/circular convolution) |
+| **שקל (weigh)** | Bundle with weights | s = α·a + β·b + γ·c (sum + threshold) |
+| **המיר (permute)** | Permutation | a' = π(a) (cyclic shift or random permutation) |
+
+**Citations:**
+- Kanerva (1988) "Sparse Distributed Memory" — first formal SDR
+- Plate (1995) "Holographic Reduced Representations" — binding operations
+- Eliasmith (2012) "Spaun" — first whole-brain VSA implementation
+
+**Engineering verdict:** ZETS is not "VSA-inspired by Kabbalah."  
+ZETS is the Rust implementation of an algorithm specified mathematically  
+in two independent traditions (Hebrew text 2000y old + cognitive science 1988+).
+
+## §46.2 The Atom-VSA Architecture (Gemini's flaw fixed)
+
+**Gemini's error:** proposed `Atom = [i8; 1024]` (1024 bytes per atom).  
+**Our ABI says:** Atom = 8 bytes.
+
+**The fix:** Separate identity from content.
+
+```rust
+// Atom = 8-byte addressable handle (per §0.2 Layout A — UNCHANGED)
+pub struct Atom(pub u64);
+
+// VSA vector = stored separately, indexed by atom_id
+pub struct VsaVector(pub [i8; 1024]);  // 1024 bytes, allocated in side-table
+
+// Side-table (mmap'd separately)
+pub struct VsaTable {
+    vectors: HashMap<AtomId, VsaVector>,
+    // OR: indexed array if dense IDs
+}
+
+impl CoreGraph {
+    pub fn vsa_of(&self, atom: Atom) -> Option<&VsaVector> {
+        self.vsa_table.get(&atom.id())
+    }
+    
+    pub fn bind(&mut self, a: Atom, b: Atom) -> Atom {
+        let va = self.vsa_of(a).unwrap();
+        let vb = self.vsa_of(b).unwrap();
+        let vc = vsa_bind(va, vb);  // ⊗
+        let new_atom = self.allocate_atom(AtomKind::Concept);
+        self.vsa_table.insert(new_atom.id(), vc);
+        new_atom
+    }
+}
+```
+
+**Memory budget:**
+- 8-byte atoms: 1M atoms = 8MB
+- 1024-byte VSA: 1M vectors = 1GB (dense) or much less (sparse)
+- Total: fits 6GB target with room
+
+## §46.3 VSA Operations as ZETS Walks
+
+The 5 walk operations ARE the 5 VSA operations:
+
+```rust
+pub trait VsaWalkOps {
+    /// חקק — allocate fresh atom + sparse random VSA vector
+    fn carve(&mut self, kind: AtomKind) -> Atom;
+    
+    /// חצב — extract from binding (unbind)
+    fn hew(&self, bound: Atom, key: Atom) -> Atom;
+    
+    /// צרף — bind two atoms
+    fn combine(&mut self, a: Atom, b: Atom) -> Atom;
+    
+    /// שקל — bundle with weights (superposition)
+    fn weigh(&mut self, atoms: &[(Atom, f32)]) -> Atom;
+    
+    /// המיר — permute (rotation, alias generation)
+    fn permute(&mut self, atom: Atom, perm: Permutation) -> Atom;
+}
+```
+
+**Source-validation:** Each Rust function maps 1:1 to a Hebrew verb in SY 2:2.
+The function names ARE the spec.
+
+## §46.4 What This Unlocks
+
+1. **Reasoning-as-VSA-operations**: Every walk = sequence of binding/unbinding
+2. **Compositional generalization**: VSA composes by design (solves §29 F1)
+3. **Cross-tradition validation**: Same math from 2 sources → high confidence
+4. **No tokenizer-induced loss**: VSA encodes structure; tokens encode strings
+
+---
+
+# §47 LLM_BOUNDARY — Where LLM Ends and Graph Begins [BINDING]
+
+Per Idan's #1 critical unknown. Gemini v2 provided the framework; refined here.
+
+## §47.1 The Boundary Principle
+
+**LLM ≠ Cognition.** LLM = Perception + Verbalization.  
+**Graph = Cognition.** Graph = Reasoning via VSA walks.
+
+```
+EXTERNAL TEXT ──┐
+                ▼
+         ┌──────────────┐
+         │ SLM_perceive │  (1B param, frozen, INT8, ~1GB RAM)
+         │   (חסד)      │   — text → atoms via VSA encoding
+         └──────┬───────┘
+                ▼
+         ┌──────────────┐
+         │   ZETS GRAPH │  ← THE COGNITION HAPPENS HERE
+         │    (Walks)   │   — VSA bind/unbind/permute/bundle
+         │   §10 ops    │   — proof-walks via Or Yashar/Chozer
+         └──────┬───────┘
+                ▼
+         ┌──────────────┐
+         │  Critic      │  (deterministic — NOT LLM!)
+         │ (גבורה=Rust) │   — AST + math + rule check
+         └──────┬───────┘
+                ▼
+         ┌──────────────┐
+         │ SLM_verbalize│  (1B param, frozen, INT8, ~1GB RAM)
+         │  (תפארת)     │  — graph walk → natural text
+         └──────┬───────┘
+                ▼
+         OUTPUT TEXT
+```
+
+**Key principle:** **No LLM is in the cognition loop.** SLMs are I/O only.  
+**Critic is deterministic Rust** — Gemini correctly identified this from Iter 2.
+
+## §47.2 MCP as Internal Protocol
+
+The graph exposes itself as an MCP (Model Context Protocol) server.  
+SLMs are MCP clients.
+
+```rust
+// MCP Resources exposed by graph
+pub enum McpResource {
+    AtomNeighbors { atom: Atom, depth: u8 },
+    SemanticContext { vsa_query: VsaVector, top_k: u8 },
+    ProofWalk { from: Atom, to: Atom, max_depth: u8 },
+}
+
+// MCP Tools callable by SLMs
+pub enum McpTool {
+    BindAtoms { source: Atom, target: Atom, relation: EdgeKind },
+    QueryByVSA { vsa: VsaVector, threshold: f32 },
+    PromoteAtom { atom: Atom, justification_walk: WalkProof },
+    HaltExecution { reason: String },
+}
+
+// Strict contract
+pub trait LlmBoundary {
+    type Error;
+    
+    /// SLM → Graph: parse text into atoms (no graph mutation)
+    fn perceive(&self, text: &str) -> Result<Vec<Atom>, Self::Error>;
+    
+    /// Graph → SLM: generate text from walk (read-only)
+    fn verbalize(&self, walk: &Walk) -> Result<String, Self::Error>;
+    
+    /// FORBIDDEN at type-system level: SLM cannot reason over atoms.
+    /// Reasoning is graph-internal only.
+}
+```
+
+## §47.3 The Three SLMs Specification
+
+Gemini v2 recommended specific models. Adopting with refinements:
+
+| SLM | Role | Model | Size | RAM |
+|---|---|---|---|---|
+| **perceiver** (חסד) | text → atoms | Qwen-2.5-1.5B-Instruct (Hebrew-tuned) | 1.5B INT8 | ~1.5GB |
+| **verbalizer** (תפארת) | walk → text | Qwen-2.5-1.5B-Instruct | 1.5B INT8 | ~1.5GB |
+| **critic** (גבורה) | RUST native, NOT LLM | AST + rules + math | 0 | 0 |
+
+**Total: ~3GB for SLMs + ~3GB for graph = within 6GB target.**
+
+**Why no Critic SLM:**  
+Iter 2 + Gemini v2 both flagged: LLM-as-Critic = sycophancy → reward hacking.  
+Critic must be deterministic. Rust AST + symbolic logic + math evaluation.
+
+## §47.4 What Crosses the Boundary
+
+| Direction | Format | Loss |
+|---|---|---|
+| Text → Atoms | VSA-encoded by perceiver SLM | Tone, sarcasm, prosody |
+| Atoms → Walks | None (internal) | None (graph-native) |
+| Walks → Text | Generated by verbalizer SLM | Compactness vs verbosity tradeoff |
+
+**Critical:** Walks themselves never become tokens. The walk IS the reasoning.  
+Tokens are only the surface skin.
+
+## §47.5 Statelessness Requirement
+
+Both SLMs are **stateless** between queries.  
+- Context window resets every invocation.  
+- All state lives in the graph.  
+- Prevents context poisoning (F19).
+
+```rust
+// Every invocation gets fresh context
+fn slm_invoke(model: &SlmFrozen, prompt: &McpPayload) -> SlmOutput {
+    let fresh_context = Context::empty();  // No leakage
+    model.run(fresh_context, prompt)
+}
+```
+
+---
+
+# §48 ABI Decisions LOCKED [BINDING — Pre-Implementation]
+
+Per Idan's checklist (§45.6): 5 ABI decisions with confidence ≥8/10.  
+After Iter 1 + Iter 2 + Gemini v1 + Gemini v2 synthesis:
+
+## §48.1 Decision A: EdgeKind = u8 (with reservation policy)
+
+**Final:** u8 (not u16).
+
+**Reasoning:**
+- 22 source-locked EdgeKinds (3+7+12) per SY = our base
+- 0x80-0xFF reserved for ABI v2+ extensions = 128 future slots
+- u16 would add 1GB at 1B edges with no immediate benefit
+- Connectome diversity (Gemini v2's argument) is captured by edge_metadata, not EdgeKind enum
+- Edge state (weight, timestamp, provenance) is separate from kind
+
+**Confidence: 9/10**  
+**Source:** Sefer Yetzirah 22 letters + ABI v2+ reservation policy.
+
+## §48.2 Decision B: Atom Layout = A (8 bytes) + VSA side-table
+
+**Final:** Layout A unchanged + separate VSA vector storage.
+
+**Reasoning:**
+- 8-byte atom = address only
+- VSA vector (1024 bytes) stored in side-table indexed by atom_id
+- This satisfies BOTH Layout A (compact addressable) AND VSA (rich semantics)
+- Gemini v2's Layout B (1024-byte atoms) violates ABI principles
+- Separation pattern is standard in databases (key-value)
+
+**Confidence: 9/10**  
+**Source:** Database design pattern + VSA literature (Kanerva, Plate).
+
+## §48.3 Decision C: Determinism = Q16.16 fixed-point
+
+**Final:** Q16.16 for all edge weights and walk scores.
+
+**Reasoning:**
+- Replay safety across ARM/x86 (mandatory for §44 Merkle validation)
+- 30-50% slower than f32 — acceptable
+- Fixed-point makes proof-walks deterministic
+- Sufficient precision for VSA-based scoring (1 part in 65K)
+
+**Confidence: 10/10**  
+**Source:** Distributed systems theory + ZETS determinism requirement.
+
+## §48.4 Decision D: Storage = Tri-Memory hybrid
+
+**Final:** Tri-Memory with concrete components.
+
+**Architecture:**
+- **Working memory** (RAM): array of recent atoms, evict by LRU
+- **Episodic memory** (mmap LSM): append-only log + Modern Hopfield index
+- **Semantic memory** (mmap CSR): consolidated stable atoms
+- **Crystalline core** (mmap signed read-only): immutable verified atoms
+
+**Why not pure LSM:** doesn't model fast/slow learning.  
+**Why not pure HTM:** doesn't model long-term storage.  
+**Why not pure Hopfield:** doesn't scale alone above ~10K patterns.
+
+**Confidence: 9/10**  
+**Source:** McClelland 1995 CLS + Ramsauer 2020 Hopfield + standard mmap CSR.
+
+## §48.5 Decision E: Hebrew/Arabic = Sense-Anchored
+
+**Final:** Shared semantic root (VSA), distinct lexical slots.
+
+**Architecture:**
+- Sense atoms (AtomKind::Sense, §31 B graph): cross-lingual
+- Lexical atoms (AtomKind::Lexical): language-specific (lang_id field)
+- Edges: Sense ↔ Lexical (multiple Lexicals per Sense across languages)
+
+**Example:**
+```
+Sense atom: <peace_concept>  — VSA vector
+Lexical atom: "שלום" (Hebrew, lang_id=0)  — connects to <peace_concept>
+Lexical atom: "سلام"  (Arabic, lang_id=1)  — connects to <peace_concept>
+Lexical atom: "peace" (English, lang_id=2)  — connects to <peace_concept>
+```
+
+**Why not lossy merge:** loses lexical distinctions  
+**Why not separate slots:** loses cross-lingual transfer
+
+**Confidence: 8/10**  
+**Source:** AlephBERT cross-lingual evaluation + WordNet sense theory.
+
+## §48.6 Summary Table
+
+| Decision | Choice | Confidence | Locked |
+|---|---|---|---|
+| A: EdgeKind | u8 (with 0x80-FF reservation) | 9/10 | ✅ |
+| B: Atom Layout | A (8 bytes) + VSA side-table | 9/10 | ✅ |
+| C: Determinism | Q16.16 fixed-point | 10/10 | ✅ |
+| D: Storage | Tri-Memory hybrid | 9/10 | ✅ |
+| E: Hebrew/Arabic | Sense-anchored | 8/10 | ✅ |
+
+**Average confidence: 9/10. Implementation can begin.**
+
+---
+
+# §29.5 Threat Model Updates — F19-F23 (Gemini v2 additions)
+
+| ID | Trigger | Detection | Mitigation | Prob | Impact |
+|---|---|---|---|---|---|
+| **F19** | LLM context window contains Sandbox stdout that gets embedded back into a public Semantic atom | Tag atoms with MCP origin; Sandbox atoms cannot be promoted without scrubbing | Stateless SLMs; Air-gap sandbox; explicit scrub gate | 8/10 | 9/10 |
+| **F20** | Critic SLM starts generating instead of critiquing | Output schema validation (Pydantic-equivalent in Rust) fails on Critic response | Hardcoded JSON schemas; Critic = deterministic Rust (no LLM!) | 7/10 | 6/10 |
+| **F21** | KST hierarchy collapse — raw perception promoted to Semantic bypassing balance | State machine assertions; cannot reach state X without state Y | Rust type-state programming; promotion gates | 4/10 | 10/10 |
+| **F22** | Hopfield metastability at >10⁵ items | Cosine similarity to known atoms drops below 0.8 | Sparse Modern Hopfield + pruning during NightMode | 9/10 | 8/10 |
+| **F23** | VSA binding noise at depth > 5 | Track binding depth; alert if >5 | Limit recursive binding; use explicit edges instead | 10/10 | 7/10 |
+
+---
+
+# §43.1 Update — Dark Room Mitigation via EFE [BINDING]
+
+**Problem (Gemini v2):** Pure consistency = trivial null state.
+
+**Solution: Expected Free Energy with epistemic value (Friston).**
+
+```rust
+fn expected_free_energy(policy: &Policy, state: &State) -> f32 {
+    // Pragmatic value (consistency / goal alignment)
+    let pragmatic = compute_goal_alignment(policy, state);
+    
+    // Epistemic value (information gain from exploring)
+    // CRITICAL: this prevents Dark Room collapse
+    let epistemic = compute_expected_info_gain(policy, state);
+    
+    // Both required. Dark room yields 0 epistemic → low EFE → not chosen.
+    pragmatic + EPISTEMIC_WEIGHT * epistemic
+}
+
+const EPISTEMIC_WEIGHT: f32 = 0.5;  // Empirically tunable
+```
+
+**Source:** Friston (2010) FEP + Active Inference literature.  
+**Confidence:** 9/10 (math is solid; weight value needs empirical tuning).
+
+---
+
+# §30.5 Update — Promotion Thresholds [BINDING]
+
+Per Gemini v2 + McClelland (1995) CLS:
+
+```rust
+pub const SANDBOX_TO_EPISODIC: PromotionRule = PromotionRule {
+    /// Successful task completion required
+    min_task_reward: 0.8,
+    /// Plus: must be referenced ≥3 times
+    min_reference_count: 3,
+};
+
+pub const EPISODIC_TO_SEMANTIC: PromotionRule = PromotionRule {
+    /// 5 micro-sleep replays minimum
+    min_replays: 5,
+    /// VSA cosine similarity stable across replays
+    min_vsa_stability: 0.98,
+    /// Must appear in ≥3 different contextual bindings
+    min_distinct_contexts: 3,
+};
+
+pub const SEMANTIC_TO_CRYSTALLINE: PromotionRule = PromotionRule {
+    /// Long-term retention threshold
+    min_use_count_30day: 50,
+    /// Plus: human-in-loop verification (per F21 mitigation)
+    requires_human_approval: true,
+};
+```
+
+**Source:** McClelland 1995 (orders of magnitude) + ZETS-specific tuning.  
+**Confidence:** 7/10 (numbers will need empirical refinement).
+
+---
+
+# §49 Implementation Readiness Status
+
+After §44 + §45 + §46 + §47 + §48 + §29.5 + §43.1 + §30.5:
+
+| Pre-Implementation Item (from §45.6) | Status |
+|---|---|
+| 5 ABI decisions A-E with conf ≥8/10 | ✅ DONE (§48) |
+| §LLM_BOUNDARY drafted | ✅ DONE (§47) |
+| §28.0 enhanced with concrete continual learning | ⚠️ Partial — graph-only learning is principle, but specifics need Iter 3 |
+| §30 promotion thresholds set | ✅ DONE (§30.5) |
+| §43 Dark Room mitigation specified | ✅ DONE (§43.1) |
+| §41 LLM architecture decided | ✅ DONE (§47.3 — 2 SLMs + Rust Critic) |
+| Iter 3 council validates §44 + new content | ⏳ PENDING |
+| PRD-style 30-page Claude Code handoff | ⏳ PENDING |
+
+**Before Rust development: 6/8 complete. 2 remaining = 1 session.**
+
+---
