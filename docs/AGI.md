@@ -8315,3 +8315,227 @@ After §52 + §53, ZETS architecture is now genuinely brain-symmetric:
 **ZETS architecture is now coherent, complete, and brain-symmetric.**
 
 ---
+
+
+---
+
+# §55 Recursive Walks with Shevirat-Tikkun [BINDING — Refines §53.2]
+
+## §55.1 The Correction (Idan, 25.04.26)
+
+§53.2 described ZETS as "eternal loop" — partially correct but imprecise.
+The correct architectural model has **THREE LAYERS**:
+
+| Layer | Pattern | Purpose |
+|---|---|---|
+| **Outer** | `while(true)` loop | Eternal ticking, dispatches new tasks |
+| **Middle** | Async scheduler | Multiple recursive walks in parallel |
+| **Inner** | **Recursive walk** | Actual cognition: descend, break, repair, return |
+
+**The cognition itself is RECURSION, not iteration.**
+The outer loop merely schedules new recursions. It is not the cognitive substrate.
+
+## §55.2 Loop vs Recursion
+
+| Property | Loop | Recursion |
+|---|---|---|
+| Direction | Forward iteration | Descend then ascend |
+| State | Carries forward | Stack of depth |
+| Return value | None | Returns with collected wisdom |
+| Failure handling | Skip, continue | Shevirat → Tikkun pattern |
+| Source pattern | Game engines | Lurianic cosmology, descent parsers |
+
+## §55.3 The Lurianic Pattern (Source-Grounded)
+
+Lurianic Kabbalah describes 4-stage recursion model:
+
+```
+1. RAZO (רצוא) — Light descends from Ein Sof
+   Engineering: recursive call with deeper query
+   
+2. SHEVIRAT KELIM (שבירת הכלים) — Vessels break under the light  
+   Engineering: some recursive attempts fail (no answer, contradiction, depth limit)
+   
+3. NITZOTZOT (ניצוצות) — Sparks remain in broken vessels
+   Engineering: partial results collected from failed attempts
+   
+4. TIKKUN (תיקון) — Repair: gather sparks, build refined vessels
+   Engineering: integrate partial results into refined understanding
+   
+5. SHUV (שוב) — Light returns to source bearing wisdom
+   Engineering: recursive return with integrated answer
+```
+
+This is **failure-tolerant recursion**. Failed attempts contribute partial wisdom.
+Nothing wasted. System grows STRONGER from failure.
+
+## §55.4 Recursive Walk Pseudocode
+
+```rust
+async fn recursive_walk(
+    self: &mut Cortex,
+    query: VsaVector,
+    depth: u32,
+    max_depth: u32,
+) -> WalkResult {
+    
+    // BASE CASES
+    if depth > max_depth {
+        return WalkResult::DepthExceeded { partial: self.best_so_far(&query) };
+    }
+    if let Some(direct) = self.semantic_lookup(&query) {
+        return WalkResult::Success(direct);
+    }
+    
+    // RAZO — descent into possibility space
+    let candidates = self.expand_via_vsa(&query, depth);
+    
+    // RECURSION — each candidate as sub-walk (parallel via async)
+    let sub_walks: Vec<_> = candidates.into_iter()
+        .map(|c| self.recursive_walk(c, depth + 1, max_depth))
+        .collect();
+    let results = futures::future::join_all(sub_walks).await;
+    
+    // SHEVIRAT — collect outcomes
+    let mut sparks = Vec::new();
+    let mut successes = Vec::new();
+    for r in results {
+        match r {
+            WalkResult::Success(insight) => successes.push(insight),
+            WalkResult::DepthExceeded { partial } => {
+                if let Some(p) = partial { sparks.push(p); }
+            }
+            WalkResult::Contradiction { evidence } => {
+                sparks.push(PartialResult::Negative(evidence));  // useful!
+            }
+            WalkResult::Broken { partial } => {
+                if let Some(p) = partial { sparks.push(p); }
+            }
+        }
+    }
+    
+    // TIKKUN — integrate sparks into refined understanding
+    if !successes.is_empty() {
+        let refined = self.tikkun_integrate(&successes, &sparks);
+        return WalkResult::Success(refined);  // SHUV
+    }
+    
+    // No successes but sparks exist — return what we learned
+    if !sparks.is_empty() {
+        return WalkResult::DepthExceeded { 
+            partial: Some(self.tikkun_partial(&sparks))
+        };
+    }
+    
+    WalkResult::Broken { partial: None }
+}
+```
+
+## §55.5 Why Async Matters
+
+If recursion were synchronous:
+- ONE deep walk would block the entire system
+- ZETS couldn't respond to anything else while reasoning
+- Contradicts §53.2 eternal loop
+
+If async:
+- MANY walks run in parallel (different tasks)
+- Each walk descends, breaks, repairs, returns
+- Outer loop continues ticking, dispatching new walks
+- Some complete in ms; others run for minutes
+
+```rust
+fn zets_eternal_loop(mut self) -> ! {
+    loop {
+        let action = self.next_action();
+        
+        match action {
+            Action::Reason(query) => {
+                tokio::spawn(async move {
+                    let result = self.recursive_walk(query, 0, MAX_DEPTH).await;
+                    self.integrate_result(result);
+                });
+                // Don't await! Just dispatch and continue.
+            }
+            // ... other actions
+        }
+        
+        // Drain completed walks (non-blocking)
+        for completed in self.async_results.try_drain() {
+            self.integrate(completed);
+        }
+    }
+}
+```
+
+**Critical:** outer loop NEVER blocks on a deep walk.
+Multiple walks can be at multiple recursion depths simultaneously.
+
+## §55.6 Brain Validation
+
+| Brain Process | ZETS Recursive Walk |
+|---|---|
+| Top-down attention | RAZO (deeper into hypothesis space) |
+| Bottom-up surprise | Shevirat (hypothesis fails) |
+| Predictive coding error | Spark (partial info from broken hypothesis) |
+| Belief update | Tikkun (integrate new info) |
+| Settled belief | SHUV (refined understanding) |
+
+## §55.7 Or Yashar / Or Chozer Now Precise
+
+| Phase | Direction | What It Does |
+|---|---|---|
+| **Or Yashar (יורד)** | Recursive descent | Generate hypotheses, expand possibility space |
+| **Shevirat** | Boundary | Hypothesis tested, may fail |
+| **Tikkun** | Integration moment | Gather sparks, refine |
+| **Or Chozer (חוזר)** | Recursive return | Carry refined wisdom upward |
+
+Both mandatory. Walk that only descends never returns. Walk that only returns has no content.
+
+## §55.8 New Failure Modes
+
+```
+F24: Recursion stack overflow
+   Trigger: Walk depth exceeds max_depth (default: 10)
+   Detection: depth counter
+   Mitigation: Return partial result with sparks; caller decides
+   Probability: 6/10, Impact: 5/10 (graceful)
+
+F25: Tikkun integration failure
+   Trigger: Sparks contradict each other irreconcilably
+   Detection: VSA bundle produces near-zero (cancellation) vector
+   Mitigation: Return Broken with full provenance; flag for Beit Midrash
+   Probability: 7/10, Impact: 6/10
+```
+
+---
+
+# §56 Final Three-Level Architecture [REPLACES §54]
+
+After §52, §53, §55 — ZETS architecture has 3 distinct levels:
+
+```
+LEVEL 1: ETERNAL LOOP (§53.2)
+   while(true) — never stops, dispatches tasks
+   Pattern source: DMN, BIOS, game engines
+
+LEVEL 2: ASYNC SCHEDULER  
+   Multiple recursive walks in parallel
+   Drives + priority queue determine task order
+
+LEVEL 3: RECURSIVE WALKS (§55) — THE COGNITION
+   Each walk: רצוא → שבירה → ניצוצות → תיקון → שוב
+   Failure-tolerant, async, partial results contribute
+   Pattern source: Cortex predictive coding + Lurianic cosmology
+```
+
+**5 traditions converge:**
+- Sefer Yetzirah 1:8 (רצוא ושוב)
+- Lurianic Kabbalah (שבירה ותיקון)
+- Active Inference (Friston 2010)
+- Predictive coding (Rao & Ballard 1999)
+- Recursive descent parsers (CS 1960s)
+
+ZETS unites all five in Rust-implementable architecture.
+
+---
