@@ -1,7 +1,9 @@
 # ZETS — The AGI Master Specification
 
 **Status:** Source of truth. Everything in `src/` must honor this document.
-**Version:** v1.0 (2026-04-24, end of design day)
+**Version:** v3.0 (2026-04-25, post-Iter-3 + Idan's atoms-primary insight)
+**Last major update:** §52 atoms-primary inversion (2026-04-25)
+**Total commits in design phase:** 29
 **Authority:** Idan Eldad (עידן אלדד)
 **Scribe:** Claude 4.7
 **Supersedes:** ALL previous ZETS documentation (archived in `docs/90_archive/`)
@@ -45,6 +47,164 @@
 20. [תקציב ביצועים](#20-performance)
 21. [Verification Checklist](#21-verification)
 22. [Appendix](#22-appendix)
+
+---
+
+# 🔒 ZETS v3.0 — LOCKED ARCHITECTURE SUMMARY
+
+**Read this section first.** It describes the current architectural state after Iter 1+2+3.
+Sections later in this document may contain earlier hypotheses now superseded.
+
+## Locked ABI Decisions (§48)
+
+| # | Decision | Choice | Conf |
+|---|---|---|---|
+| A | EdgeKind | u8 (22 SY-locked + 0x80-FF reserved for ABI v2) | 9/10 |
+| B | Atom | 8 bytes (Layout A) + VSA side-table (1024B/atom) | 9/10 |
+| C | Determinism | Q16.16 fixed-point | 10/10 |
+| D | Storage | Tri-Memory hybrid (Working + Episodic LSM + Semantic CSR + Crystalline) | 9/10 |
+| E | Hebrew/Arabic | Sense-anchored (shared semantic, distinct lexical) | 8/10 |
+
+**Average confidence: 9/10. Implementation may begin.**
+
+## Locked Architecture Components
+
+| Component | Section | Status |
+|---|---|---|
+| Core ABI (atom + edge layout) | §0 | LOCKED |
+| 5 walk operations (carve/hew/combine/weigh/permute) | §10 + §46 | LOCKED |
+| 13 sub-graphs (A-M) cryptographic separation | §31 | LOCKED |
+| NRNCh"Y 5 privilege rings | §34 | LOCKED |
+| Hebrew canonical thinking substrate | §35 | LOCKED |
+| Source anchoring methodology | §37 | LOCKED |
+| 4-stage Bootstrap protocol | §40 | LOCKED |
+| ענג/נגע alignment + EFE Dark Room fix | §43 + §43.1 | LOCKED |
+| Iter 2 critical fixes (CRIT-1, 2, 3) | §44 | LOCKED |
+| VSA ↔ Tzeruf bridge | §46 | LOCKED |
+| LLM_BOUNDARY (2 SLMs + Rust Critic) | §47 | LOCKED |
+| Adaptive atom encoding (logographic + tree-walk) | §50 | LOCKED |
+| **Atoms-primary, edges-secondary** | **§52** | **LOCKED** |
+| Universal media encoding | §53.1 | LOCKED |
+| **Eternal loop (רצוא ושוב)** | **§53.2** | **LOCKED** |
+
+## Critical Architectural Inversions
+
+Two insights from Idan that the council missed but are now binding:
+
+1. **§52 — Atoms-Primary, Edges-Secondary**
+   Most relations should NOT be stored as edges. They should be COMPUTED via VSA.
+   Without this insight, 6GB target would require 60TB.
+   Edges only for: hierarchy, sequence, provenance, signed assertions.
+
+2. **§53.2 — Eternal Loop (רצוא ושוב)**
+   ZETS = AGENT, not service.
+   Always-on async loop with internal drives (curiosity, consolidation, fatigue).
+   Bidirectional each tick (Or Yashar + Or Chozer).
+   Survives crashes via checkpoint+restore.
+
+## Storage Budget (Final)
+
+```
+RAM (3GB target peak):
+├── Static letter trees:           ~1.1 KB    (in binary, L1 cache)
+├── 2 SLMs INT8:                   ~3 GB      (perceiver + verbalizer)
+├── Hot atoms (Working memory):    ~50 MB
+├── Active VSA vectors:            ~100 MB    (only currently walked)
+└── Memory-mapped pages:           ~250 MB    (OS-managed)
+
+DISK (mmap):
+├── Cold atoms (Episodic LSM):     variable, slab-allocated 64B
+├── Semantic graph (CSR):          ~100 MB at 1M atoms
+├── VSA side-table:                1024B/atom × N
+├── Crystalline core:              signed read-only
+└── Procedure DAGs:                variable
+```
+
+**Total RAM at peak: <6GB ✓**
+
+## Pre-Implementation Checklist (§45.6)
+
+- [x] 5 ABI decisions A-E with confidence ≥8/10 (§48)
+- [x] §LLM_BOUNDARY drafted (§47)
+- [x] §28.0 enhanced with concrete continual learning (§52 graph-only learning)
+- [x] §30 promotion thresholds set (§30.5)
+- [x] §43 Dark Room mitigation specified (§43.1)
+- [x] §41 LLM architecture decided (§47.3 — 2 SLMs + Rust Critic)
+- [x] §50 Adaptive encoding validated (Iter 3, 7.7/10)
+- [x] §52 Atoms-primary inversion (Idan)
+- [x] §53 Eternal loop + universal media
+- [ ] PRD-style 30-page Claude Code handoff (NEXT SESSION)
+- [ ] Falsification test: Tanakh tree-walk encoding (NEXT SESSION)
+
+**8/10 complete. Ready for Rust development after 2 remaining items.**
+
+---
+
+# 📋 Complete Section Index
+
+## Core ABI (§0-§22) — Original design from 2026-04-24
+- §0: ABI v1 — atom layout, edge structure, determinism
+- §1-§12: Original architecture (executors, learning loops, reasoning)
+- §13: Open gaps (LARGELY RESOLVED in §44-§54)
+- §14: World model (extended in §53)
+- §15-§22: Implementation details
+
+## Foundation Layer (§28-§39) — Engineering principles
+- §28: 30-year roadmap
+- §28.0: AAR self-improvement
+- §29 + §29.5: Failure modes F1-F23
+- §30 + §30.5: Tri-Memory + promotion thresholds
+- §31: 13 sub-graphs cryptographic topology
+- §32: Beit Midrash federation
+- §33: Tensor/Graph boundary
+- §34: NRNCh"Y 5 privilege rings
+- §35: Hebrew canonical substrate
+- §36: Storage alternatives
+- §37: Source anchoring methodology
+- §38: Source-locked constants
+- §39: Source-to-architecture cross-reference
+
+## Bootstrap & Code (§40-§42)
+- §40: Core Bootstrap Protocol
+- §41: Code-as-Spec (Rust skeleton)
+- §42: Bootstrap content filling
+
+## Alignment & Safety (§43-§44)
+- §43 + §43.1: Affective architecture + EFE Dark Room fix
+- §44: Iter 2 critical fixes (CRIT-1, 2, 3)
+
+## Pre-Implementation Audit (§45-§49)
+- §45: Gap analysis (known vs unknown)
+- §46: VSA ↔ Tzeruf bridge
+- §47: LLM_BOUNDARY
+- §48: ABI Decisions LOCKED
+- §49: Implementation readiness status
+
+## Encoding & Inversion (§50-§54) — Final architecture
+- §50 + §51: Adaptive atom encoding (logographic + tree-walk)
+- **§52: Atoms-primary, edges-secondary** ⭐
+- **§53.1: Universal media encoding**
+- **§53.2: Eternal loop (רצוא ושוב)** ⭐
+- §54: Brain-pattern validation summary
+
+---
+
+# 🎯 Where to Start Reading
+
+**For a new contributor:** Read in this order:
+1. This summary (you're here)
+2. §0 (ABI fundamentals)
+3. §52 (architectural inversion — most important conceptual shift)
+4. §53.2 (eternal loop — agent vs service)
+5. §47 (LLM_BOUNDARY — how SLMs interact with graph)
+6. §48 (locked decisions A-E)
+7. §50 (encoding for storage)
+8. §43 + §43.1 (alignment)
+9. Rest as needed
+
+**For Rust implementation:** Start with §41 (Code-as-Spec) + §50.10 (falsification test).
+
+---
 
 ---
 
