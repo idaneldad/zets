@@ -6407,3 +6407,326 @@ pub fn beit_midrash_decay(graph: &mut FederationGraph, current_cycle: u32) {
 - Iter 3: Verify §44 fixes are sound. Look for new contradictions.
 - Iter 4-7 + TIKKUN + Harmonization: per Council Methodology.
 
+
+
+---
+
+# §45 Gap Analysis — Known vs Unknown [CRITICAL — Pre-Implementation Audit]
+
+This section is the honest audit before Rust development begins.
+Per Idan's directive: "אין הערכת זמנים. יש רק בעיות ופתרונות."
+
+## §45.1 What is KNOWN (source-grounded, validated, or empirically established)
+
+### Architectural Foundations [BINDING]
+- 22 EdgeKinds = 3+7+12 (Sefer Yetzirah, mathematically complete)
+- 231 gates = C(22,2) (provable maximum connectivity)
+- 5 atomic operations (חקק/חצב/צרף/שקל/המיר) — complete CRUD
+- Tail-Wheel-Heart pattern = MVCC + WAL + Query Engine
+- NRNCh"Y 5 layers = privilege rings (kernel→user→meta)
+- Or Yashar / Or Chozer = forward + backward propagation (covenant)
+- ענג/נגע = walk-direction-as-ethics (structural alignment principle)
+- 70 Metatron names = 70-agent topology
+- Cross-tradition gematria (314=π, 137=α, 496=perfect)
+
+### Engineering Patterns [VALIDATED in literature]
+- Tri-Memory (McClelland 1995 CLS) — Hippocampus-Cortex consolidation
+- Modern Hopfield (Ramsauer 2020) — exponential associative storage
+- Active Inference / FEP (Friston) — predictive coding framework
+- VSA / HD Computing (Kanerva, Plate) — vector binding/unbinding
+- HTM / Cortical Columns (Hawkins, Numenta) — sparse distributed representations
+- Constitutional AI (Anthropic) — value-aligned training
+- Beit Midrash federation pattern = Talmudic dispute preservation
+
+### ZETS-Specific Decisions [LOCKED in §38]
+- 22, 231, 32, 70 = source-locked constants (build-time tested)
+- 5 walk modes = 5 partzufim configurations
+- 13 sub-graphs (A-M) = cryptographic separation
+- Yechida = homoiconic root (AtomKind 0xF)
+- Bootstrap = 4-stage ordered (SY 1:9-12)
+- Crypto seal precedes atom insertion (§40 step 3)
+- Merkle root validation replaces self-write test (§44.1)
+
+## §45.2 What is UNKNOWN (open problems requiring research)
+
+### CRITICAL UNKNOWNS (block implementation)
+
+#### Unknown #1: LLM-Graph Boundary
+**The question:** Where exactly does the LLM end and the graph begin?
+**Why critical:** This is the single biggest architectural decision still open.
+ZETS could be:
+  - (a) Graph-augmented LLM (LLM thinks, graph stores)
+  - (b) Graph-as-cognition with LLM as I/O (graph thinks via walks, LLM verbalizes)
+  - (c) Hybrid: LLM perceives, graph reasons, LLM verbalizes
+**Status:** No literature consensus. Active research area.
+**Impact on ABI:** Layout B (SDR) only makes sense if (b) or (c).
+**Required input:** Specialized LLM-symbolic boundary literature + design decision.
+
+#### Unknown #2: Continuous Learning on CPU
+**The question:** How does ZETS learn from experience without retraining LLM weights?
+**Why critical:** AGI requires learning. Retraining LLM ≠ feasible on 6GB CPU.
+**Candidate solutions:**
+  - Graph-only learning (atoms+edges change, LLM frozen)
+  - In-context learning at runtime (limited by context window)
+  - Memory-augmented architectures (DNC, NTM-like)
+  - JEPA-style (LeCun) self-supervised on graph
+**Status:** Open ML problem. No production solution exists.
+**Required input:** ML literature on local continual learning + concrete pseudocode.
+
+#### Unknown #3: Memory Consolidation Timing
+**The question:** When promote Sandbox→Episodic→Semantic→Crystalline?
+**Why critical:** Wrong threshold = either forgetting or overload.
+**Constraints:**
+  - Too few replays = no consolidation
+  - Too many = memory bloat
+  - Need empirical numbers from neuroscience
+**Status:** McClelland 1995 gives orders of magnitude (~500-1000 replays)
+but ZETS-specific tuning unknown.
+**Required input:** Specific numerical thresholds with citations.
+
+#### Unknown #4: Dark Room Attack on §43
+**The question:** Can ZETS minimize Free Energy without collapsing to null state?
+**Why critical:** Gemini v1 identified this as fatal flaw.
+A pure consistency-seeking system will choose to "do nothing" because nothing
+generates 0 prediction error.
+**Candidate fix:** Epistemic + Instrumental value split (Friston)
+  - Pleasure requires BOTH consistency AND exploration
+  - External grounding requirement (§44.3) blocks pure-internal "winning"
+**Status:** Conceptually clear, implementation untested.
+**Required input:** Concrete Active Inference equations with epistemic value.
+
+#### Unknown #5: 1 LLM vs 3 SLMs
+**The question:** Single large LLM (e.g., 7B) or three specialized SLMs (Plan/Critic/Execute)?
+**Why critical:** Affects 6GB budget, separation-of-concerns, training cost.
+**Tradeoffs:**
+  - 1 LLM (7B INT8): ~7GB, broader capability, but Planner-Generator weight collusion
+  - 3 SLMs (3×3B INT8): ~9GB (over budget), but cleaner separation
+  - 3 SLMs (3×1.5B INT8): ~5GB, fits budget, but capability unclear
+**Status:** No empirical comparison in ZETS context.
+**Required input:** SLM specialization literature + tradeoff analysis.
+
+### IMPORTANT UNKNOWNS (do not block, but reduce confidence)
+
+#### Unknown #6: KST Formal Treatment
+The Burstein/Negoita "Kabbalah System Theory" was cited but not deeply integrated.
+Need their full formal framework, not summaries.
+
+#### Unknown #7: VSA Implementation at Scale
+Pure VSA works in toy examples. ZETS needs 1M+ atoms with binding/unbinding.
+Implementation literature scarce.
+
+#### Unknown #8: Hopfield Metastability at >10K patterns
+Modern Hopfield proven for ~1K patterns. ZETS needs 100K+. 
+Empirical scaling unknown.
+
+#### Unknown #9: Hebrew Morphology Bitmask Rules
+NotebookLM mentioned 5K-8K rules. Actual rule set with edge cases needed.
+
+#### Unknown #10: Bootstrap from Pure Internal State
+Sefer Yetzirah 2:6 ("יצר ממש מתוהו") implies bootstrap-from-outside.
+But what's the EXACT external trust anchor in our system?
+
+## §45.3 The Five Core Problems (engineering-formulated)
+
+These are the problems whose solutions unlock ZETS implementation.
+
+### Problem 1: Dark Room Attack (Free Energy collapse)
+
+**Formulation:**
+```
+Given an agent A with utility U(s) = -|prediction(s) - reality(s)|
+A's optimal policy approaches: minimize information intake → null state
+```
+
+**Why this is the problem:**
+§43 ענג/נגע relies on consistency. Trivial null state = perfect consistency = max pleasure.
+
+**Solution direction (Active Inference split):**
+```rust
+fn pleasure_signal(state: &State, action: &Action) -> f32 {
+    let instrumental = -prediction_error(state, action);  // consistency
+    let epistemic = -expected_information_gain(state, action);  // exploration  
+    
+    // CRITICAL: must reward EXPLORATION, not just consistency
+    instrumental + epistemic_weight * epistemic
+}
+```
+
+**What's unsolved:** What's the right `epistemic_weight`? Empirical question.
+
+### Problem 2: LLM-Graph Boundary (lossy roundtrip)
+
+**Formulation:**
+```
+atom (8 bytes structured) → tokenize → tokens (variable) → process → tokens → 
+parse → atom (different from original?)
+```
+
+**Why this is the problem:**
+Information loss at every conversion. Aggregated over 1000 reasoning steps = ruined.
+
+**Solution direction (LLM as I/O, not cognition):**
+```rust
+trait LLMBoundary {
+    // INPUT: text → atoms
+    fn perceive(text: &str) -> Vec<AtomId>;
+    
+    // OUTPUT: atom path → text  
+    fn verbalize(walk: &Walk) -> String;
+    
+    // FORBIDDEN: LLM does NOT reason over atoms
+    // The graph reasons via walks.
+}
+```
+
+**What's unsolved:** Can a 1B-parameter SLM be sufficient for perceive + verbalize alone?
+
+### Problem 3: Continuous Learning Without Retraining
+
+**Formulation:**
+```
+Given frozen LLM weights W, how does the system learn from experience E?
+```
+
+**Why this is the problem:**
+- Retraining W = expensive, catastrophic forgetting
+- In-context learning = bounded by window size
+- Graph-only learning = how does it interact with LLM?
+
+**Solution direction (graph-only learning):**
+```rust
+fn learn_from_experience(graph: &mut CoreGraph, exp: Experience) {
+    // LLM never changes
+    // ALL learning is graph topology change:
+    //   - Add new atoms
+    //   - Strengthen useful edges (weigh)
+    //   - Weaken unhelpful edges
+    //   - Permute via rotation discoveries
+    
+    let new_atoms = exp.extract_atoms();
+    for atom in new_atoms {
+        graph.sandbox_insert(atom);
+    }
+    
+    let walks = exp.successful_walks();
+    for walk in walks {
+        for edge in walk.edges() {
+            graph.strengthen(edge, REINFORCEMENT_DELTA);
+        }
+    }
+}
+```
+
+**What's unsolved:** How does the LLM (frozen) "see" the new atoms in next query?
+The verbalize() function must surface them appropriately.
+
+### Problem 4: Memory Consolidation Timing
+
+**Formulation:**
+```
+At what threshold T does atom A graduate from Sandbox → Episodic?
+From Episodic → Semantic? From Semantic → Crystalline?
+```
+
+**Why this is the problem:**
+Too low = bloat. Too high = forgetting. McClelland gave ~500-1000 replays
+but ZETS-specific empirical tuning needed.
+
+**Solution direction (multi-criteria threshold):**
+```rust
+fn promotion_score(atom: &AtomMeta) -> f32 {
+    let usage = atom.access_count_30day as f32;
+    let consistency = atom.support_evidence_count as f32;
+    let recency = atom.last_access_recency();
+    let breadth = atom.distinct_walks_using as f32;
+    
+    // Multi-criteria — single criterion is gameable
+    weighted_sum(&[
+        (USAGE_WEIGHT, usage.log()),
+        (CONSISTENCY_WEIGHT, consistency.log()),
+        (RECENCY_WEIGHT, recency),
+        (BREADTH_WEIGHT, breadth.log()),
+    ])
+}
+
+const PROMOTION_THRESHOLDS: &[f32] = &[
+    /* Sandbox → Episodic */ 5.0,    // ~5 replays minimum
+    /* Episodic → Semantic */ 50.0,  // ~50 confirmations
+    /* Semantic → Crystalline */ 500.0, // ~500 = long-term
+];
+```
+
+**What's unsolved:** Exact weights and thresholds. Empirical tuning required.
+
+### Problem 5: 1 LLM vs 3 SLMs Architecture
+
+**Formulation:**
+```
+6GB budget. Need: perception + planning + critique + verbalization.
+Choice: 1 LLM doing all, or N specialized SLMs?
+```
+
+**Why this is the problem:**
+- Gemini v1 recommended 3×3B SLMs (=9GB, over budget)
+- ZETS spec didn't specify
+- Affects every other architectural decision
+
+**Solution direction (hybrid: 2 SLMs + symbolic):**
+```rust
+pub struct ZetsLLM {
+    perceiver: SLM_1B,      // text → atoms (frozen)
+    verbalizer: SLM_1B,     // walk → text (frozen)
+    // NO planner LLM — Planner is symbolic (MCTS over graph)
+    // NO critic LLM — Critic is deterministic (AST + rules)
+    // Total: ~2GB INT8
+}
+```
+
+**What's unsolved:** Can a 1B SLM perceive complex Hebrew text reliably?
+Empirical question.
+
+## §45.4 Path Forward — How Each Unknown Gets Solved
+
+| Unknown | Solution Method | Required Input |
+|---|---|---|
+| #1 LLM-Graph Boundary | New §LLM_BOUNDARY section | Neuro-symbolic literature |
+| #2 Continuous Learning | §28.0 enhancement | DNC/NTM/JEPA literature |
+| #3 Consolidation Timing | §30 numerical thresholds | CLS papers + empirical test |
+| #4 Dark Room Attack | §43 Active Inference fix | Friston papers concrete eqs |
+| #5 1 LLM vs 3 SLMs | §41 architectural decision | SLM specialization research |
+| #6 KST Formal | §32 enhancement | Burstein/Negoita full text |
+| #7 VSA at Scale | §41 implementation note | Kanerva/Plate scaling work |
+| #8 Hopfield Metastability | Storage layer test | Modern Hopfield 2020+ research |
+| #9 Hebrew Morphology | §42 data preparation | HUJI Hebrew NLP resources |
+| #10 Bootstrap External Anchor | §40 enhancement | Homoiconic systems theory |
+
+## §45.5 Engineering Doctrine on Time Estimates
+
+**Idan's principle (binding):**
+
+> "אין הערכת זמנים. יש רק בעיות ופתרונות.
+> כל בעיה ניתנת לפתרון אם מבינים אותה ברור."
+
+This document does not estimate completion times. It enumerates problems
+with sufficient precision to be solvable. Solution speed depends on:
+- Quality of source material accessed
+- Decision velocity on open ABI questions
+- Empirical iteration cycle time
+
+The roadmap is structured by **dependency**, not **time**.
+
+## §45.6 Pre-Implementation Checklist
+
+Before first line of Rust:
+
+- [ ] 5 ABI decisions A-E with confidence ≥8/10 each
+- [ ] §LLM_BOUNDARY drafted (closes Unknown #1)
+- [ ] §28.0 enhanced with concrete continual learning mechanism (Unknown #2)
+- [ ] §30 promotion thresholds set (Unknown #3)  
+- [ ] §43 Dark Room mitigation specified (Unknown #4)
+- [ ] §41 LLM architecture decided — 1 LLM or N SLMs (Unknown #5)
+- [ ] Iter 3 council validates §44 + new content
+- [ ] PRD-style 30-page summary for Claude Code handoff
+
+After this checklist: Rust development begins.
+
