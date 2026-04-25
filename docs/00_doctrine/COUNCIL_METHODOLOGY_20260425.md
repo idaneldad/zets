@@ -177,14 +177,60 @@ docs/40_ai_consultations/master_council/iter_N/
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
-│ Iter 8: GENIUS SYNTHESIS (Claude using ALL context)     │
-│   - Read all 7 iterations + all raw responses            │
-│   - Apply Mutation Protocol patches that survived 7      │
-│   - Resolve remaining disputes by best-evidence rule     │
-│   - Final AGI.md v2.0                                    │
-│   - GPT-5.5 audit pass before publication                │
+│ Iter 8: TIKKUN ROUND (תיקון — Idan's contribution!)      │
+│   Models: ALL 14 — final correction opportunity          │
+│   Input: AGI.md draft v2.0 (with all iter 1-7 patches)   │
+│         + Issue Ledger summary                           │
+│         + outstanding disagreements                      │
+│   Angle: "This is the final draft. As ZETS's parent,    │
+│         what corrections must be made before this        │
+│         ships? What did Claude get wrong in synthesis?   │
+│         What got smoothed over? Be specific. Output     │
+│         diffs, not opinions."                            │
+│   Output: 14 sets of TIKKUN corrections                  │
+│   Why this matters: bypasses synthesizer bias one more   │
+│         time — models correct Claude's interpretation,   │
+│         not just the document                            │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│ Iter 9 (FINAL): HARMONIZATION                            │
+│   Synthesizer: Claude (using ALL accumulated context)    │
+│   Task: harmonize 14 sets of TIKKUN corrections          │
+│         - Apply corrections that 9+/14 models agreed on  │
+│         - For 5-8/14 corrections: pick best-evidence    │
+│         - For <5/14 corrections: minority report          │
+│         - For Claude-disputed corrections: explicit flag │
+│   Audit: GPT-5.5 reviews final synthesis before commit   │
+│   Output: AGI.md v2.0 — the work of art                 │
+│   Sign-off: Idan reviews + approves final                │
 └─────────────────────────────────────────────────────────┘
 ```
+
+## למה Iter 8 (TIKKUN) חיוני
+
+**הבעיה שעלתה ב-shvirat kelim של 5 הארכיטקטים:**
+- "Synthesizer bias אמיתי, אסור ש-Claude יסנתז לבד"
+- "אחרי 7 איטרציות, ה-bias של Claude הצטבר"
+
+**הפתרון של עידן (TIKKUN):**
+איטרציה 8 היא הזדמנות *אחרונה לכל המודלים לתקן את התיקון של Claude.*
+
+זה לא רק עוד סבב על המסמך. זה סבב על **כל מה ש-Claude עשה**:
+- "האם ה-synthesis של iter 5 איבד nuance?"
+- "האם Claude התעלם ממיעוט שהיה צודק?"
+- "האם יש correction שה-7 איטרציות פספסו?"
+
+**Iter 9 (Harmonization)** הוא לא יצירה מחדש — הוא **שופט בית הדין** של 14 התיקונים.
+Claude לא ממציא, רק מארגן את ה-tikkun בצורה קוהרנטית.
+
+## הציון של Iter 8 לBias Mitigation
+
+זה הופך את ה-bias mitigation מ-3 שכבות ל-4:
+1. ✅ Iter 4 synthesizer = GPT-5.5 (לא Claude)
+2. ✅ Final audit by GPT-5.5
+3. ✅ Attribution preserved
+4. ⭐ **Iter 8 TIKKUN = models correct Claude's synthesis** (חדש)
 
 ## שלב 4 — Bias Mitigation (קריטי)
 
@@ -203,9 +249,9 @@ docs/40_ai_consultations/master_council/iter_N/
 - Time parallel: 3-5 דקות per iteration
 
 ## Total
-- 7 איטרציות + Red Team + Final
-- **עלות: $15-25**
-- **זמן: 30-50 דקות compute time**
+- 7 איטרציות + Red Team + TIKKUN + Final harmonization
+- **עלות: $20-30** (Iter 8 = 14 models adds ~$3-5)
+- **זמן: 45-65 דקות compute time**
 - **גודל data: ~5MB raw responses + 50KB synthesis**
 
 ---
@@ -246,7 +292,8 @@ scripts/
 1. **NOW (סוף הsession):** השיטה ב-git ✅
 2. **Session 2:** כתיבת 4 הscripts + Iter 1 demo run
 3. **Claude Code ברקע (אם תרצה):** הרצת Iter 1-7 לפי השיטה
-4. **Session 3:** הסינתזה הגאונית הסופית (Iter 8) ע"י Claude
+4. **Session 3:** Iter 8 TIKKUN — כל 14 המודלים מתקנים
+5. **Session 4:** Iter 9 Harmonization (Claude) + GPT-5.5 audit + עידן approve
 
 עלות סופית מוערכת: **$20-30**.
 זמן compute: **45-60 דקות**.
