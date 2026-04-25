@@ -1,0 +1,25 @@
+{
+  "iter": 3,
+  "date": "2026-04-25",
+  "focus": "Tree-walk encoding for alphabetic languages",
+  "ok": 3,
+  "total_chars": 13009,
+  "results": {
+    "qwen_25": {
+      "ok": false,
+      "time": 2.048448085784912
+    },
+    "llama33": {
+      "ok": true,
+      "time": 7.152557373046875e-07
+    },
+    "deepseek_r1": {
+      "ok": true,
+      "time": 7.152557373046875e-07
+    },
+    "claude_opus47": {
+      "ok": true,
+      "time": 2.384185791015625e-07
+    }
+  }
+}

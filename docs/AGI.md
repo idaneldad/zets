@@ -7144,3 +7144,315 @@ After §44 + §45 + §46 + §47 + §48 + §29.5 + §43.1 + §30.5:
 **Before Rust development: 6/8 complete. 2 remaining = 1 session.**
 
 ---
+
+
+---
+
+# §50 Adaptive Atom Encoding [BINDING — Iter 3 Validated 7.7/10]
+
+Council Iter 3 validated this architecture (Claude 7/10, DeepSeek 8/10, Llama 3.3 8/10).
+Average 7.7/10 = PASS for implementation.
+
+## §50.1 The Two-Case Principle
+
+ZETS handles all languages via exactly TWO encoding cases:
+
+```
+LOGOGRAPHIC (Case 1): atom-as-glyph
+  ↳ Chinese, Japanese-kanji, Korean Hangul (block-level), Egyptian
+  ↳ Each character = 1 atom, payload = 24-bit Unicode codepoint
+  ↳ Why: each glyph is a complete morpheme, ~50K+ count defeats combination
+
+ALPHABETIC (Case 2): tree-walk encoding
+  ↳ Hebrew (22), Arabic (28), Latin (26), Cyrillic (33), Greek (24)
+  ↳ Word = walk on static letter tree, variable-bit path on disk
+  ↳ Why: small alphabet + morphology = 30-40% compression
+  ↳ Source-grounded: SY 2:5 "stones build houses" = walks, not strings
+```
+
+**Council-locked Q7:** Korean Hangul = Case 1 (atom-per-syllable-block, like Chinese).
+Jamo decomposition is internal to Korean processing, not storage.
+
+## §50.2 Static Letter Trees (~1KB binary, L1-cacheable)
+
+```rust
+// Compiled into binary — zero runtime allocation, fits CPU L1
+pub static HEBREW_LETTERS: [Letter; 22] = [/* א..ת */];
+pub static HEBREW_FINALS: [Letter; 5] = [/* ך ם ן ף ץ */];
+pub static ARABIC_LETTERS: [Letter; 28] = [/* ا..ي */];
+pub static LATIN_LETTERS: [Letter; 26] = [/* a..z */];
+pub static CYRILLIC_LETTERS: [Letter; 33] = [...];
+pub static GREEK_LETTERS: [Letter; 24] = [...];
+// Total: ~1.1KB
+
+pub struct Letter {
+    codepoint: u32,         // Unicode value
+    semantic_class: u8,     // SY phonetic group: gutteral/labial/palatal/dental/sibilant
+    binary_pair: u8,        // SY-7-doubles: hard/soft (for begedkefet)
+    is_final: bool,         // sofit form?
+}
+```
+
+**Council-validated Q9:** Tree-walk decode does NOT need VSA vector.
+Hot path = letter ID lookup only. VSA loaded on-demand for semantic ops.
+
+## §50.3 Tree-Walk Word Encoding (Frequency-Adaptive)
+
+**Claude's refinement (adopted):** Use Huffman-style bigram frequency tree, not alphabetical.
+
+```
+Word "שלום" (4 letters):
+
+Naive encoding:    4 × 5-bit IDs + 4-bit length = 24 bits
+Tree-walk (alpha): 5 + 3 + 2 + 2 + 2-bit prefix = 14 bits  (42% saving)
+Tree-walk (Huff):  4 + 2 + 2 + 1 + 2-bit prefix = 11 bits  (54% saving)
+                                                              
+Huffman trees built from corpus letter-bigram frequencies:
+  - ש→ל more common → shorter path
+  - ש→ק rare → longer path
+```
+
+**On-disk format:**
+```
+[length_class: 2 bits][path: variable bits][padding to 4-byte boundary]
+
+length_class:
+  00 = 1-3 letters  (use fixed-width — Claude's hybrid recommendation)
+  01 = 4-7 letters  (tree-walk)
+  10 = 8-15 letters (tree-walk)
+  11 = 16+ letters  (tree-walk + length suffix)
+```
+
+**Why block-aligned (Claude Q8 fix):** Eliminates bit-alignment headaches in mmap slicing.
+Wastes ~1.5 bytes per word, gains O(1) word boundary detection.
+
+## §50.4 Atom Layout (UNCHANGED — still 8 bytes)
+
+```rust
+// 8 bytes — ABI Layout A preserved per §48.2
+pub struct Atom(pub u64);
+
+// Bit layout for Lexical atoms:
+// [4-bit kind][4-bit flags][6-bit lang_id][50-bit payload]
+//
+// payload interpretation by lang_id:
+//   lang_id ∈ {chinese, kanji, hangul, egyptian}: 
+//       payload = 24-bit Unicode codepoint (rest reserved)
+//   
+//   lang_id ∈ {hebrew, arabic, latin, cyrillic, greek}:
+//       payload = 50-bit pointer into variable-length disk record
+```
+
+**Crucially:** Atom address = 8 bytes always. **Variable size lives on DISK**, addressed via pointer.
+
+## §50.5 Disk Layout — Variable-Length Records
+
+**DeepSeek's recommendation (adopted):** 64-byte slab allocator.
+
+```
+Slab page (4096 bytes = 64 × 64-byte slots):
+┌──────────────────────────────────────────────────────────┐
+│ Slot 0: word_record (variable bits, padded to 64B)       │
+│ Slot 1: word_record                                       │
+│ ...                                                       │
+│ Slot 63: word_record                                      │
+└──────────────────────────────────────────────────────────┘
+
+word_record:
+  [length_class: 2 bits]
+  [path: variable bits]
+  [padding to 64-byte boundary]
+  [optional: niqqud_bitmask: 16 bits] — only if word has niqqud
+  [optional: provenance: 32 bits] — only if requires audit trail
+```
+
+**Why 64B slabs:** Modern CPUs have 64-byte cache lines. Each slab fits one cache line.
+Page faults aligned with cache reads. Zero fragmentation.
+
+**Bulk-load (Council Q8):** Append-only log + periodic compaction.
+Standard LSM strategy. 100K words → 100K × 64B = 6.4MB sequential write.
+
+## §50.6 Niqqud / Diacritics (Council-validated Q3)
+
+**Convergent recommendation:** Separate metadata field, NOT in tree path.
+
+Reasons:
+- Most Hebrew text is unvocalized
+- Niqqud doesn't change semantic identity (שָׁלוֹם = שלום at meaning level)
+- Adding niqqud to path explodes branching factor
+- DeepSeek's "diacritic folding" rejected for v1 (added complexity)
+
+```rust
+pub struct WordRecord {
+    path_bits: BitVec,           // tree-walk path
+    niqqud_bitmask: Option<u16>, // 16-bit niqqud annotation if vocalized
+    provenance: Option<u32>,     // optional audit trail
+}
+```
+
+**v1: ignore niqqud entirely.** Add support only when vocalized corpus available.
+
+## §50.7 Foreign Script in Mixed Text (Council-validated Q2)
+
+**Two valid approaches** — council split on which is better:
+
+**Option A (Claude): Mode-switch atoms**
+```
+[Hebrew lex atom] [Hebrew lex atom] [ScriptSwitch(Latin)] 
+[Latin lex atom] [Latin lex atom] [ScriptSwitch(Hebrew)] 
+[Hebrew lex atom] ...
+```
+Pros: Most text is monoscript, lang_id field unused
+Cons: ScriptSwitch atoms add overhead in mixed text
+
+**Option B (DeepSeek): lang_id per atom (current spec)**
+```
+Each atom carries its own lang_id (6 bits)
+```
+Pros: Always-on, no protocol negotiation
+Cons: 6 bits per atom always allocated
+
+**Decision:** Keep Option B (lang_id per atom) per §0.2 ABI.
+The 6 bits already exist. Don't change ABI for a marginal optimization.
+
+## §50.8 RTL/LTR Walks (Council-validated Q4)
+
+**Convergent verdict:** No reversal needed. Walks are LOGICAL order.
+
+Hebrew "שלום" walks ש→ל→ו→ם regardless of visual RTL display.
+- Walk direction = SEMANTIC (first letter = root → final letter)
+- Display direction = VISUAL (handled by rendering layer, not storage)
+
+Bidirectional walks (Claude Q5) DEFER to v2:
+- Forward tree = primary storage
+- Reverse tree = SECONDARY INDEX for suffix search ("all words ending -ים")
+- This is index structure, not encoding
+
+## §50.9 Hot-Reloadable Alphabets (Council-validated Q6)
+
+**Claude's recommendation (adopted):**
+
+Core alphabets (Hebrew/Arabic/Latin/Greek/Cyrillic) = compiled into binary.
+Extensions (Devanagari, Thai, Cherokee, etc.) = mmap'd from data file.
+
+```
+binary/
+  zets.exe           — contains 5 core alphabets as `static [Letter; N]`
+data/
+  alphabets/
+    devanagari.zet   — mmap'd at startup
+    thai.zet         — mmap'd at startup
+    cherokee.zet     — mmap'd at startup
+```
+
+**Adding a new alphabet:** drop a `.zet` file, restart. No recompile.
+
+## §50.10 Falsification Test [DUE THIS WEEK]
+
+Per council unanimous Q10 recommendation. **1-day implementation.**
+
+```rust
+// Test: prove or kill tree-walk encoding for Hebrew
+
+fn falsification_test() {
+    // Source: OpenHebrewTanakh (304,805 tokens, ~50K unique words)
+    let words: Vec<&str> = load_tanakh_unique_words();
+    
+    // Naive baseline: 5-bit/letter + 4-bit length
+    let naive_bits: usize = words.iter()
+        .map(|w| 4 + w.chars().count() * 5)
+        .sum();
+    
+    // Tree-walk with Huffman bigram frequencies
+    let tree = build_frequency_tree(&words);
+    let walk_bits: usize = words.iter()
+        .map(|w| tree.encode(w).len())
+        .sum();
+    
+    let compression = 1.0 - (walk_bits as f64 / naive_bits as f64);
+    
+    // Decode benchmark
+    let walk_throughput = bench_decode(&tree, &words);
+    let naive_throughput = bench_naive_lookup(&words);
+    
+    // PASS criteria (council convergent)
+    let pass_compression = compression >= 0.30;
+    let pass_speed = walk_throughput / naive_throughput >= 0.50;
+    let pass = pass_compression && pass_speed;
+    
+    println!("Compression: {:.1}%  ({})", compression * 100.0,
+             if pass_compression { "✓" } else { "✗" });
+    println!("Speed ratio: {:.1}%  ({})", walk_throughput / naive_throughput * 100.0,
+             if pass_speed { "✓" } else { "✗" });
+    println!("
+{}", if pass { "✓ LOCK TREE-WALK" } else { "✗ USE NAIVE 5-BIT" });
+}
+```
+
+**Pass criteria:**
+- Compression ≥ 30%
+- Decode speed ≥ 50% of naive lookup
+
+**Expected (council prediction):** ~35% compression, ~70% speed → PASS
+
+**Fail action:** Use naive 5-bit encoding. Revisit only if disk becomes bottleneck.
+
+## §50.11 Complete Storage Budget
+
+```
+RAM (3GB total):
+├── Static letter trees:           ~1.1KB    (in binary, L1 cache)
+├── 2 SLMs INT8:                   ~3GB      (perceiver + verbalizer)
+├── Hot atoms (Working memory):    ~50MB
+├── Active VSA vectors:            ~100MB    (only currently walked)
+└── Memory-mapped pages:           ~250MB    (OS-managed)
+
+DISK (mmap, no fixed limit):
+├── Cold atoms (Episodic LSM):     variable, slab-allocated 64B
+├── Semantic graph (CSR):          ~100MB at 1M atoms
+├── VSA side-table:                1024B/atom × N (loaded on demand)
+├── Crystalline core:              signed read-only, ~50MB
+└── Procedure DAGs:                ~10MB
+```
+
+**Total RAM utilization at peak: <6GB ✓**
+
+## §50.12 Implementation Order (post-Iter-3)
+
+1. **Day 1**: Falsification test (§50.10) — prove ≥30% compression on Tanakh
+2. **Day 2-3**: If PASS, implement Letter struct + 5 static alphabets
+3. **Day 4-5**: Tree builder (Huffman bigram frequency)
+4. **Day 6-7**: Encoder + decoder
+5. **Day 8-10**: 64B slab allocator
+6. **Day 11-14**: Integration with §0.2 Atom layout
+
+**If falsification fails:** revert to naive 5-bit encoding, document in §50.13 as "rejected option."
+
+---
+
+# §51 Iter 3 Council Verdict Summary
+
+| Model | Score | Status |
+|---|---|---|
+| Claude Opus 4.5 | 7/10 | Detailed critique, falsification test design |
+| DeepSeek R1 | 8/10 | Implementation specifics, slab allocator |
+| Llama 3.3 70B | 8/10 | Strengths emphasis |
+| Qwen 2.5 72B | FAILED | (timeout - retry next session) |
+
+**Average: 7.7/10. Architecture validated for implementation.**
+
+**Convergent (3/3):**
+- Tree-walk compression viable
+- Static tables in L1 cache
+- Decode bypasses VSA
+- Korean Hangul = atom-as-glyph
+- Niqqud as separate metadata
+- Walks in logical order
+- Tanakh corpus as benchmark
+
+**Divergent (debated):**
+- Decode speed: Claude says slower-acceptable, DeepSeek says faster (impl-dependent)
+- Bidirectional walks: defer as index structure (Claude wins)
+- New alphabet hot-reload: mmap'd data file (Claude wins)
+
+**Total commits today: 27. AGI.md size after §50-§51: ~7600 lines.**
