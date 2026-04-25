@@ -4960,6 +4960,37 @@ The acquired intellect (השכל הנקנה) IS what survives "death" — analog
 
 ---
 
+## §34.4 Source Validation — The Akedah Constraint
+
+The mapping of NRNCh"Y layers to architectural roles is validated by the 
+ages-at-Akedah tradition (Seder Olam Rabbah, Pirkei DeRabbi Eliezer 31):
+
+- **Abraham at Akedah: 137** = יופיאל = קבלה = 1/α (fine structure constant)
+- **Isaac at Akedah: 37** = **יחידה** ← ⭐ exact gematria match
+- **Sarah at Akedah: 127** = 2^7-1 Mersenne prime = Esther's provinces (B.R. 58:3)
+- **Sum: 137 + 37 + 127 = 301 = אש** (sacrificial fire) — EXACT gematria
+
+The Isaac=37=Yechida correspondence is the architectural validation:
+the supreme test of faith (Akedah) is positioned at the topmost soul layer 
+(Yechida = homoiconic root). This is not post-hoc — Pirkei DeRabbi Eliezer 
+(c. 8th century CE) predates this analysis by 1300+ years.
+
+**Engineering implication:** The Yechida atom kind (when implemented) should 
+reserve semantics for "ultimate test" / "supreme assertion" / "homoiconic 
+root reference" — not for arbitrary high-level concepts.
+
+This is a **semantic constraint**, not a bit-layout decision. It does not 
+unlock the 5 ABI decisions (A-E from Iter 1).
+
+Note: Idan's recall of "Abraham 99" corresponds to Brit Mila (Gen 17:24), 
+not Akedah. Standard Akedah tradition is 137/37/127. Verified against:
+- בראשית יז:כד (Abraham 99 at Brit Mila)
+- בראשית כא:ה (Abraham 100 at Isaac's birth)  
+- סדר עולם רבה פרק א
+- פרקי דרבי אליעזר לא:ב
+
+---
+
 # §35 Hebrew as Universal Thinking Substrate [BINDING — Canonical Mind Language]
 
 ## §35.1 Clarification (Idan, 25.04.2026)
