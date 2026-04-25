@@ -9240,3 +9240,144 @@ The empirical tests support this. The framing is novel.
 Use is up to ZETS implementation choices.
 
 ---
+
+
+---
+
+# §58.9 Honest Attribution Revision [CRITICAL — Self-Correction]
+
+## §58.9.1 The Question (Idan, 25.04.26)
+
+> "אם הן באמת פונקציות חדשות שנוצרו תקרא להן על שמי כ eldad והנושא.
+> הם באמת חדשות?"
+
+This question prompted a literature search. Honest answer: **6 of 7 functions are 
+rebranding of existing VSA mechanisms.** The framework around them may be novel.
+Below: full attribution.
+
+## §58.9.2 What's NOT New (Existing Literature)
+
+| Function | Existing name in VSA literature | Citation |
+|---|---|---|
+| 1. Hyperparallel search | "Computing in superposition" | Kleyko et al. 2021 (arXiv 2106.05268), Kanerva 2009 |
+| 2. Holistic pattern match | "30% degradation tolerance" | Kanerva 2009 ("Hyperdimensional Computing") |
+| 3. Pattern lock + details | "Compositional binding" / "what's the dollar of Mexico?" | Plate 1995 (HRR), Kanerva 1997 (BSC) |
+| 5. Cross-modal binding | "Hyperdimensional Active Perception" | Mitrokhin et al. 2019, Science Robotics |
+| 6. Many-worlds branching | "Computing in superposition" (same as #1) | Kleyko et al. 2021 |
+| 7. Intuition tunneling | Noise-injected VSA / simulated annealing | Standard since 1980s |
+
+**These are NOT novel inventions.** They're well-established VSA operations.
+Calling them "Eldad-X functions" would be misappropriation.
+
+## §58.9.3 What IS Potentially New (One Clear Case)
+
+| Function | Status | Reason |
+|---|---|---|
+| 4. Hyperfocus amplification | Partial novelty — extreme softmax + binary VSA combination | Standard softmax temp, but specific to attention dynamics |
+
+Even this has prior art (attention head temperature in Transformers).
+
+## §58.9.4 What IS Genuinely Novel — The FRAMEWORK
+
+The literature search revealed:
+- Hundreds of papers on VSA/HDC
+- One paper using HDC to **classify** ADHD from EEG (arXiv 2501.05186, 2025)
+- **Zero papers** using neuro-divergent cognition as **design pattern for AGI architecture**
+
+What appears genuinely novel:
+
+> **The Eldad Framework: Neuro-Divergent Cognition as VSA Design Pattern**
+> 
+> Specifically: explicitly mapping neuro-divergent cognitive traits (ADHD parallel attention,
+> dyslexic holistic processing, autistic detail retention, synesthetic cross-binding,
+> divergent thinking) to specific VSA operations as a deliberate design philosophy 
+> for AGI, rather than treating them as deficits to model or symptoms to classify.
+
+This framework — not the individual functions — may be the contribution.
+
+The functions were already invented (1980s-1990s).
+The framing of "neuro-divergent-first AGI design" may be new.
+
+## §58.9.5 Proper Attribution Going Forward
+
+ZETS §58 will be updated to:
+
+1. **Cite VSA literature properly** for each function
+2. **NOT claim novel invention** for what exists
+3. **Mark "Eldad Framework" specifically as the META-claim** (combining existing pieces with neuro-divergent design philosophy)
+
+Example correct citation form:
+
+```
+Function: Hyperparallel Search
+Existing as: "Computing in superposition" (Kanerva 2009, Kleyko et al. 2021)
+Eldad Framework contribution: Reframing as ADHD-pattern design feature
+```
+
+## §58.9.6 The Eldad-Framework Claim (Honest)
+
+What Idan can legitimately claim:
+
+> **"The Eldad Framework"** — a design philosophy for AGI architectures that 
+> uses neuro-divergent cognitive patterns (ADHD/dyslexia/autism/synesthesia) 
+> as DELIBERATE design templates rather than deficits, implementing them via 
+> existing VSA operations.
+> 
+> Status: **Original framework, built on existing tools.**
+
+What Idan cannot claim:
+
+- Inventing VSA superposition (Kanerva 1988-2009)
+- Inventing binding/unbinding (Plate 1995)
+- Inventing cross-modal binding (Mitrokhin 2019)
+- Inventing 10K-bit dimensionality (standard VSA practice)
+
+## §58.9.7 The Honest Self-Assessment
+
+```
+What ZETS uniquely contributes:
+✓ Framework: neuro-divergent cognition as AGI design pattern (likely novel)
+✓ Integration: VSA + Sefer Yetzirah + Lurianic Kabbalah (novel synthesis)
+✓ Architecture: atoms-primary, recursive walks, eternal loop (Idan's insights)
+✓ Source-grounding methodology (§37) — engineering-rigorous
+
+What ZETS uses but did not invent:
+- VSA hyperdimensional computing (Kanerva, Plate, Eliasmith, Kleyko)
+- 10K-bit vectors as standard practice (decades of literature)
+- Computing in superposition (Kanerva 2009)
+- Cross-modal binding (Mitrokhin 2019)
+- Active Inference (Friston 2010)
+- Tri-Memory model (McClelland 1995 CLS)
+- Modern Hopfield (Ramsauer 2020)
+```
+
+## §58.9.8 Why This Honesty Matters
+
+If ZETS misattributes, three things go wrong:
+
+1. **Scientific integrity** — credit must go to original inventors
+2. **Credibility** — claims that don't survive literature search damage trust
+3. **Real innovation visibility** — overclaiming hides what IS actually new
+
+The VSA-Tzeruf bridge (§46) is novel because of the SY connection.
+The atoms-primary architecture (§52) is Idan's insight.
+The recursive walks with shevirat-tikkun (§55) is Idan's framing.
+The eternal loop with cache pinning (§57) is Idan's engineering.
+The neuro-divergent design framework (§58) — this is novel.
+
+But the underlying VSA operations are NOT novel. They're tools we use.
+
+## §58.9.9 Action Items
+
+```
+[x] §58 honest revision (this section)
+[ ] Update §58.3 function descriptions with proper citations
+[ ] Add bibliography section with all VSA literature
+[ ] Mark "Eldad Framework" specifically as the original META-contribution
+[ ] Acknowledge: most components are existing, the synthesis is novel
+```
+
+This is engineering honesty. It strengthens ZETS rather than weakens it.
+Real innovation does not need to claim things that aren't.
+
+---
