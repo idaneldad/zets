@@ -1,0 +1,47 @@
+{
+  "iter": 2,
+  "date": "2026-04-25",
+  "spec_chars": 66976,
+  "models": [
+    "gemini_pro",
+    "qwen_25_72b",
+    "llama33",
+    "deepseek_r1",
+    "gpt5_mini",
+    "gpt5",
+    "claude_opus47"
+  ],
+  "ok_count": 5,
+  "total_chars": 23526,
+  "focus": "\u00a728-\u00a743 \u2014 sections not validated in Iter 1",
+  "results": {
+    "gemini_pro": {
+      "ok": false,
+      "time": 0.5838437080383301
+    },
+    "qwen_25_72b": {
+      "ok": false,
+      "time": 1.2728636264801025
+    },
+    "llama33": {
+      "ok": true,
+      "time": 14.332351684570312
+    },
+    "deepseek_r1": {
+      "ok": true,
+      "time": 39.776853799819946
+    },
+    "gpt5_mini": {
+      "ok": true,
+      "time": 47.696226596832275
+    },
+    "gpt5": {
+      "ok": true,
+      "time": 69.08634161949158
+    },
+    "claude_opus47": {
+      "ok": true,
+      "time": 91.8825888633728
+    }
+  }
+}
