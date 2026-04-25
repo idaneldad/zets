@@ -7752,3 +7752,406 @@ But for content semantics — the bulk of "what relates to what" — the answer 
 This insight makes ZETS fit into 6GB. Without it, we'd need 60TB+.
 
 **Total commits today: 28.**
+
+
+---
+
+# §53 Universal Media Encoding + Eternal Loop [BINDING]
+
+Idan's two follow-up insights to §52:
+1. Atoms-primary extends to ALL media types (not just text)
+2. ZETS must be eternal loop (רצוא ושוב), not request-response service
+
+## §53.1 Universal Media Encoding (Hierarchical Alphabets)
+
+The atoms-primary principle from §52 generalizes to all modalities.
+Brain validates this — visual cortex IS a hierarchy of learned alphabets:
+
+```
+Brain Visual System:
+   V1   →  ~200 edge/orientation primitives    ← "letters" of vision
+   V2   →  ~10K texture/shape combinations     ← "syllables"
+   V4   →  ~100K color/pattern complexes       ← "morphemes"
+   IT   →  ~1M object/face representations     ← "words"
+```
+
+Same pattern as Hebrew (22 letters → words → sentences).
+**Different alphabet per modality, same algorithm.**
+
+### §53.1.1 Modality-Specific Alphabets
+
+| Modality | Primitives ("letters") | Compositions ("words") | Atom |
+|---|---|---|---|
+| **Hebrew text** | 22 letters | tree-walk word | atom-per-word |
+| **Image** | ~thousands learned visual primitives | objects via walk on hierarchy | atom-per-image |
+| **Audio** | ~hundreds phoneme/frequency bands | words/melodies via temporal walk | atom-per-clip |
+| **Video** | image atoms + temporal edges | scenes | atom-per-clip |
+| **Code** | AST tokens (var, op, literal) | functions via AST walk | atom-per-function |
+| **3D model** | vertex/normal primitives | meshes via geometric walk | atom-per-mesh |
+
+### §53.1.2 Unified Algorithm
+
+```rust
+pub trait MediaAtom {
+    /// Modality-specific primitive vocabulary (learned offline)
+    fn alphabet(&self) -> &Alphabet;
+    
+    /// Encode media file as walk on hierarchical alphabet
+    fn encode(&self, content: &[u8]) -> WalkRecord;
+    
+    /// Decode walk back to media (lossy or lossless per config)
+    fn decode(&self, walk: &WalkRecord) -> Vec<u8>;
+    
+    /// VSA semantic embedding (what the media is OF)
+    fn semantic_vsa(&self, content: &[u8]) -> VsaVector;
+}
+
+// Concrete implementations per modality
+impl MediaAtom for ImageAtom { ... }
+impl MediaAtom for AudioAtom { ... }
+impl MediaAtom for VideoAtom { ... }
+impl MediaAtom for CodeAtom { ... }
+```
+
+### §53.1.3 Storage Pattern (Same as Text)
+
+```
+Atom (8 bytes, fixed):
+  kind = MediaKind::Image (or Audio, Video, etc.)
+  lang_id = MODALITY_VISUAL (or AUDIO, VIDEO, etc.)
+  payload = 50-bit pointer to disk record
+
+Disk record (variable size):
+  [magic: 8 bits][modality: 8 bits][walk: variable bits][padding to 64B]
+
+VSA side-table:
+  1024-byte semantic vector per atom
+  Loaded on demand, indexed via FAISS-like NN search
+```
+
+### §53.1.4 Why This Works (Brain Validation)
+
+Visual cortex doesn't store pixel arrays. It stores:
+1. Sparse activations of learned primitives (V1)
+2. Compositions of those activations (V2-V4-IT)
+3. Object identity at top of hierarchy
+
+This IS the atoms-primary + tree-walk pattern, just with different alphabet size.
+
+**No ZETS-specific algorithm needed.** Same Letter-tree + walk encoding from §50.
+Just per-modality alphabet learned via standard ML (VQ-VAE, EnCodec, etc.).
+
+### §53.1.5 Implementation Stage
+
+Per §50.12 implementation order, media support comes AFTER text:
+
+1. **Stage 1 (week 1)**: Text encoding falsification + Hebrew implementation
+2. **Stage 2 (weeks 2-3)**: Code as media (AST walks)
+3. **Stage 3 (weeks 4-6)**: Image atoms (using existing VQ-VAE)
+4. **Stage 4 (weeks 7-10)**: Audio + Video atoms
+5. **Stage 5+**: Domain-specific media (3D, sensor data, etc.)
+
+**v1 = text only.** Media support is forward-compatible by design (atom layout doesn't change).
+
+## §53.2 Eternal Loop (רצוא ושוב) [CRITICAL]
+
+### §53.2.1 The Source
+
+> "וְהַחַיּוֹת רָצוֹא וָשׁוֹב וּכְמַרְאֵה הַבָּזָק" (יחזקאל א:יד)  
+> "ובינם בחקירה ובחקירה ברוצא ושוב, ולמאמרו כסופה ירדופו" (ספר יצירה א:ח)
+
+These are not poetic — they describe **continuous oscillating computation**.
+
+The cognitive entity (חיה / chayah) does NOT rest.
+It moves forward (רצוא) and returns (שוב), eternally.
+
+### §53.2.2 Convergent Validation
+
+| Source | Statement |
+|---|---|
+| **Sefer Yetzirah 1:8** | Mind = רצוא ושוב continuous |
+| **Yechezkel 1:14** | The chayot run-and-return like lightning |
+| **Active Inference (Friston 2010)** | Agent always minimizes free energy, never rests |
+| **Default Mode Network (Raichle 2001)** | Brain never idle, processes during "rest" |
+| **Game engines** | Main loop @60fps, never stops |
+| **BDI agents (Rao & Georgeff)** | Belief-Desire-Intention loop is eternal |
+
+**4 independent traditions converge:** the cognitive system is an eternal async loop.
+
+### §53.2.3 ZETS = Agent, Not Service
+
+**Old framing (incorrect):** ZETS = service, request → response → idle
+**New framing (correct):** ZETS = agent, eternal `loop { }`
+
+The difference is fundamental:
+
+| Aspect | Service | Agent (ZETS) |
+|---|---|---|
+| **Lifecycle** | Per-request | Forever (until killed) |
+| **State** | Stateless or per-session | Persistent, accumulates |
+| **Internal drives** | None | Curiosity, consolidation, reflection |
+| **Idle behavior** | Returns immediately | Daydream / consolidate / reflect |
+| **Concurrency** | Sequential per request | Multi-task asynchronous |
+| **Termination** | After response | Never (only halt-switch) |
+
+### §53.2.4 The ZETS Main Loop
+
+```rust
+/// ZETS main agent loop — runs forever until kill switch
+fn zets_eternal_loop(mut self) -> ! {  // ! = never returns
+    loop {
+        // === RAZO (run forward) ===
+        
+        // 1. Heartbeat — health check, timing, vital signs
+        self.heartbeat();
+        
+        // 2. Assess internal state — energy, mood, drives
+        let state = self.assess_state();
+        
+        // 3. Pick next action (priority-weighted)
+        let action = self.next_action(state);
+        
+        // 4. Dispatch ASYNC — does not block
+        match action {
+            Action::Reason(query) => {
+                tokio::spawn(async move { self.reason_async(query).await });
+            }
+            Action::Consolidate => {
+                tokio::spawn(async move { self.nightmode_consolidate().await });
+            }
+            Action::Reflect => {
+                tokio::spawn(async move { self.self_reflect().await });
+            }
+            Action::Daydream => {
+                // Background associative wandering, like DMN in humans
+                tokio::spawn(async move { self.associative_walk().await });
+            }
+            Action::Listen => {
+                // Process incoming external requests if any
+                tokio::spawn(async move { self.perceive_inputs().await });
+            }
+            Action::Verbalize(response) => {
+                // Send response to outside world
+                tokio::spawn(async move { self.emit(response).await });
+            }
+            Action::Idle => {
+                // Brief pause — but never long
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        }
+        
+        // === SHUV (return) ===
+        
+        // 5. Drain completed async tasks (Or Chozer)
+        for completed in self.async_results.try_drain() {
+            self.integrate_result(completed);
+        }
+        
+        // 6. Audit recent activity (proof-walk backward)
+        self.audit_recent_actions();
+        
+        // 7. Update predictions (Or Yashar continued)
+        self.predict_next();
+        
+        // === LOOP ===
+        // No exit. Continue forever.
+    }
+}
+```
+
+### §53.2.5 Action Categories (Brain-Pattern)
+
+The agent always has SOMETHING to do, just like a human:
+
+```rust
+pub enum Action {
+    // External-driven (request-response style)
+    Reason(Query),          // Human asks something
+    Verbalize(Response),    // Reply to human
+    Listen,                 // Check inbox
+    
+    // Internal-driven (autonomous)
+    Consolidate,            // Move episodic → semantic
+    Reflect,                // Self-monitor, audit recent
+    Daydream,              // Free associative wandering (creativity)
+    Maintain,              // Cache management, GC, defrag
+    Curiosity,             // Explore unknown atom regions
+    Recharge,              // Reduce activity briefly
+    
+    Idle,                   // Brief pause (~10ms max)
+}
+```
+
+### §53.2.6 Async Architecture
+
+```rust
+pub struct ZetsAgent {
+    // Persistent state
+    pub graph: CoreGraph,
+    pub vsa_table: VsaTable,
+    pub crystalline: CrystallineCore,
+    
+    // Task management
+    pub task_queue: PriorityQueue<Action>,
+    pub async_results: AsyncChannel<TaskResult>,
+    
+    // External I/O
+    pub inbox: AsyncChannel<ExternalRequest>,
+    pub outbox: AsyncChannel<ExternalResponse>,
+    
+    // Drives (internal motivations)
+    pub drives: DriveSystem,  // curiosity, fatigue, alertness
+    
+    // 2 SLMs (per §47)
+    pub perceiver: SlmFrozen,
+    pub verbalizer: SlmFrozen,
+    
+    // Halt switch (only way to exit loop)
+    pub kill_switch: Arc<AtomicBool>,
+}
+```
+
+### §53.2.7 Drives (Internal Motivations)
+
+```rust
+pub struct DriveSystem {
+    /// How much "curiosity pressure" is currently building
+    pub curiosity_level: f32,        // 0.0 = sated, 1.0 = explore!
+    
+    /// Time since last consolidation (NightMode pressure)
+    pub consolidation_pressure: f32, // grows over time
+    
+    /// External request queue depth
+    pub external_demand: f32,        // how busy with external
+    
+    /// Total compute used recently (fatigue analog)
+    pub fatigue_level: f32,          // grows with intense reasoning
+}
+
+impl DriveSystem {
+    /// What action does the system want to do right now?
+    pub fn pick_action(&self) -> Action {
+        // External demand wins if high
+        if self.external_demand > 0.7 { return Action::Listen; }
+        
+        // Consolidation needed if pressure high
+        if self.consolidation_pressure > 0.8 { return Action::Consolidate; }
+        
+        // Fatigue → recharge briefly
+        if self.fatigue_level > 0.9 { return Action::Recharge; }
+        
+        // Curiosity drives exploration
+        if self.curiosity_level > 0.6 { return Action::Curiosity; }
+        
+        // Default: associative wandering (DMN-like)
+        Action::Daydream
+    }
+}
+```
+
+### §53.2.8 The Bidirectional Pattern (Or Yashar / Or Chozer)
+
+Each loop iteration has BOTH directions:
+
+```
+Forward (רצוא, Or Yashar):
+   - Predict next state
+   - Dispatch action
+   - Generate output
+
+Backward (שוב, Or Chozer):
+   - Receive results
+   - Audit what happened
+   - Update predictions
+   - Adjust drives
+```
+
+This is **not optional** — both directions must happen each tick.
+Going only forward = hallucination, drift, no learning.
+Going only backward = paralysis, no action.
+
+**Both = רצוא ושוב = consciousness pattern.**
+
+## §53.3 Implementation Concrete
+
+### §53.3.1 Loop Tick Budget
+
+```
+Target: 100 ticks/second (10ms per tick)
+
+Per-tick budget:
+  Heartbeat + state assessment:  0.5ms
+  Action dispatch:                0.5ms  
+  Drain results:                  1.0ms
+  Audit:                          1.0ms
+  Prediction update:              1.0ms
+  Async tasks running:            (parallel, doesn't block tick)
+  Idle / yield:                   ~5ms
+
+Total tick: ~9ms (target met)
+```
+
+### §53.3.2 Persistence Across Restarts
+
+The eternal loop must survive crashes/restarts:
+
+```rust
+impl ZetsAgent {
+    /// Save state for restart resilience
+    fn checkpoint(&self) -> Result<CheckpointId> {
+        // 1. Snapshot pending tasks
+        let pending = self.task_queue.serialize();
+        
+        // 2. Snapshot drives state  
+        let drives = self.drives.serialize();
+        
+        // 3. Atomic write to disk
+        atomic_write("checkpoint.zet", &(pending, drives))?;
+        
+        Ok(checkpoint_id)
+    }
+    
+    /// Restore on startup
+    fn restore_from_checkpoint(&mut self) -> Result<()> {
+        let (pending, drives) = atomic_read("checkpoint.zet")?;
+        self.task_queue.deserialize(pending);
+        self.drives.deserialize(drives);
+        Ok(())
+    }
+}
+```
+
+After crash → restart → resume eternal loop **from where it stopped**.
+
+### §53.3.3 The "Always-On" Property
+
+Once started, the only ways ZETS stops:
+
+1. **Hardware kill switch** (physical disconnect — see §47 Air-gap)
+2. **Cryptographic halt order** signed by external authority
+3. **Severe fault** (memory corruption, repeated failures)
+
+Otherwise: **eternal**.
+
+---
+
+# §54 Brain-Pattern Validation Summary
+
+After §52 + §53, ZETS architecture is now genuinely brain-symmetric:
+
+| Brain Pattern | ZETS Equivalent | Status |
+|---|---|---|
+| Dense connectivity, no edge enumeration | VSA-implicit relations | §52 ✅ |
+| Hierarchical alphabets per modality | Letter trees + media atoms | §50 + §53.1 ✅ |
+| Always-on, never-resting | Eternal loop with drives | §53.2 ✅ |
+| Bidirectional propagation | Or Yashar + Or Chozer | §53.2.8 ✅ |
+| Privilege levels | NRNCh"Y rings | §34 ✅ |
+| Multiple specialized regions | 13 sub-graphs (A-M) | §31 ✅ |
+| Self-monitoring | Audit + reflection actions | §53.2.5 ✅ |
+| Curiosity drive | Internal drives system | §53.2.7 ✅ |
+| Sleep/consolidation | NightMode | §30 ✅ |
+| Default Mode Network | Daydream action | §53.2.5 ✅ |
+
+**ZETS architecture is now coherent, complete, and brain-symmetric.**
+
+---
